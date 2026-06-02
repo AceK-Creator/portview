@@ -5,3 +5,4 @@ server.pid
 browser_errors.log
 *.tsbuildinfo
 vite.config.d.ts
+token.txt

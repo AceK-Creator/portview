@@ -23,13 +23,13 @@ export default defineConfig({
                 scope: '/portview/',
                 icons: [
                     {
-                        src: '/portview-icon-192.png',
+                        src: 'portview-icon-192.png',
                         sizes: '192x192',
                         type: 'image/png',
                         purpose: 'any maskable',
                     },
                     {
-                        src: '/portview-icon-512.png',
+                        src: 'portview-icon-512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'any maskable',
