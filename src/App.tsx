@@ -2,6 +2,7 @@ import {
   ChevronDown,
   ChevronRight,
   Download,
+  Eye,
   EyeOff,
   Lock,
   LogOut,
@@ -270,10 +271,14 @@ function AppHeader({
   activeMenu,
   onChangeMenu,
   onLogout,
+  secretMode,
+  onToggleSecret,
 }: {
   activeMenu: MenuKey;
   onChangeMenu: (menu: MenuKey) => void;
   onLogout: () => void;
+  secretMode: boolean;
+  onToggleSecret: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
@@ -356,6 +361,17 @@ function AppHeader({
             )}
             <div className="menu-logout-divider" />
             <button
+              className={`menu-secret-btn${secretMode ? ' active' : ''}`}
+              type="button"
+              onClick={() => {
+                onToggleSecret();
+                setOpen(false);
+              }}
+            >
+              {secretMode ? <Eye size={15} /> : <EyeOff size={15} />}
+              {secretMode ? '시크릿 해제' : '시크릿 모드'}
+            </button>
+            <button
               className="menu-logout-btn"
               type="button"
               onClick={() => {
@@ -382,15 +398,15 @@ function SummaryStrip({
     <section className="summary-strip" aria-label="계좌 요약">
       <div>
         <span>현재총자산</span>
-        <strong>{currency(summary.currentTotalAssets)}</strong>
+        <strong><span className="secret-value">{currency(summary.currentTotalAssets)}</span></strong>
       </div>
       <div>
         <span>총투입 대비 손익</span>
-        <strong className={tone(summary.totalProfitLoss)}>{signedCurrency(summary.totalProfitLoss)}</strong>
+        <strong className={tone(summary.totalProfitLoss)}><span className="secret-value">{signedCurrency(summary.totalProfitLoss)}</span></strong>
       </div>
       <div>
         <span>총투입 대비 수익률</span>
-        <strong className={tone(summary.totalReturnRate)}>{percent(summary.totalReturnRate)}</strong>
+        <strong className={tone(summary.totalReturnRate)}><span className="secret-value">{percent(summary.totalReturnRate)}</span></strong>
       </div>
     </section>
   );
@@ -441,15 +457,15 @@ function HoldingTable({
               {row.quoteError && <em>{row.quoteError}</em>}
             </div>
             <div className="metrics-grid">
-              <div>{numberText(row.shares, '주')}</div>
-              <div>{currency(row.averagePrice)}</div>
-              <div className={tone(row.profitLoss)}>{signedCurrency(row.profitLoss)}</div>
-              <div>{currency(row.investedAmount)}</div>
+              <div><span className="secret-value">{numberText(row.shares, '주')}</span></div>
+              <div><span className="secret-value">{currency(row.averagePrice)}</span></div>
+              <div className={tone(row.profitLoss)}><span className="secret-value">{signedCurrency(row.profitLoss)}</span></div>
+              <div><span className="secret-value">{currency(row.investedAmount)}</span></div>
               <div className={row.change != null ? tone(row.change) : ''}>{row.change != null ? signedCurrency(row.change) : '-'}</div>
-              <div>{plainPercent(row.weight)}</div>
+              <div><span className="secret-value">{plainPercent(row.weight)}</span></div>
               <div>{currency(row.currentPrice)}</div>
-              <div className={tone(row.returnRate)}>{percent(row.returnRate)}</div>
-              <div>{currency(row.marketValue)}</div>
+              <div className={tone(row.returnRate)}><span className="secret-value">{percent(row.returnRate)}</span></div>
+              <div><span className="secret-value">{currency(row.marketValue)}</span></div>
               <div className={row.changeRate != null ? tone(row.changeRate) : ''}>{row.changeRate != null ? percent(row.changeRate) : '-'}</div>
             </div>
             <div className="row-actions">
@@ -776,22 +792,24 @@ function AccountView({
         </button>
       </div>
       <div className="account-metrics">
-        <Metric label="총 평가금액" value={currency(summary.totalMarketValue)} />
-        <Metric label="현재총자산" value={currency(summary.currentTotalAssets)} />
+        <Metric label="총 평가금액" value={currency(summary.totalMarketValue)} secret />
+        <Metric label="현재총자산" value={currency(summary.currentTotalAssets)} secret />
         <Metric label="투입금대비 예수금비율" value={plainPercent(summary.cashRatio)} />
-        <Metric label="총투입 대비 손익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} />
-        <Metric label="총투입 대비 수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} />
+        <Metric label="총투입 대비 손익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret />
+        <Metric label="총투입 대비 수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret />
 
       </div>
     </section>
   );
 }
 
-function Metric({ label, value, tone: metricTone }: { label: string; value: string; tone?: string }) {
+function Metric({ label, value, tone: metricTone, secret }: { label: string; value: string; tone?: string; secret?: boolean }) {
   return (
     <div className="metric">
       <span>{label}</span>
-      <strong className={metricTone}>{value}</strong>
+      <strong className={metricTone}>
+        {secret ? <span className="secret-value">{value}</span> : value}
+      </strong>
     </div>
   );
 }
@@ -1200,7 +1218,7 @@ function DividendSummaryTab({
       {/* 1. 누적 배당금 카드 */}
       <div className="dividend-section">
         <div className="dividend-stat-label">누적 배당금 합계</div>
-        <div className="dividend-stat-value-xl">{currency(totalAll)}</div>
+        <div className="dividend-stat-value-xl"><span className="secret-value">{currency(totalAll)}</span></div>
         <div className="dividend-stat-sub">총 {dividends.length}건</div>
       </div>
 
@@ -1208,11 +1226,11 @@ function DividendSummaryTab({
       <div className="dividend-two-col">
         <div className="dividend-section">
           <div className="dividend-stat-label">{prevYear}년 (실제)</div>
-          <div className="dividend-stat-value">{currency(prevYearTotal)}</div>
+          <div className="dividend-stat-value"><span className="secret-value">{currency(prevYearTotal)}</span></div>
         </div>
         <div className="dividend-section">
           <div className="dividend-stat-label">{currentYear}년(예상/월평균배당금×12)</div>
-          <div className="dividend-stat-value">{currency(thisYearEstimated)}</div>
+          <div className="dividend-stat-value"><span className="secret-value">{currency(thisYearEstimated)}</span></div>
         </div>
       </div>
 
@@ -1379,9 +1397,9 @@ function DividendSummaryTab({
             </select>
           </div>
         </div>
-        <div className="dividend-stat-value">{currency(selMonthTotal)}</div>
+        <div className="dividend-stat-value"><span className="secret-value">{currency(selMonthTotal)}</span></div>
         <div className={`dividend-month-diff ${monthDiff > 0 ? 'gain' : monthDiff < 0 ? 'loss' : ''}`}>
-          전월 대비 {monthDiff === 0 ? '±0원' : signedCurrency(monthDiff)}
+          전월 대비 <span className="secret-value">{monthDiff === 0 ? '±0원' : signedCurrency(monthDiff)}</span>
         </div>
       </div>
 
@@ -1416,7 +1434,7 @@ function DividendSummaryTab({
                   />
                 </div>
               </div>
-              <span className="top5-amount">{currency(total)}</span>
+              <span className="top5-amount secret-value">{currency(total)}</span>
             </div>
           ))
         )}
@@ -1805,7 +1823,7 @@ function DividendRecordsTab({
             <div className="dividend-record-row" key={d.id}>
               <span className="record-date">{d.paidAt}</span>
               <span className="record-name">{d.stockName}</span>
-              <span className="record-amount">{currency(d.amount)}</span>
+              <span className="record-amount secret-value">{currency(d.amount)}</span>
               <button
                 aria-label={`${d.stockName} 배당 삭제`}
                 className="record-delete"
@@ -1825,7 +1843,7 @@ function DividendRecordsTab({
 
       {/* 하단 고정 요약 바 */}
       <div className="dividend-summary-bar">
-        <span>합계 <strong>{currency(filteredTotal)}</strong></span>
+        <span>합계 <strong><span className="secret-value">{currency(filteredTotal)}</span></strong></span>
         <span>총 <strong>{filtered.length}건</strong></span>
       </div>
 
@@ -1898,6 +1916,7 @@ export default function App() {
   const [data, setData] = useState<AppData>(() => loadData());
   const [unlocked, setUnlocked] = useState(false);
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
+  const [secretMode, setSecretMode] = useState(false);
 
   const rows = useMemo(() => calculateHoldingRows(data.holdings), [data.holdings]);
   const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);
@@ -1919,9 +1938,9 @@ export default function App() {
       {!unlocked ? (
         <LoginScreen password={data.password} onSuccess={() => setUnlocked(true)} />
       ) : (
-      <main className="app-shell">
+      <main className={`app-shell${secretMode ? ' secret-mode' : ''}`}>
       <InstallBanner />
-      <AppHeader activeMenu={activeMenu} onChangeMenu={setActiveMenu} onLogout={() => setUnlocked(false)} />
+      <AppHeader activeMenu={activeMenu} onChangeMenu={setActiveMenu} onLogout={() => setUnlocked(false)} secretMode={secretMode} onToggleSecret={() => setSecretMode((v) => !v)} />
       {activeMenu === 'live' && (
         <LiveView data={data} rows={rows} summary={summary} onDataChange={persist} />
       )}

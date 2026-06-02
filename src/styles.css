@@ -1451,3 +1451,38 @@ label {
     padding: 10px 12px;
   }
 }
+
+/* ─── Secret Mode ──────────────────────────────────────────────────────────── */
+
+.secret-value {
+  transition: filter 0.3s ease;
+}
+.secret-mode .secret-value {
+  filter: blur(7px);
+  user-select: none;
+}
+
+.menu-secret-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #7fa9db;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: left;
+}
+.menu-secret-btn:hover {
+  background: rgba(124, 77, 255, 0.12);
+  color: #c9e0ff;
+}
+.menu-secret-btn.active {
+  color: #7c4dff;
+  background: rgba(124, 77, 255, 0.18);
+}
