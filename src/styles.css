@@ -1456,6 +1456,11 @@ label {
 
 .secret-value {
   transition: filter 0.3s ease;
+  color: inherit;
+}
+.summary-strip strong .secret-value,
+.metric strong .secret-value {
+  color: inherit;
 }
 .secret-mode .secret-value {
   filter: blur(7px);
