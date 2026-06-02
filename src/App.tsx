@@ -243,7 +243,7 @@ function LoginScreen({
     <main className="login-screen">
       <form className="login-panel" onSubmit={submit}>
         <div className="login-mark">
-          <img src="/portview-icon-192.png" alt="PortView" className="login-icon" />
+          <img src={`${import.meta.env.BASE_URL}portview-icon-192.png`} alt="PortView" className="login-icon" />
         </div>
         <h1>PortView</h1>
         <p>Enter your 4-digit PIN to continue.</p>
