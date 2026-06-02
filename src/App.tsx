@@ -1220,7 +1220,7 @@ function DividendSummaryTab({
       {/* 1. 누적 배당금 카드 */}
       <div className="dividend-section">
         <div className="dividend-stat-label">누적 배당금 합계</div>
-        <div className="dividend-stat-value-xl"><span className="secret-value">{currency(totalAll)}</span></div>
+        <div className="dividend-stat-value-xl secret-value">{currency(totalAll)}</div>
         <div className="dividend-stat-sub">총 {dividends.length}건</div>
       </div>
 
