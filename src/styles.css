@@ -807,7 +807,8 @@ label {
 
 .account-panel {
   display: grid;
-  gap: 16px;
+  gap: 40px;
+  padding-top: 20px;
 }
 
 .password-panel {
