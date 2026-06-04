@@ -458,12 +458,12 @@ input:focus {
   background: rgba(11, 31, 56, 0.88);
 }
 
-.summary-strip span,
-.metric span {
+.summary-strip > span,
+.metric > span {
   display: block;
   margin-bottom: 6px;
   color: #95abc6;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -783,8 +783,10 @@ label {
   gap: 10px;
 }
 
-.account-metrics .metric strong {
-  font-size: clamp(20px, 5.5vw, 26px) !important;
+.account-metrics .metric strong,
+.account-panel .metric strong {
+  font-size: clamp(18px, 5vw, 23px) !important;
+  font-weight: 800 !important;
 }
 
 .install-banner {
