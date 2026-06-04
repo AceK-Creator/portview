@@ -548,7 +548,8 @@ input:focus {
 }
 
 .table-header,
-.holding-row {
+.holding-row,
+.holdings-summary-row {
   display: grid;
   grid-template-columns: 120px 503px 44px;
   align-items: stretch;
@@ -559,6 +560,7 @@ input:focus {
   background: #0d2543;
   font-size: 12px;
   font-weight: 800;
+  border-bottom: 1px solid rgba(145, 181, 220, 0.22);
 }
 
 .name-heading {
@@ -611,22 +613,13 @@ input:focus {
   justify-content: center;
   gap: 4px;
   padding: 8px 10px;
+  border-top: 1px solid rgba(145, 181, 220, 0.22);
   border-right: 1px solid rgba(145, 181, 220, 0.14);
   position: sticky;
   left: 0;
   z-index: 10;
   background: #08182d;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-}
-
-.holding-name::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(145, 181, 220, 0.22);
 }
 
 .holding-name strong {
@@ -668,15 +661,13 @@ input:focus {
 }
 
 .holdings-summary-row {
-  display: grid;
-  grid-template-columns: 120px 503px 44px;
-  align-items: stretch;
   height: 62px;
-  border-top: 2px solid rgba(145, 181, 220, 0.4);
+  border-top: 1px solid rgba(145, 181, 220, 0.22);
   background: rgba(13, 37, 67, 0.95);
 }
 
 .summary-label {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -684,6 +675,7 @@ input:focus {
   font-weight: 800;
   color: #adc4df;
   letter-spacing: 0.5px;
+  border-top: 1px solid rgba(145, 181, 220, 0.22);
   border-right: 1px solid rgba(145, 181, 220, 0.14);
   position: sticky;
   left: 0;
