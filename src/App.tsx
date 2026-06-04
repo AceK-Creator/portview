@@ -1100,7 +1100,7 @@ function RealizedGainsView({
       <div className="rg-toolbar">
         <button
           className="primary-button"
-          style={{ flex: 1 }}
+          style={{ flex: 1, backgroundSize: '300% 100%', backgroundPosition: '0% 0%' }}
           type="button"
           onClick={() => setShowAddModal(true)}
         >
@@ -1108,7 +1108,8 @@ function RealizedGainsView({
           실현손익 추가
         </button>
         <button
-          className="ghost-button"
+          className="primary-button"
+          style={{ backgroundSize: '300% 100%', backgroundPosition: '100% 0%' }}
           type="button"
           onClick={() => setShowRgCsvGuide(true)}
         >
@@ -1605,7 +1606,7 @@ function DividendSummaryTab({
           <div className="dividend-stat-value"><span className="secret-value">{currency(prevYearTotal)}</span></div>
         </div>
         <div className="dividend-section">
-          <div className="dividend-stat-label">{currentYear}년(예상/월평균배당금×12)</div>
+          <div className="dividend-stat-label">{currentYear}년 (예상)</div>
           <div className="dividend-stat-value"><span className="secret-value">{currency(thisYearEstimated)}</span></div>
         </div>
       </div>
