@@ -38,8 +38,8 @@ type GroupMenuItem = { kind: 'group'; label: string; children: Array<{ key: Menu
 type MenuItem = FlatMenuItem | GroupMenuItem;
 
 const menuItems: MenuItem[] = [
-  { kind: 'item', key: 'live', label: '실시간 종목 현황' },
-  { kind: 'item', key: 'account', label: '자산 현황' },
+  { kind: 'item', key: 'live', label: '실시간 잔고' },
+  { kind: 'item', key: 'account', label: '자산현황' },
   { kind: 'item', key: 'dividend', label: '배당관리' },
   { kind: 'item', key: 'realized-gains', label: '실현손익현황' },
   { kind: 'item', key: 'password', label: '비밀번호 변경' },
@@ -147,7 +147,7 @@ function findMenuLabel(key: MenuKey): string {
       if (child) return child.label;
     }
   }
-  return '실시간 종목 현황';
+  return '실시간 잔고';
 }
 
 
@@ -1032,6 +1032,9 @@ function RealizedGainsView({
 }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [top5Type, setTop5Type] = useState<'gain' | 'loss'>('gain');
+  const [rgCsvRows, setRgCsvRows] = useState<RgCsvRow[] | null>(null);
+  const [showRgCsvGuide, setShowRgCsvGuide] = useState(false);
+  const rgCsvInputRef = useRef<HTMLInputElement>(null);
   const records = data.realizedGains ?? [];
 
   const thisYear = new Date().getFullYear();
@@ -1066,18 +1069,60 @@ function RealizedGainsView({
     onDataChange({ ...data, realizedGains: records.filter((r) => r.id !== id) });
   };
 
+  const handleRgCsvFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length === 0) return;
+      const startIdx = /^\d/.test(lines[0].split(',')[0].trim()) ? 0 : 1;
+      const parsed: RgCsvRow[] = [];
+      for (let i = startIdx; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length < 3) continue;
+        const stockCode = cols[0].trim();
+        const date = cols[1].trim();
+        const amount = Number(cols[2].trim().replace(/[^0-9.-]/g, ''));
+        if (!stockCode || !date || isNaN(amount)) continue;
+        parsed.push({ stockCode, date, amount });
+      }
+      if (parsed.length > 0) setRgCsvRows(parsed);
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="realized-view">
-      {/* 추가 버튼 */}
-      <button
-        className="primary-button"
-        style={{ width: '100%' }}
-        type="button"
-        onClick={() => setShowAddModal(true)}
-      >
-        <Plus size={17} />
-        실현손익 추가
-      </button>
+      {/* 상단 툴바 */}
+      <div className="rg-toolbar">
+        <button
+          className="primary-button"
+          style={{ flex: 1 }}
+          type="button"
+          onClick={() => setShowAddModal(true)}
+        >
+          <Plus size={17} />
+          실현손익 추가
+        </button>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => setShowRgCsvGuide(true)}
+        >
+          <Upload size={17} />
+          파일 업로드
+        </button>
+        <input
+          ref={rgCsvInputRef}
+          type="file"
+          accept=".csv"
+          style={{ display: 'none' }}
+          onChange={handleRgCsvFile}
+        />
+      </div>
 
       {/* 요약 카드 */}
       <div className="rg-summary-row">
@@ -1197,6 +1242,32 @@ function RealizedGainsView({
           onSave={(record) =>
             onDataChange({ ...data, realizedGains: [...records, record] })
           }
+        />
+      )}
+
+      {showRgCsvGuide && (
+        <CsvGuideModal
+          columns={[
+            { name: '종목코드', desc: '6자리 숫자' },
+            { name: '날짜', desc: 'YYYY-MM-DD' },
+            { name: '금액', desc: '양수=수익  /  음수(-)=손실' },
+          ]}
+          sample={'005930,2024-01-15,150000\n000660,2024-02-20,-50000'}
+          note="헤더 행은 있어도 없어도 됩니다. 금액이 양수면 수익, 음수(-)이면 손실로 처리됩니다."
+          onClose={() => setShowRgCsvGuide(false)}
+          onSelectFile={() => rgCsvInputRef.current?.click()}
+        />
+      )}
+
+      {rgCsvRows && (
+        <RgCsvPreviewModal
+          rows={rgCsvRows}
+          holdings={data.holdings}
+          onConfirm={(newRecords) => {
+            onDataChange({ ...data, realizedGains: [...records, ...newRecords] });
+            setRgCsvRows(null);
+          }}
+          onClose={() => setRgCsvRows(null)}
         />
       )}
     </div>
@@ -1756,9 +1827,73 @@ function DividendSummaryTab({
   );
 }
 
+// ─── CSV Guide Modal ─────────────────────────────────────────────────────────
+
+type CsvGuideColumn = { name: string; desc: string };
+
+function CsvGuideModal({
+  columns,
+  sample,
+  note,
+  onClose,
+  onSelectFile,
+}: {
+  columns: CsvGuideColumn[];
+  sample: string;
+  note?: string;
+  onClose: () => void;
+  onSelectFile: () => void;
+}) {
+  return (
+    <div
+      className="modal-overlay"
+      role="presentation"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="modal-panel csv-guide-modal">
+        <div className="csv-guide-header">
+          <strong>CSV 업로드 형식 안내</strong>
+          <button aria-label="닫기" type="button" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        <p className="csv-guide-desc">아래 순서로 열을 작성해주세요.</p>
+        <div className="csv-guide-cols">
+          {columns.map((c, i) => (
+            <div key={i} className="csv-guide-col-row">
+              <span className="csv-guide-col-num">{i + 1}열</span>
+              <span className="csv-guide-col-name">{c.name}</span>
+              <span className="csv-guide-col-desc">{c.desc}</span>
+            </div>
+          ))}
+        </div>
+        <div className="csv-guide-sample-box">
+          <span className="csv-guide-sample-label">예시</span>
+          <pre className="csv-guide-pre">{sample}</pre>
+        </div>
+        {note && <p className="csv-guide-note">{note}</p>}
+        <div className="csv-guide-footer">
+          <button className="secondary-button" type="button" onClick={onClose}>
+            취소
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => { onSelectFile(); onClose(); }}
+          >
+            <Upload size={16} />
+            파일 선택
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── CSV Preview Modal ───────────────────────────────────────────────────────
 
 type CsvRow = { stockCode: string; paidAt: string; amount: number };
+type RgCsvRow = { stockCode: string; date: string; amount: number };
 
 function CsvPreviewModal({
   rows,
@@ -1882,6 +2017,135 @@ function CsvPreviewModal({
   );
 }
 
+// ─── RG CSV Preview Modal ────────────────────────────────────────────────────
+
+function RgCsvPreviewModal({
+  rows,
+  holdings,
+  onConfirm,
+  onClose,
+}: {
+  rows: RgCsvRow[];
+  holdings: Holding[];
+  onConfirm: (records: RealizedGainRecord[]) => void;
+  onClose: () => void;
+}) {
+  const [nameMap, setNameMap] = useState<Record<string, string | null>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const uniqueCodes = Array.from(new Set(rows.map((r) => r.stockCode)));
+    const initial: Record<string, string | null> = {};
+    uniqueCodes.forEach((c) => { initial[c] = null; });
+    setNameMap(initial);
+
+    const holdingMap: Record<string, string> = {};
+    holdings.forEach((h) => { holdingMap[h.code] = h.name; });
+
+    const fetchAll = async () => {
+      const results = await Promise.allSettled(
+        uniqueCodes.map(async (code) => {
+          if (holdingMap[code]) return { code, name: holdingMap[code] };
+          const quote = await fetchQuote(code);
+          return { code, name: quote.name };
+        }),
+      );
+      const resolved: Record<string, string | null> = {};
+      results.forEach((r, i) => {
+        const code = uniqueCodes[i];
+        resolved[code] = r.status === 'fulfilled' ? r.value.name : null;
+      });
+      setNameMap(resolved);
+      setLoading(false);
+    };
+    fetchAll();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleConfirm = () => {
+    const records: RealizedGainRecord[] = rows.map((r) => ({
+      id: `rg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      stockCode: r.stockCode,
+      stockName: nameMap[r.stockCode] ?? r.stockCode,
+      date: r.date,
+      amount: r.amount,
+    }));
+    onConfirm(records);
+  };
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="modal-panel csv-preview-modal">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <strong style={{ fontSize: 16, color: '#dceaff' }}>실현손익 CSV 미리보기</strong>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: '#7fa9db', cursor: 'pointer' }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+        {loading && <p style={{ color: '#6a88aa', fontSize: 13 }}>종목명 확인 중...</p>}
+        <div className="csv-preview-table-wrap">
+          <table className="csv-preview-table">
+            <thead>
+              <tr>
+                <th>종목코드</th>
+                <th>종목명</th>
+                <th>날짜</th>
+                <th>구분</th>
+                <th>금액</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => {
+                const name = nameMap[r.stockCode];
+                const isLoading = name === null && loading;
+                const isError = name === null && !loading;
+                const isGain = r.amount >= 0;
+                return (
+                  <tr key={i}>
+                    <td>{r.stockCode}</td>
+                    <td>
+                      {isLoading && <span className="csv-name-loading">조회 중...</span>}
+                      {isError && <span className="csv-name-error">{r.stockCode}</span>}
+                      {!isLoading && !isError && name}
+                    </td>
+                    <td>{r.date}</td>
+                    <td style={{ color: isGain ? '#ff6464' : '#5b9eff', fontWeight: 700 }}>
+                      {isGain ? '수익' : '손실'}
+                    </td>
+                    <td style={{ textAlign: 'right', color: isGain ? '#ff6464' : '#5b9eff' }}>
+                      {Math.abs(r.amount).toLocaleString('ko-KR')}원
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="csv-preview-footer">
+          <button className="secondary-button" type="button" onClick={onClose}>
+            취소
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            disabled={loading}
+            onClick={handleConfirm}
+          >
+            총 {rows.length}건 업로드
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Dividend Records Tab ─────────────────────────────────────────────────────
 
 function DividendRecordsTab({
@@ -1913,6 +2177,7 @@ function DividendRecordsTab({
   // CSV 파싱 미리보기
   const [csvRows, setCsvRows] = useState<CsvRow[] | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+  const [showDivCsvGuide, setShowDivCsvGuide] = useState(false);
 
   // allCodes가 바뀌면 새 코드도 선택 추가
   useEffect(() => {
@@ -2101,7 +2366,7 @@ function DividendRecordsTab({
           className="primary-button compact"
           type="button"
           style={{ backgroundSize: '300% 100%', backgroundPosition: '100% 0%' }}
-          onClick={() => csvInputRef.current?.click()}
+          onClick={() => setShowDivCsvGuide(true)}
         >
           <Upload size={15} />
           파일 업로드
@@ -2162,6 +2427,21 @@ function DividendRecordsTab({
             setCsvRows(null);
           }}
           onClose={() => setCsvRows(null)}
+        />
+      )}
+
+      {/* CSV 형식 안내 모달 */}
+      {showDivCsvGuide && (
+        <CsvGuideModal
+          columns={[
+            { name: '종목코드', desc: '6자리 숫자' },
+            { name: '지급일', desc: 'YYYY-MM-DD' },
+            { name: '배당금액', desc: '숫자 (원 단위, 양수)' },
+          ]}
+          sample={'005930,2024-01-15,50000\n000660,2024-03-20,30000'}
+          note="헤더 행은 있어도 없어도 됩니다."
+          onClose={() => setShowDivCsvGuide(false)}
+          onSelectFile={() => csvInputRef.current?.click()}
         />
       )}
     </div>
