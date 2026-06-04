@@ -208,25 +208,134 @@ input:focus {
   top: 0;
   z-index: 20;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  flex-direction: column;
+  gap: 0;
   margin-left: -14px;
   margin-right: -14px;
-  padding: max(12px, env(safe-area-inset-top)) 14px 14px;
-  background: linear-gradient(180deg, #071426 80%, rgba(7, 20, 38, 0));
+  padding: max(12px, env(safe-area-inset-top)) 14px 0;
+  background: linear-gradient(180deg, #071426 88%, rgba(7, 20, 38, 0));
+}
+
+.app-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
 }
 
 .eyebrow {
   display: block;
-  margin-bottom: 5px;
   color: #7fa9db;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .menu-wrap {
   position: relative;
+}
+
+/* ─── 상단 탭 네비게이션 ──────────────────────────────────────────────────── */
+
+.nav-tabs {
+  display: flex;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
+.nav-tab-item {
+  display: flex;
+  align-items: center;
+}
+
+.tab-divider {
+  width: 1px;
+  height: 13px;
+  background: rgba(145, 181, 220, 0.22);
+  flex-shrink: 0;
+}
+
+.nav-tab {
+  position: relative;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: #5a7a9c;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  transition: color 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: #7cc4ff;
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease;
+  opacity: 0;
+}
+
+.nav-tab.active {
+  color: #e9f4ff;
+  font-weight: 700;
+}
+
+.nav-tab.active::after {
+  transform: translateX(-50%) scaleX(1);
+  opacity: 1;
+}
+
+.nav-tab:hover:not(.active) {
+  color: #a8c8e8;
+}
+
+/* ─── 메뉴 점 버튼 (사각형 없음) ─────────────────────────────────────────── */
+
+.menu-dots-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #7fa9db;
+  transition: color 150ms ease, background 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-dots-btn:hover {
+  color: #e9f4ff;
+  background: rgba(15, 44, 78, 0.6);
+}
+
+/* ─── 드롭다운 유틸 버튼 (비밀번호 변경 등) ─────────────────────────────── */
+
+.menu-util-btn {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  color: #dceaff;
+  background: transparent;
+  text-align: left;
+  font-size: inherit;
+  transition: background 150ms ease;
+}
+
+.menu-util-btn:hover {
+  background: #143a66;
 }
 
 .icon-button,
@@ -1659,14 +1768,15 @@ label {
 .menu-secret-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
-  padding: 10px 14px;
+  min-height: 44px;
+  padding: 0 12px;
   background: none;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   color: #7fa9db;
-  font-size: 14px;
+  font-size: inherit;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;

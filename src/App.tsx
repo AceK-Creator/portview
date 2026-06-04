@@ -3,9 +3,10 @@ import {
   Download,
   Eye,
   EyeOff,
+  KeyRound,
   Lock,
   LogOut,
-  Menu,
+  MoreVertical,
   Pencil,
   Plus,
   RefreshCw,
@@ -70,16 +71,13 @@ type HoldingDraft = {
   averagePrice: string;
 };
 
-type FlatMenuItem = { kind: 'item'; key: MenuKey; label: string };
-type GroupMenuItem = { kind: 'group'; label: string; children: Array<{ key: MenuKey; label: string }> };
-type MenuItem = FlatMenuItem | GroupMenuItem;
+type TabKey = 'live' | 'account' | 'dividend' | 'realized-gains';
 
-const menuItems: MenuItem[] = [
-  { kind: 'item', key: 'live', label: '실시간 잔고' },
-  { kind: 'item', key: 'account', label: '자산현황' },
-  { kind: 'item', key: 'dividend', label: '배당관리' },
-  { kind: 'item', key: 'realized-gains', label: '실현손익현황' },
-  { kind: 'item', key: 'password', label: '비밀번호 변경' },
+const TAB_ITEMS: { key: TabKey; label: string }[] = [
+  { key: 'live', label: '잔고' },
+  { key: 'account', label: '자산' },
+  { key: 'dividend', label: '배당' },
+  { key: 'realized-gains', label: '손익' },
 ];
 
 // ─── Particle Background ──────────────────────────────────────────────────────
@@ -175,17 +173,6 @@ function ParticleBackground() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-
-function findMenuLabel(key: MenuKey): string {
-  for (const item of menuItems) {
-    if (item.kind === 'item' && item.key === key) return item.label;
-    if (item.kind === 'group') {
-      const child = item.children.find((c) => c.key === key);
-      if (child) return child.label;
-    }
-  }
-  return '실시간 잔고';
-}
 
 
 function currency(value: number | null | undefined): string {
@@ -305,8 +292,6 @@ function AppHeader({
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const activeLabel = findMenuLabel(activeMenu);
-
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -320,63 +305,62 @@ function AppHeader({
 
   return (
     <header className="app-header">
-      <div>
+      <div className="app-header-row">
         <span className="eyebrow">PortView</span>
-        <h1>{activeLabel}</h1>
+        <div className="menu-wrap" ref={menuRef}>
+          <button
+            aria-expanded={open}
+            aria-label="메뉴"
+            className="menu-dots-btn"
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+          >
+            <MoreVertical size={20} />
+          </button>
+          {open && (
+            <nav className="dropdown-menu">
+              <button
+                type="button"
+                className="menu-util-btn"
+                onClick={() => { onChangeMenu('password'); setOpen(false); }}
+              >
+                <KeyRound size={15} />
+                비밀번호 변경
+              </button>
+              <button
+                className={`menu-secret-btn${secretMode ? ' active' : ''}`}
+                type="button"
+                onClick={() => { onToggleSecret(); setOpen(false); }}
+              >
+                {secretMode ? <Eye size={15} /> : <EyeOff size={15} />}
+                {secretMode ? '시크릿 해제' : '시크릿 모드'}
+              </button>
+              <button
+                className="menu-logout-btn"
+                type="button"
+                onClick={() => { setOpen(false); onLogout(); }}
+              >
+                <LogOut size={15} />
+                로그아웃
+              </button>
+            </nav>
+          )}
+        </div>
       </div>
-      <div className="menu-wrap" ref={menuRef}>
-        <button
-          aria-expanded={open}
-          aria-label="전체 메뉴"
-          className="icon-button"
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-        >
-          <Menu size={22} />
-        </button>
-        {open && (
-          <nav className="dropdown-menu">
-            {menuItems.map((item) =>
-              item.kind === 'item' ? (
-                <button
-                  key={item.key}
-                  className={activeMenu === item.key ? 'active' : ''}
-                  type="button"
-                  onClick={() => {
-                    onChangeMenu(item.key);
-                    setOpen(false);
-                  }}
-                >
-                  {item.label}
-                </button>
-              ) : null,
-            )}
-            <div className="menu-logout-divider" />
+      <nav className="nav-tabs">
+        {TAB_ITEMS.map((tab, i) => (
+          <div key={tab.key} className="nav-tab-item">
+            {i > 0 && <div className="tab-divider" />}
             <button
-              className={`menu-secret-btn${secretMode ? ' active' : ''}`}
+              className={`nav-tab${activeMenu === tab.key ? ' active' : ''}`}
               type="button"
-              onClick={() => {
-                onToggleSecret();
-                setOpen(false);
-              }}
+              onClick={() => onChangeMenu(tab.key)}
             >
-              {secretMode ? <Eye size={15} /> : <EyeOff size={15} />}
-              {secretMode ? '시크릿 해제' : '시크릿 모드'}
+              {tab.label}
             </button>
-            <button
-              className="menu-logout-btn"
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                onLogout();
-              }}
-            >
-              <LogOut size={15} />
-              로그아웃
-            </button>
-          </nav>
-        )}
-      </div>
+          </div>
+        ))}
+      </nav>
     </header>
   );
 }
@@ -773,7 +757,7 @@ function AccountView({
         <div className="account-metrics-divider" />
         <div className="account-metrics-grid">
           <Metric label="예수금" value={currency(data.account.cashBalance)} secret right />
-          <Metric label="예수금비율" value={plainPercent(summary.cashRatio)} secret right />
+          <Metric label="예수금비중" value={plainPercent(summary.cashRatio)} secret right />
           <Metric label="수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
           <Metric label="수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
         </div>

@@ -32,7 +32,7 @@ export function calculateAccountSummary(
   const totalMarketValue = rows.reduce((sum, row) => sum + row.marketValue, 0);
   const currentTotalAssets = totalMarketValue + account.cashBalance;
   const cashRatio =
-    account.totalContribution > 0 ? (account.cashBalance / account.totalContribution) * 100 : 0;
+    currentTotalAssets > 0 ? (account.cashBalance / currentTotalAssets) * 100 : 0;
   const totalProfitLoss = currentTotalAssets - account.totalContribution;
   const totalReturnRate =
     account.totalContribution > 0 ? (totalProfitLoss / account.totalContribution) * 100 : 0;
