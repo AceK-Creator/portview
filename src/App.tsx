@@ -795,20 +795,21 @@ function AccountView({
         </button>
       </div>
       <div className="account-metrics">
-        <Metric label="현재총자산" value={currency(summary.currentTotalAssets)} secret />
+        <Metric label="자산평가액" value={currency(summary.currentTotalAssets)} secret highlight />
         <Metric label="투입금대비 예수금비율" value={plainPercent(summary.cashRatio)} secret />
-        <Metric label="총투입 대비 손익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret />
+        <Metric label="총투입 대비 수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret />
         <Metric label="총투입 대비 수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret />
       </div>
     </section>
   );
 }
 
-function Metric({ label, value, tone: metricTone, secret }: { label: string; value: string; tone?: string; secret?: boolean }) {
+function Metric({ label, value, tone: metricTone, secret, highlight }: { label: string; value: string; tone?: string; secret?: boolean; highlight?: boolean }) {
+  const cls = [metricTone, highlight ? 'metric-highlight' : ''].filter(Boolean).join(' ');
   return (
     <div className="metric">
       <span>{label}</span>
-      <strong className={metricTone}>
+      <strong className={cls}>
         {secret ? <span className="secret-value">{value}</span> : value}
       </strong>
     </div>

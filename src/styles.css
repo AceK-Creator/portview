@@ -464,7 +464,7 @@ input:focus {
   margin-bottom: 6px;
   color: #95abc6;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -485,23 +485,17 @@ input:focus {
 .live-summary-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid rgba(145, 181, 220, 0.1);
-}
-
-.live-summary-row:first-child {
-  border-top: 1px solid rgba(145, 181, 220, 0.1);
 }
 
 .live-summary-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: 7px 0;
 }
 
 .live-summary-item:first-child {
   padding-right: 20px;
-  border-right: 1px solid rgba(145, 181, 220, 0.1);
 }
 
 .live-summary-item:last-child {
@@ -837,8 +831,21 @@ label {
 
 .account-metrics .metric strong,
 .account-panel .metric strong {
-  font-size: clamp(18px, 5vw, 23px) !important;
-  font-weight: 800 !important;
+  font-size: clamp(18px, 5vw, 23px);
+  font-weight: 400;
+}
+
+.account-metrics .metric strong.metric-highlight,
+.account-panel .metric strong.metric-highlight {
+  font-weight: 700;
+}
+
+.account-panel label {
+  font-weight: 400;
+}
+
+.account-panel .primary-button {
+  font-weight: 400;
 }
 
 .install-banner {
