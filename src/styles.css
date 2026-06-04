@@ -452,10 +452,7 @@ input:focus {
 .summary-strip div,
 .metric {
   min-width: 0;
-  padding: 12px;
-  border: 1px solid rgba(145, 181, 220, 0.18);
-  border-radius: 16px;
-  background: rgba(11, 31, 56, 0.88);
+  padding: 6px 0;
 }
 
 .summary-strip > span,
@@ -808,7 +805,11 @@ label {
   font-weight: 800;
 }
 
-.account-panel,
+.account-panel {
+  display: grid;
+  gap: 16px;
+}
+
 .password-panel {
   display: grid;
   gap: 16px;
@@ -843,6 +844,10 @@ label {
 .account-panel label {
   font-weight: 400;
   color: #7fa9db;
+}
+
+.account-panel input {
+  color: #ffffff;
 }
 
 .account-panel .primary-button {
