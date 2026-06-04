@@ -810,12 +810,10 @@ function AccountView({
         </button>
       </div>
       <div className="account-metrics">
-        <Metric label="총 평가금액" value={currency(summary.totalMarketValue)} secret />
         <Metric label="현재총자산" value={currency(summary.currentTotalAssets)} secret />
         <Metric label="투입금대비 예수금비율" value={plainPercent(summary.cashRatio)} secret />
         <Metric label="총투입 대비 손익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret />
         <Metric label="총투입 대비 수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret />
-
       </div>
     </section>
   );

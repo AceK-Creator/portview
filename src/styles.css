@@ -603,7 +603,7 @@ input:focus {
 
 .holding-row {
   height: 62px;
-  border-top: 1px solid rgba(145, 181, 220, 0.22);
+  box-shadow: inset 0 1px 0 rgba(145, 181, 220, 0.22);
 }
 
 .holding-name {
@@ -613,13 +613,12 @@ input:focus {
   justify-content: center;
   gap: 4px;
   padding: 8px 10px;
-  border-top: 1px solid rgba(145, 181, 220, 0.22);
   border-right: 1px solid rgba(145, 181, 220, 0.14);
   position: sticky;
   left: 0;
   z-index: 10;
   background: #08182d;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 0 rgba(145, 181, 220, 0.22), 2px 0 5px rgba(0, 0, 0, 0.2);
 }
 
 .holding-name strong {
@@ -662,7 +661,7 @@ input:focus {
 
 .holdings-summary-row {
   height: 62px;
-  border-top: 1px solid rgba(145, 181, 220, 0.22);
+  box-shadow: inset 0 1px 0 rgba(145, 181, 220, 0.22);
   background: rgba(13, 37, 67, 0.95);
 }
 
@@ -675,13 +674,12 @@ input:focus {
   font-weight: 800;
   color: #adc4df;
   letter-spacing: 0.5px;
-  border-top: 1px solid rgba(145, 181, 220, 0.22);
   border-right: 1px solid rgba(145, 181, 220, 0.14);
   position: sticky;
   left: 0;
   z-index: 10;
   background: rgba(13, 37, 67, 0.95);
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 0 rgba(145, 181, 220, 0.22), 2px 0 5px rgba(0, 0, 0, 0.2);
 }
 
 .holdings-summary-row .metrics-grid {
@@ -783,6 +781,10 @@ label {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.account-metrics .metric strong {
+  font-size: clamp(20px, 5.5vw, 26px);
 }
 
 .install-banner {
