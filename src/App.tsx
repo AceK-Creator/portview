@@ -796,18 +796,21 @@ function AccountView({
       </div>
       <div className="account-metrics">
         <Metric label="자산평가액" value={currency(summary.currentTotalAssets)} secret highlight />
-        <Metric label="투입금대비 예수금비율" value={plainPercent(summary.cashRatio)} secret />
-        <Metric label="총투입 대비 수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret />
-        <Metric label="총투입 대비 수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret />
+        <div className="account-metrics-grid">
+          <Metric label="예수금" value={currency(data.account.cashBalance)} secret right />
+          <Metric label="투입금대비 예수금비율" value={plainPercent(summary.cashRatio)} secret right />
+          <Metric label="총투입 대비 수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
+          <Metric label="총투입 대비 수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
+        </div>
       </div>
     </section>
   );
 }
 
-function Metric({ label, value, tone: metricTone, secret, highlight }: { label: string; value: string; tone?: string; secret?: boolean; highlight?: boolean }) {
+function Metric({ label, value, tone: metricTone, secret, highlight, right }: { label: string; value: string; tone?: string; secret?: boolean; highlight?: boolean; right?: boolean }) {
   const cls = [metricTone, highlight ? 'metric-highlight' : ''].filter(Boolean).join(' ');
   return (
-    <div className="metric">
+    <div className={`metric${right ? ' metric-right' : ''}`}>
       <span>{label}</span>
       <strong className={cls}>
         {secret ? <span className="secret-value">{value}</span> : value}

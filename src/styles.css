@@ -825,9 +825,19 @@ label {
 }
 
 .account-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.account-metrics-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 12px;
+}
+
+.metric.metric-right {
+  text-align: right;
 }
 
 .account-metrics .metric strong,
@@ -839,6 +849,7 @@ label {
 .account-metrics .metric strong.metric-highlight,
 .account-panel .metric strong.metric-highlight {
   font-weight: 700;
+  font-size: clamp(28px, 8vw, 40px);
 }
 
 .account-panel label {
