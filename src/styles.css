@@ -827,7 +827,13 @@ label {
 .account-metrics {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+}
+
+.account-metrics-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(145, 181, 220, 0.3) 20%, rgba(145, 181, 220, 0.5) 50%, rgba(145, 181, 220, 0.3) 80%, transparent 100%);
+  margin: 4px 0;
 }
 
 .account-metrics > .metric {

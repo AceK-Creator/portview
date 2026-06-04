@@ -768,6 +768,16 @@ function AccountView({
 
   return (
     <section className="account-panel">
+      <div className="account-metrics">
+        <Metric label="자산평가액" value={currency(summary.currentTotalAssets)} secret highlight />
+        <div className="account-metrics-divider" />
+        <div className="account-metrics-grid">
+          <Metric label="예수금" value={currency(data.account.cashBalance)} secret right />
+          <Metric label="예수금비율" value={plainPercent(summary.cashRatio)} secret right />
+          <Metric label="수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
+          <Metric label="수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
+        </div>
+      </div>
       <div className="input-grid">
         <label>
           총투입금액
@@ -793,15 +803,6 @@ function AccountView({
           <Save size={17} />
           저장
         </button>
-      </div>
-      <div className="account-metrics">
-        <Metric label="자산평가액" value={currency(summary.currentTotalAssets)} secret highlight />
-        <div className="account-metrics-grid">
-          <Metric label="예수금" value={currency(data.account.cashBalance)} secret right />
-          <Metric label="예수금비율" value={plainPercent(summary.cashRatio)} secret right />
-          <Metric label="수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
-          <Metric label="수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
-        </div>
       </div>
     </section>
   );
