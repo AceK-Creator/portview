@@ -213,7 +213,7 @@ input:focus {
   margin-left: -14px;
   margin-right: -14px;
   padding: max(12px, env(safe-area-inset-top)) 14px 0;
-  background: linear-gradient(180deg, #071426 88%, rgba(7, 20, 38, 0));
+  background: #071426;
 }
 
 .app-header-row {
@@ -240,6 +240,7 @@ input:focus {
 .nav-tabs {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding-bottom: 2px;
 }
 
@@ -257,7 +258,7 @@ input:focus {
 
 .nav-tab {
   position: relative;
-  padding: 8px 14px;
+  padding: 8px 20px;
   border: none;
   background: transparent;
   color: #5a7a9c;
@@ -381,6 +382,7 @@ input:focus {
   position: absolute;
   top: 50px;
   right: 0;
+  z-index: 100;
   width: 228px;
   padding: 8px;
   border: 1px solid rgba(145, 181, 220, 0.28);
@@ -622,6 +624,10 @@ input:focus {
 }
 
 /* ─── Live View 범위 Bold 제거 ──────────────────────────────────────────────── */
+
+.live-view {
+  padding-top: 20px;
+}
 
 .live-view .primary-button,
 .live-view .ghost-button {
@@ -942,8 +948,8 @@ label {
 
 .account-metrics-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(145, 181, 220, 0.3) 20%, rgba(145, 181, 220, 0.5) 50%, rgba(145, 181, 220, 0.3) 80%, transparent 100%);
-  margin: 4px 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(145, 181, 220, 0.35) 20%, rgba(145, 181, 220, 0.6) 50%, rgba(145, 181, 220, 0.35) 80%, transparent 100%);
+  margin: 12px 0;
 }
 
 .account-metrics > .metric {
@@ -1085,6 +1091,7 @@ label {
   display: flex;
   flex-direction: column;
   gap: 0;
+  padding-top: 20px;
   padding-bottom: 60px;
 }
 
@@ -1951,6 +1958,7 @@ label {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-top: 20px;
   padding-bottom: 60px;
 }
 
