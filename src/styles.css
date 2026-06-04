@@ -41,7 +41,7 @@ body {
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100svh;
   background:
     linear-gradient(180deg, rgba(13, 42, 76, 0.78), rgba(7, 20, 38, 0.98)),
     #071426;
@@ -196,7 +196,7 @@ input:focus {
 
 .app-shell {
   width: min(100%, 820px);
-  min-height: 100vh;
+  min-height: 100svh;
   margin: 0 auto;
   padding: 0 14px 40px;
   position: relative;
@@ -784,7 +784,7 @@ label {
 }
 
 .account-metrics .metric strong {
-  font-size: clamp(20px, 5.5vw, 26px);
+  font-size: clamp(20px, 5.5vw, 26px) !important;
 }
 
 .install-banner {
@@ -884,7 +884,8 @@ label {
   }
 
   .table-header,
-  .holding-row {
+  .holding-row,
+  .holdings-summary-row {
     grid-template-columns: 110px 503px 44px;
   }
 }
