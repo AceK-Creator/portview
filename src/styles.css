@@ -830,10 +830,16 @@ label {
   gap: 16px;
 }
 
+.account-metrics > .metric {
+  text-align: center;
+}
+
 .account-metrics-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px 12px;
+  max-width: 260px;
+  margin: 0 auto;
 }
 
 .metric.metric-right {
