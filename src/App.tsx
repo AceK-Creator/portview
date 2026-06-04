@@ -1042,7 +1042,7 @@ function RealizedGainsView({
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(() => new Set(allCodes));
   const allYears = Array.from(new Set(records.map((r) => parseInt(r.date.slice(0, 4))))).sort((a, b) => b - a);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedMonths, setSelectedMonths] = useState<Set<number>>(new Set());
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -1055,17 +1055,6 @@ function RealizedGainsView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [records.length]);
 
-  useEffect(() => {
-    if (!filterOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
-        setFilterOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [filterOpen]);
-
   const toggleCode = (code: string) => {
     setSelectedCodes((prev) => {
       const next = new Set(prev);
@@ -1075,14 +1064,7 @@ function RealizedGainsView({
   };
   const allSelected = allCodes.every((c) => selectedCodes.has(c));
   const someSelected = !allSelected && allCodes.some((c) => selectedCodes.has(c));
-  const isFiltered = !allSelected || selectedYear !== null || selectedMonths.size > 0;
-  const toggleMonth = (m: number) => {
-    setSelectedMonths((prev) => {
-      const next = new Set(prev);
-      if (next.has(m)) next.delete(m); else next.add(m);
-      return next;
-    });
-  };
+  const isFiltered = !allSelected || selectedYear !== null || selectedMonth !== null;
   const toggleAll = () => {
     if (allSelected) setSelectedCodes(new Set());
     else setSelectedCodes(new Set(allCodes));
@@ -1118,7 +1100,7 @@ function RealizedGainsView({
     .filter((r) => {
       if (selectedCodes.size > 0 && !selectedCodes.has(r.stockCode)) return false;
       if (selectedYear !== null && parseInt(r.date.slice(0, 4)) !== selectedYear) return false;
-      if (selectedMonths.size > 0 && !selectedMonths.has(parseInt(r.date.slice(5, 7)))) return false;
+      if (selectedMonth !== null && parseInt(r.date.slice(5, 7)) !== selectedMonth) return false;
       return true;
     })
     .sort((a, b) => b.date.localeCompare(a.date));
@@ -1159,7 +1141,7 @@ function RealizedGainsView({
       <div className="rg-toolbar">
         <button
           className="primary-button"
-          style={{ flex: 1 }}
+          style={{ flex: 1, whiteSpace: 'nowrap' }}
           type="button"
           onClick={() => setShowAddModal(true)}
         >
@@ -1167,7 +1149,7 @@ function RealizedGainsView({
           실현손익 추가
         </button>
 
-        {/* 필터 드롭다운 */}
+        {/* 필터 버튼 */}
         <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
           <button
             className="ghost-button"
@@ -1177,26 +1159,61 @@ function RealizedGainsView({
           >
             필터{isFiltered ? ` (${selectedCodes.size}/${allCodes.length})` : ''}
           </button>
-          {filterOpen && (
+        </div>
+
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => setShowRgCsvGuide(true)}
+        >
+          <Upload size={17} />
+          파일 업로드
+        </button>
+
+        {filterOpen && (
+          <>
+            <div className="filter-backdrop" onClick={() => setFilterOpen(false)} />
             <div className="filter-dropdown-panel">
-              <div className="filter-section-label">연도</div>
-              <div className="filter-chip-row">
-                <button type="button" className={`filter-chip${selectedYear === null ? ' active' : ''}`} onClick={() => setSelectedYear(null)}>전체</button>
-                {allYears.map((y) => (
-                  <button key={y} type="button" className={`filter-chip${selectedYear === y ? ' active' : ''}`} onClick={() => setSelectedYear(selectedYear === y ? null : y)}>{y}</button>
-                ))}
+              <div className="filter-panel-tip" />
+              <div className="filter-panel-header">
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#dceaff' }}>필터</span>
+                <button type="button" onClick={() => setFilterOpen(false)}
+                  style={{ background: 'none', border: 'none', color: '#7fa9db', cursor: 'pointer', padding: 4 }}>
+                  <X size={16} />
+                </button>
               </div>
 
-              <div className="filter-section-label" style={{ marginTop: 10 }}>월</div>
-              <div className="filter-chip-row">
-                <button type="button" className={`filter-chip${selectedMonths.size === 0 ? ' active' : ''}`} onClick={() => setSelectedMonths(new Set())}>전체</button>
-                {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => (
-                  <button key={m} type="button" className={`filter-chip${selectedMonths.has(m) ? ' active' : ''}`} onClick={() => toggleMonth(m)}>{m}월</button>
-                ))}
+              {/* 연도 */}
+              <div className="filter-section-label">연도</div>
+              <div className="filter-select-wrap">
+                <select
+                  className="filter-select"
+                  value={selectedYear ?? ''}
+                  onChange={(e) => setSelectedYear(e.target.value === '' ? null : parseInt(e.target.value))}
+                >
+                  <option value="">전체 연도</option>
+                  {allYears.map((y) => <option key={y} value={y}>{y}년</option>)}
+                </select>
+                <span className="filter-select-icon"><ChevronDown size={14} /></span>
+              </div>
+
+              {/* 월 */}
+              <div className="filter-section-label">월</div>
+              <div className="filter-select-wrap">
+                <select
+                  className="filter-select"
+                  value={selectedMonth ?? ''}
+                  onChange={(e) => setSelectedMonth(e.target.value === '' ? null : parseInt(e.target.value))}
+                >
+                  <option value="">전체 월</option>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => <option key={m} value={m}>{m}월</option>)}
+                </select>
+                <span className="filter-select-icon"><ChevronDown size={14} /></span>
               </div>
 
               <div className="filter-check-divider" style={{ margin: '10px 0 6px' }} />
 
+              {/* 종목 */}
               <div className="filter-section-label">종목</div>
               <label className="filter-check-row">
                 <input
@@ -1218,17 +1235,8 @@ function RealizedGainsView({
                 );
               })}
             </div>
-          )}
-        </div>
-
-        <button
-          className="ghost-button"
-          type="button"
-          onClick={() => setShowRgCsvGuide(true)}
-        >
-          <Upload size={17} />
-          파일 업로드
-        </button>
+          </>
+        )}
         <input
           ref={rgCsvInputRef}
           type="file"
@@ -2287,9 +2295,9 @@ function DividendRecordsTab({
   // 연도/월 필터
   const allYears = Array.from(new Set(dividends.map((d) => parseInt(d.paidAt.slice(0, 4))))).sort((a, b) => b - a);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedMonths, setSelectedMonths] = useState<Set<number>>(new Set());
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
-  // 필터 드롭다운 상태
+  // 필터 팝업 상태
   const [filterOpen, setFilterOpen] = useState(false);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -2308,18 +2316,6 @@ function DividendRecordsTab({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dividends.length]);
 
-  // 드롭다운 외부 클릭 시 닫기
-  useEffect(() => {
-    if (!filterOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
-        setFilterOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [filterOpen]);
-
   const toggleCode = (code: string) => {
     setSelectedCodes((prev) => {
       const next = new Set(prev);
@@ -2331,15 +2327,7 @@ function DividendRecordsTab({
 
   const allSelected = allCodes.every((c) => selectedCodes.has(c));
   const someSelected = !allSelected && allCodes.some((c) => selectedCodes.has(c));
-  const isFiltered = !allSelected || selectedYear !== null || selectedMonths.size > 0;
-
-  const toggleMonth = (m: number) => {
-    setSelectedMonths((prev) => {
-      const next = new Set(prev);
-      if (next.has(m)) next.delete(m); else next.add(m);
-      return next;
-    });
-  };
+  const isFiltered = !allSelected || selectedYear !== null || selectedMonth !== null;
 
   const toggleAll = () => {
     if (allSelected) {
@@ -2382,7 +2370,7 @@ function DividendRecordsTab({
     .filter((d) => {
       if (selectedCodes.size > 0 && !selectedCodes.has(d.stockCode)) return false;
       if (selectedYear !== null && parseInt(d.paidAt.slice(0, 4)) !== selectedYear) return false;
-      if (selectedMonths.size > 0 && !selectedMonths.has(parseInt(d.paidAt.slice(5, 7)))) return false;
+      if (selectedMonth !== null && parseInt(d.paidAt.slice(5, 7)) !== selectedMonth) return false;
       return true;
     })
     .sort((a, b) => b.paidAt.localeCompare(a.paidAt));
@@ -2398,7 +2386,7 @@ function DividendRecordsTab({
           배당 추가
         </button>
 
-        {/* 필터 드롭다운 */}
+        {/* 필터 버튼 */}
         <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
           <button
             className="ghost-button compact"
@@ -2408,47 +2396,52 @@ function DividendRecordsTab({
           >
             필터{isFiltered ? ` (${selectedCodes.size}/${allCodes.length})` : ''}
           </button>
-          {filterOpen && (
+        </div>
+
+        {filterOpen && (
+          <>
+            <div className="filter-backdrop" onClick={() => setFilterOpen(false)} />
             <div className="filter-dropdown-panel">
-              {/* 연도 필터 */}
-              <div className="filter-section-label">연도</div>
-              <div className="filter-chip-row">
-                <button
-                  type="button"
-                  className={`filter-chip${selectedYear === null ? ' active' : ''}`}
-                  onClick={() => setSelectedYear(null)}
-                >전체</button>
-                {allYears.map((y) => (
-                  <button
-                    key={y}
-                    type="button"
-                    className={`filter-chip${selectedYear === y ? ' active' : ''}`}
-                    onClick={() => setSelectedYear(selectedYear === y ? null : y)}
-                  >{y}</button>
-                ))}
+              <div className="filter-panel-tip" />
+              <div className="filter-panel-header">
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#dceaff' }}>필터</span>
+                <button type="button" onClick={() => setFilterOpen(false)}
+                  style={{ background: 'none', border: 'none', color: '#7fa9db', cursor: 'pointer', padding: 4 }}>
+                  <X size={16} />
+                </button>
               </div>
 
-              {/* 월 필터 */}
-              <div className="filter-section-label" style={{ marginTop: 10 }}>월</div>
-              <div className="filter-chip-row">
-                <button
-                  type="button"
-                  className={`filter-chip${selectedMonths.size === 0 ? ' active' : ''}`}
-                  onClick={() => setSelectedMonths(new Set())}
-                >전체</button>
-                {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    className={`filter-chip${selectedMonths.has(m) ? ' active' : ''}`}
-                    onClick={() => toggleMonth(m)}
-                  >{m}월</button>
-                ))}
+              {/* 연도 */}
+              <div className="filter-section-label">연도</div>
+              <div className="filter-select-wrap">
+                <select
+                  className="filter-select"
+                  value={selectedYear ?? ''}
+                  onChange={(e) => setSelectedYear(e.target.value === '' ? null : parseInt(e.target.value))}
+                >
+                  <option value="">전체 연도</option>
+                  {allYears.map((y) => <option key={y} value={y}>{y}년</option>)}
+                </select>
+                <span className="filter-select-icon"><ChevronDown size={14} /></span>
+              </div>
+
+              {/* 월 */}
+              <div className="filter-section-label">월</div>
+              <div className="filter-select-wrap">
+                <select
+                  className="filter-select"
+                  value={selectedMonth ?? ''}
+                  onChange={(e) => setSelectedMonth(e.target.value === '' ? null : parseInt(e.target.value))}
+                >
+                  <option value="">전체 월</option>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => <option key={m} value={m}>{m}월</option>)}
+                </select>
+                <span className="filter-select-icon"><ChevronDown size={14} /></span>
               </div>
 
               <div className="filter-check-divider" style={{ margin: '10px 0 6px' }} />
 
-              {/* 종목 필터 */}
+              {/* 종목 */}
               <div className="filter-section-label">종목</div>
               <label className="filter-check-row">
                 <input
@@ -2464,18 +2457,14 @@ function DividendRecordsTab({
                 const name = dividends.find((d) => d.stockCode === code)?.stockName ?? code;
                 return (
                   <label className="filter-check-row" key={code}>
-                    <input
-                      type="checkbox"
-                      checked={selectedCodes.has(code)}
-                      onChange={() => toggleCode(code)}
-                    />
+                    <input type="checkbox" checked={selectedCodes.has(code)} onChange={() => toggleCode(code)} />
                     {name}
                   </label>
                 );
               })}
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         {/* 파일 업로드 */}
         <button

@@ -1125,18 +1125,78 @@ label {
 }
 
 
-/* 필터 드롭다운 패널 */
+/* 필터 백드롭 */
+.filter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* 필터 팝업 패널 */
 .filter-dropdown-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 260px;
-  padding: 8px;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(90vw, 320px);
+  max-height: 75vh;
+  overflow-y: auto;
+  padding: 0 16px 16px;
   border: 1px solid rgba(145, 181, 220, 0.28);
-  border-radius: 14px;
+  border-radius: 18px;
   background: #0a1c34;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.4);
-  z-index: 30;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  z-index: 200;
+}
+
+/* 말풍선 삼각형 */
+.filter-panel-tip {
+  width: 14px;
+  height: 7px;
+  background: linear-gradient(135deg, #7c4dff, #00b4d8);
+  clip-path: polygon(0% 100%, 100% 100%, 50% 0%);
+  margin: 10px auto 14px;
+}
+
+/* 필터 패널 헤더 */
+.filter-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-top: 4px;
+}
+
+/* 연도/월 select */
+.filter-select-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+.filter-select {
+  width: 100%;
+  padding: 9px 36px 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(145, 181, 220, 0.22);
+  background: rgba(7, 20, 42, 0.95);
+  color: #dceaff;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 150ms;
+}
+.filter-select:focus {
+  border-color: rgba(124, 77, 255, 0.6);
+}
+.filter-select-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #6a88aa;
 }
 
 /* 필터 체크박스 행 */
