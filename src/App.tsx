@@ -1100,7 +1100,7 @@ function RealizedGainsView({
       <div className="rg-toolbar">
         <button
           className="primary-button"
-          style={{ flex: 1, backgroundSize: '300% 100%', backgroundPosition: '0% 0%' }}
+          style={{ flex: 1 }}
           type="button"
           onClick={() => setShowAddModal(true)}
         >
@@ -1108,8 +1108,7 @@ function RealizedGainsView({
           실현손익 추가
         </button>
         <button
-          className="primary-button"
-          style={{ backgroundSize: '300% 100%', backgroundPosition: '100% 0%' }}
+          className="ghost-button"
           type="button"
           onClick={() => setShowRgCsvGuide(true)}
         >
@@ -1600,14 +1599,16 @@ function DividendSummaryTab({
       </div>
 
       {/* 2. 전년도 / 올해 카드 */}
-      <div className="dividend-two-col">
-        <div className="dividend-section">
-          <div className="dividend-stat-label">{prevYear}년 (실제)</div>
-          <div className="dividend-stat-value"><span className="secret-value">{currency(prevYearTotal)}</span></div>
-        </div>
-        <div className="dividend-section">
-          <div className="dividend-stat-label">{currentYear}년 (예상)</div>
-          <div className="dividend-stat-value"><span className="secret-value">{currency(thisYearEstimated)}</span></div>
+      <div className="dividend-section">
+        <div style={{ display: 'flex' }}>
+          <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
+            <div className="dividend-stat-label">{prevYear}년 (실제)</div>
+            <div className="dividend-stat-value"><span className="secret-value">{currency(prevYearTotal)}</span></div>
+          </div>
+          <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
+            <div className="dividend-stat-label">{currentYear}년 (예상)</div>
+            <div className="dividend-stat-value"><span className="secret-value">{currency(thisYearEstimated)}</span></div>
+          </div>
         </div>
       </div>
 
@@ -2275,8 +2276,7 @@ function DividendRecordsTab({
     <div className="dividend-records-content">
       {/* 상단 3버튼 바 */}
       <div className="dividend-records-topbar">
-        <button className="primary-button compact" type="button" onClick={onOpenAdd}
-          style={{ backgroundSize: '300% 100%', backgroundPosition: '0% 0%' }}>
+        <button className="primary-button compact" type="button" onClick={onOpenAdd}>
           <Plus size={15} />
           배당 추가
         </button>
@@ -2284,11 +2284,9 @@ function DividendRecordsTab({
         {/* 필터 드롭다운 */}
         <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
           <button
-            className="primary-button compact"
+            className="ghost-button compact"
             type="button"
-            style={isFiltered
-              ? { backgroundSize: '300% 100%', backgroundPosition: '50% 0%', boxShadow: 'inset 0 0 0 1000px rgba(0,0,0,0.22)', color: '#ffe082' }
-              : { backgroundSize: '300% 100%', backgroundPosition: '50% 0%' }}
+            style={isFiltered ? { color: '#ffe082' } : undefined}
             onClick={() => setFilterOpen((v) => !v)}
           >
             필터{isFiltered ? ` (${selectedCodes.size}/${allCodes.length})` : ''}
@@ -2364,9 +2362,8 @@ function DividendRecordsTab({
 
         {/* 파일 업로드 */}
         <button
-          className="primary-button compact"
+          className="ghost-button compact"
           type="button"
-          style={{ backgroundSize: '300% 100%', backgroundPosition: '100% 0%' }}
           onClick={() => setShowDivCsvGuide(true)}
         >
           <Upload size={15} />
