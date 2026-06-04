@@ -798,9 +798,9 @@ function AccountView({
         <Metric label="자산평가액" value={currency(summary.currentTotalAssets)} secret highlight />
         <div className="account-metrics-grid">
           <Metric label="예수금" value={currency(data.account.cashBalance)} secret right />
-          <Metric label="투입금대비 예수금비율" value={plainPercent(summary.cashRatio)} secret right />
-          <Metric label="총투입 대비 수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
-          <Metric label="총투입 대비 수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
+          <Metric label="예수금비율" value={plainPercent(summary.cashRatio)} secret right />
+          <Metric label="수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
+          <Metric label="수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
         </div>
       </div>
     </section>
