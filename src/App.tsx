@@ -1037,6 +1037,57 @@ function RealizedGainsView({
   const rgCsvInputRef = useRef<HTMLInputElement>(null);
   const records = data.realizedGains ?? [];
 
+  // 필터 상태
+  const allCodes = Array.from(new Set(records.map((r) => r.stockCode)));
+  const [selectedCodes, setSelectedCodes] = useState<Set<string>>(() => new Set(allCodes));
+  const allYears = Array.from(new Set(records.map((r) => parseInt(r.date.slice(0, 4))))).sort((a, b) => b - a);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonths, setSelectedMonths] = useState<Set<number>>(new Set());
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSelectedCodes((prev) => {
+      const next = new Set(prev);
+      allCodes.forEach((c) => next.add(c));
+      return next;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [records.length]);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [filterOpen]);
+
+  const toggleCode = (code: string) => {
+    setSelectedCodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code); else next.add(code);
+      return next;
+    });
+  };
+  const allSelected = allCodes.every((c) => selectedCodes.has(c));
+  const someSelected = !allSelected && allCodes.some((c) => selectedCodes.has(c));
+  const isFiltered = !allSelected || selectedYear !== null || selectedMonths.size > 0;
+  const toggleMonth = (m: number) => {
+    setSelectedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(m)) next.delete(m); else next.add(m);
+      return next;
+    });
+  };
+  const toggleAll = () => {
+    if (allSelected) setSelectedCodes(new Set());
+    else setSelectedCodes(new Set(allCodes));
+  };
+
   const thisYear = new Date().getFullYear();
   const totalAll = records.reduce((sum, r) => sum + r.amount, 0);
   const totalThisYear = records
@@ -1063,7 +1114,15 @@ function RealizedGainsView({
 
   const top5Max = top5Data.length > 0 ? Math.abs(top5Data[0][1].total) : 1;
 
-  const sortedRecords = [...records].sort((a, b) => b.date.localeCompare(a.date));
+  const filtered = [...records]
+    .filter((r) => {
+      if (selectedCodes.size > 0 && !selectedCodes.has(r.stockCode)) return false;
+      if (selectedYear !== null && parseInt(r.date.slice(0, 4)) !== selectedYear) return false;
+      if (selectedMonths.size > 0 && !selectedMonths.has(parseInt(r.date.slice(5, 7)))) return false;
+      return true;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const filteredTotal = filtered.reduce((sum, r) => sum + r.amount, 0);
 
   const deleteRecord = (id: string) => {
     onDataChange({ ...data, realizedGains: records.filter((r) => r.id !== id) });
@@ -1107,6 +1166,61 @@ function RealizedGainsView({
           <Plus size={17} />
           실현손익 추가
         </button>
+
+        {/* 필터 드롭다운 */}
+        <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
+          <button
+            className="ghost-button"
+            type="button"
+            style={isFiltered ? { color: '#ffe082' } : undefined}
+            onClick={() => setFilterOpen((v) => !v)}
+          >
+            필터{isFiltered ? ` (${selectedCodes.size}/${allCodes.length})` : ''}
+          </button>
+          {filterOpen && (
+            <div className="filter-dropdown-panel">
+              <div className="filter-section-label">연도</div>
+              <div className="filter-chip-row">
+                <button type="button" className={`filter-chip${selectedYear === null ? ' active' : ''}`} onClick={() => setSelectedYear(null)}>전체</button>
+                {allYears.map((y) => (
+                  <button key={y} type="button" className={`filter-chip${selectedYear === y ? ' active' : ''}`} onClick={() => setSelectedYear(selectedYear === y ? null : y)}>{y}</button>
+                ))}
+              </div>
+
+              <div className="filter-section-label" style={{ marginTop: 10 }}>월</div>
+              <div className="filter-chip-row">
+                <button type="button" className={`filter-chip${selectedMonths.size === 0 ? ' active' : ''}`} onClick={() => setSelectedMonths(new Set())}>전체</button>
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => (
+                  <button key={m} type="button" className={`filter-chip${selectedMonths.has(m) ? ' active' : ''}`} onClick={() => toggleMonth(m)}>{m}월</button>
+                ))}
+              </div>
+
+              <div className="filter-check-divider" style={{ margin: '10px 0 6px' }} />
+
+              <div className="filter-section-label">종목</div>
+              <label className="filter-check-row">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                  onChange={toggleAll}
+                />
+                전체 선택/해제
+              </label>
+              <div className="filter-check-divider" />
+              {allCodes.map((code) => {
+                const name = records.find((r) => r.stockCode === code)?.stockName ?? code;
+                return (
+                  <label className="filter-check-row" key={code}>
+                    <input type="checkbox" checked={selectedCodes.has(code)} onChange={() => toggleCode(code)} />
+                    {name}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <button
           className="ghost-button"
           type="button"
@@ -1190,16 +1304,18 @@ function RealizedGainsView({
       </div>
 
       {/* 리스트 */}
-      {sortedRecords.length === 0 ? (
+      {records.length === 0 ? (
         <div className="dividend-empty-state">
           <Plus size={28} style={{ opacity: 0.4 }} />
           <strong>실현손익 기록이 없습니다.</strong>
           <p>위 버튼으로 첫 기록을 추가해보세요.</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="dividend-empty">필터 조건에 맞는 기록이 없습니다.</div>
       ) : (
         <>
           <div className="rg-record-list">
-            {sortedRecords.map((r) => (
+            {filtered.map((r) => (
               <div className="dividend-record-row" key={r.id}>
                 <span className="record-date">{r.date}</span>
                 <span className="record-name">{r.stockName}</span>
@@ -1225,11 +1341,12 @@ function RealizedGainsView({
             <span>
               합계{' '}
               <strong>
-                <span className={`secret-value ${tone(totalAll)}`}>{signedCurrency(totalAll)}</span>
+                <span className={`secret-value ${tone(filteredTotal)}`}>{signedCurrency(filteredTotal)}</span>
               </strong>
             </span>
             <span>
-              총 <strong>{records.length}건</strong>
+              총 <strong>{filtered.length}건</strong>
+              {isFiltered && <span style={{ color: '#7fa9db' }}> / {records.length}건</span>}
             </span>
           </div>
         </>
