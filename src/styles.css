@@ -1865,3 +1865,22 @@ label {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.confirm-modal {
+  width: min(100%, 300px);
+  text-align: center;
+}
+
+.confirm-msg {
+  margin: 0 0 16px;
+  color: #dceaff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}

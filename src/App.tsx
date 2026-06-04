@@ -26,6 +26,43 @@ import {
 } from './storage';
 import type { AppData, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord } from './types';
 
+// ─── Custom Confirm Dialog ────────────────────────────────────────────────────
+
+let _confirmResolve: ((v: boolean) => void) | null = null;
+let _setConfirmMsg: ((msg: string | null) => void) | null = null;
+
+function customConfirm(message: string): Promise<boolean> {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    _setConfirmMsg?.(message);
+  });
+}
+
+function ConfirmDialog() {
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => {
+    _setConfirmMsg = setMsg;
+    return () => { _setConfirmMsg = null; };
+  }, []);
+  if (!msg) return null;
+  const handle = (result: boolean) => {
+    _confirmResolve?.(result);
+    _confirmResolve = null;
+    setMsg(null);
+  };
+  return (
+    <div className="modal-backdrop" onClick={() => handle(false)}>
+      <div className="modal confirm-modal" onClick={e => e.stopPropagation()}>
+        <p className="confirm-msg">{msg}</p>
+        <div className="confirm-actions">
+          <button className="ghost-button compact" type="button" onClick={() => handle(false)}>취소</button>
+          <button className="primary-button compact" type="button" onClick={() => handle(true)}>확인</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type HoldingDraft = {
   id?: string;
   query: string;
@@ -545,7 +582,7 @@ function LiveView({
       return;
     }
 
-    const ok = confirm(
+    const ok = await customConfirm(
       nextDraft.id ? '변경사항을 저장할까요?' : '이 종목을 포트폴리오에 추가할까요?',
     );
     if (!ok) return;
@@ -609,11 +646,11 @@ function LiveView({
 
   const importBackup = (file: File) => {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const parsed = JSON.parse(String(reader.result));
         const restored = validateBackup(parsed);
-        if (!confirm('백업 파일의 데이터로 현재 내용을 교체할까요?')) return;
+        if (!await customConfirm('백업 파일의 데이터로 현재 내용을 교체할까요?')) return;
         onDataChange(restored);
         setNotice('백업을 복원했습니다.');
       } catch (error) {
@@ -666,8 +703,8 @@ function LiveView({
             averagePrice: String(row.averagePrice),
           })
         }
-        onDelete={(row) => {
-          if (!confirm(`${row.name} 종목을 삭제할까요?`)) return;
+        onDelete={async (row) => {
+          if (!await customConfirm(`${row.name} 종목을 삭제할까요?`)) return;
           saveHoldings(data.holdings.filter((holding) => holding.id !== row.id));
         }}
       />
@@ -709,8 +746,8 @@ function AccountView({
     setCashBalance(formatNumberWithCommas(data.account.cashBalance || ''));
   }, [data.account.cashBalance, data.account.totalContribution]);
 
-  const save = () => {
-    if (!confirm('계좌 입력값을 저장할까요?')) return;
+  const save = async () => {
+    if (!await customConfirm('계좌 입력값을 저장할까요?')) return;
     onDataChange({
       ...data,
       account: {
@@ -784,7 +821,7 @@ function PasswordView({
 
   const cleanPin = (value: string) => value.replace(/\D/g, '').slice(0, 4);
 
-  const savePassword = (event: FormEvent) => {
+  const savePassword = async (event: FormEvent) => {
     event.preventDefault();
     if (current !== data.password) {
       alert('현재 비밀번호가 맞지 않습니다.');
@@ -794,7 +831,7 @@ function PasswordView({
       alert('새 비밀번호 4자리를 동일하게 입력하세요.');
       return;
     }
-    if (!confirm('비밀번호를 변경할까요?')) return;
+    if (!await customConfirm('비밀번호를 변경할까요?')) return;
     onDataChange({ ...data, password: next });
     setCurrent('');
     setNext('');
@@ -1334,8 +1371,8 @@ function RealizedGainsView({
                   aria-label={`${r.stockName} 삭제`}
                   className="record-delete"
                   type="button"
-                  onClick={() => {
-                    if (confirm(`${r.stockName} ${r.date} 실현손익 기록을 삭제할까요?`)) {
+                  onClick={async () => {
+                    if (await customConfirm(`${r.stockName} ${r.date} 실현손익 기록을 삭제할까요?`)) {
                       deleteRecord(r.id);
                     }
                   }}
@@ -2502,8 +2539,8 @@ function DividendRecordsTab({
                 aria-label={`${d.stockName} 배당 삭제`}
                 className="record-delete"
                 type="button"
-                onClick={() => {
-                  if (confirm(`${d.stockName} ${d.paidAt} 배당 기록을 삭제할까요?`)) {
+                onClick={async () => {
+                  if (await customConfirm(`${d.stockName} ${d.paidAt} 배당 기록을 삭제할까요?`)) {
                     onDelete(d.id);
                   }
                 }}
@@ -2623,6 +2660,7 @@ export default function App() {
 
   return (
     <>
+      <ConfirmDialog />
       <ParticleBackground />
       {!unlocked ? (
         <LoginScreen password={data.password} onSuccess={() => setUnlocked(true)} />
