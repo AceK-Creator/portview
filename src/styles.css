@@ -462,7 +462,7 @@ input:focus {
 .metric > span {
   display: block;
   margin-bottom: 6px;
-  color: #95abc6;
+  color: #7fa9db;
   font-size: 13px;
   font-weight: 400;
   white-space: nowrap;
@@ -778,7 +778,7 @@ input:focus {
   inset: 0;
   z-index: 40;
   display: grid;
-  place-items: end center;
+  place-items: center;
   padding: 16px;
   background: rgba(1, 8, 17, 0.62);
 }
@@ -842,6 +842,7 @@ label {
 
 .account-panel label {
   font-weight: 400;
+  color: #7fa9db;
 }
 
 .account-panel .primary-button {
@@ -970,7 +971,7 @@ label {
   border-radius: 10px;
   color: #7fa9db;
   background: transparent;
-  font-weight: 700;
+  font-weight: 400;
   font-size: 14px;
   transition: all 200ms ease;
 }
@@ -1010,7 +1011,7 @@ label {
 .dividend-stat-label {
   color: #7fa9db;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   margin-bottom: 6px;
@@ -1019,14 +1020,14 @@ label {
 .dividend-stat-value {
   color: #f5f9ff;
   font-size: clamp(16px, 4vw, 22px);
-  font-weight: 800;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 
 .dividend-stat-value-xl {
   color: #f5f9ff;
   font-size: clamp(22px, 6vw, 34px);
-  font-weight: 900;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   background: linear-gradient(135deg, #ffffff 40%, #a0c4ff 100%);
   -webkit-background-clip: text;
@@ -1039,7 +1040,14 @@ label {
 .dividend-stat-sub {
   color: #6a88aa;
   font-size: 12px;
+  font-weight: 400;
   margin-top: 4px;
+}
+
+/* 누적 배당금 합계 — 테두리 없이 중앙 정렬 */
+.dividend-total-card {
+  text-align: center;
+  padding: 8px 0 4px;
 }
 
 .dividend-month-diff {
@@ -1109,7 +1117,7 @@ label {
   background: rgba(124, 77, 255, 0.2);
   color: #a98eff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 400;
   flex-shrink: 0;
 }
 
@@ -1118,7 +1126,7 @@ label {
   flex-shrink: 0;
   color: #dceaff;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1423,14 +1431,14 @@ label {
 .record-date {
   color: #7fa9db;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 
 .record-name {
   color: #dceaff;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1439,7 +1447,7 @@ label {
 .record-amount {
   color: #a0c4ff;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1511,7 +1519,22 @@ label {
 
 .dividend-summary-bar strong {
   color: #f5f9ff;
-  font-weight: 800;
+  font-weight: 400;
+}
+
+.dividend-view .primary-button,
+.dividend-view .ghost-button {
+  font-weight: 400;
+}
+
+.realized-view .primary-button,
+.realized-view .ghost-button {
+  font-weight: 400;
+}
+
+/* 누적 실현손익 숫자만 bold 유지 */
+.rg-summary-row .rg-section:first-child .dividend-stat-value {
+  font-weight: 700;
 }
 
 /* Dividend Add Modal */
@@ -1636,7 +1659,7 @@ label {
   inset: 0;
   z-index: 40;
   display: grid;
-  place-items: end center;
+  place-items: center;
   padding: 16px;
   background: rgba(1, 8, 17, 0.62);
 }
@@ -1825,7 +1848,7 @@ label {
   padding: 0 14px;
   border: none;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   background: transparent;
   color: #7fa9db;
   cursor: pointer;
@@ -1883,7 +1906,7 @@ label {
   min-height: 44px;
   border: none;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 400;
   background: transparent;
   cursor: pointer;
   transition: all 150ms ease;

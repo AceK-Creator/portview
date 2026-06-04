@@ -55,8 +55,8 @@ function ConfirmDialog() {
       <div className="modal confirm-modal" onClick={e => e.stopPropagation()}>
         <p className="confirm-msg">{msg}</p>
         <div className="confirm-actions">
-          <button className="ghost-button compact" type="button" onClick={() => handle(false)}>취소</button>
           <button className="primary-button compact" type="button" onClick={() => handle(true)}>확인</button>
+          <button className="ghost-button compact" type="button" onClick={() => handle(false)}>취소</button>
         </div>
       </div>
     </div>
@@ -1762,7 +1762,7 @@ function DividendSummaryTab({
   return (
     <div className="dividend-summary-content">
       {/* 1. 누적 배당금 카드 */}
-      <div className="dividend-section">
+      <div className="dividend-total-card">
         <div className="dividend-stat-label">누적 배당금 합계</div>
         <div className="dividend-stat-value-xl secret-value">{currency(totalAll)}</div>
         <div className="dividend-stat-sub">총 {dividends.length}건</div>
