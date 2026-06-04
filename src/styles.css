@@ -120,6 +120,12 @@ button:disabled {
   margin: 0 auto;
   display: grid;
   place-items: center;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow:
+    0 0 22px rgba(124, 77, 255, 0.65),
+    0 0 44px rgba(0, 180, 216, 0.35),
+    0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .login-icon {
@@ -127,9 +133,6 @@ button:disabled {
   height: 100%;
   object-fit: contain;
   display: block;
-  filter:
-    drop-shadow(0 0 14px rgba(124, 77, 255, 0.55))
-    drop-shadow(0 6px 20px rgba(0, 180, 216, 0.3));
 }
 
 .login-panel h1 {
@@ -499,6 +502,7 @@ input:focus {
   border-radius: 14px;
   border: 1px solid transparent;
   font-weight: 800;
+  white-space: nowrap;
   transition: transform 150ms ease, filter 150ms ease, background 150ms ease;
 }
 
