@@ -381,24 +381,35 @@ function AppHeader({
   );
 }
 
-function SummaryStrip({
-  summary,
-}: {
-  summary: ReturnType<typeof calculateAccountSummary>;
-}) {
+function LiveSummary({ rows }: { rows: HoldingRow[] }) {
+  const totalInvested = rows.reduce((s, r) => s + (r.investedAmount ?? 0), 0);
+  const totalProfitLoss = rows.reduce((s, r) => s + (r.profitLoss ?? 0), 0);
+  const totalMarketValue = rows.reduce((s, r) => s + (r.marketValue ?? 0), 0);
+  const totalReturnRate = totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
+
+  if (rows.length === 0) return null;
+
   return (
-    <section className="summary-strip" aria-label="계좌 요약">
-      <div>
-        <span>현재총자산</span>
-        <strong><span className="secret-value">{currency(summary.currentTotalAssets)}</span></strong>
+    <section className="live-summary">
+      <div className="live-summary-row">
+        <div className="live-summary-item">
+          <span className="live-summary-label">매입금액</span>
+          <span className="live-summary-value"><span className="secret-value">{currency(totalInvested)}</span></span>
+        </div>
+        <div className="live-summary-item">
+          <span className="live-summary-label">평가손익</span>
+          <span className={`live-summary-value ${tone(totalProfitLoss)}`}><span className="secret-value">{signedCurrency(totalProfitLoss)}</span></span>
+        </div>
       </div>
-      <div>
-        <span>총투입 대비 손익</span>
-        <strong className={tone(summary.totalProfitLoss)}><span className="secret-value">{signedCurrency(summary.totalProfitLoss)}</span></strong>
-      </div>
-      <div>
-        <span>총투입 대비 수익률</span>
-        <strong className={tone(summary.totalReturnRate)}><span className="secret-value">{percent(summary.totalReturnRate)}</span></strong>
+      <div className="live-summary-row">
+        <div className="live-summary-item">
+          <span className="live-summary-label">평가금액</span>
+          <span className="live-summary-value"><span className="secret-value">{currency(totalMarketValue)}</span></span>
+        </div>
+        <div className="live-summary-item">
+          <span className="live-summary-label">수익률</span>
+          <span className={`live-summary-value ${tone(totalReturnRate)}`}><span className="secret-value">{percent(totalReturnRate)}</span></span>
+        </div>
       </div>
     </section>
   );
@@ -429,13 +440,13 @@ function HoldingTable({
         <div className="table-header">
           <div className="name-heading">종목명</div>
           <div className="metrics-grid">
-            <div>주식수</div>
+            <div>잔고수량</div>
             <div>매입가</div>
             <div>평가손익</div>
-            <div>매입원금</div>
+            <div>매입금액</div>
             <div>대비</div>
-            <div>비중</div>
-            <div>현재가격</div>
+            <div>보유비중</div>
+            <div>현재가</div>
             <div>수익률</div>
             <div>평가금액</div>
             <div>등락률</div>
@@ -470,30 +481,6 @@ function HoldingTable({
             </div>
           </article>
         ))}
-        {(() => {
-          const totalProfitLoss = rows.reduce((s, r) => s + (r.profitLoss ?? 0), 0);
-          const totalInvested = rows.reduce((s, r) => s + (r.investedAmount ?? 0), 0);
-          const totalMarketValue = rows.reduce((s, r) => s + (r.marketValue ?? 0), 0);
-          const totalReturnRate = totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
-          return (
-            <div className="holdings-summary-row">
-              <div className="summary-label">합계</div>
-              <div className="metrics-grid">
-                <div></div>
-                <div></div>
-                <div className={tone(totalProfitLoss)}><span className="secret-value">{signedCurrency(totalProfitLoss)}</span></div>
-                <div><span className="secret-value">{currency(totalInvested)}</span></div>
-                <div></div>
-                <div></div>
-                <div></div>
-                <div className={tone(totalReturnRate)}><span className="secret-value">{percent(totalReturnRate)}</span></div>
-                <div><span className="secret-value">{currency(totalMarketValue)}</span></div>
-                <div></div>
-              </div>
-              <div className="summary-actions-spacer"></div>
-            </div>
-          );
-        })()}
       </div>
     </section>
   );
@@ -584,12 +571,10 @@ function HoldingModal({
 function LiveView({
   data,
   rows,
-  summary,
   onDataChange,
 }: {
   data: AppData;
   rows: HoldingRow[];
-  summary: ReturnType<typeof calculateAccountSummary>;
   onDataChange: (data: AppData) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -685,8 +670,7 @@ function LiveView({
   };
 
   return (
-    <>
-      <SummaryStrip summary={summary} />
+    <div className="live-view">
       <section className="toolbar">
         <button className="primary-button" type="button" onClick={() => setDraft({ query: '', shares: '', averagePrice: '' })}>
           <Plus size={17} />
@@ -717,6 +701,7 @@ function LiveView({
         />
       </section>
       {notice && <p className="notice">{notice}</p>}
+      <LiveSummary rows={rows} />
       <HoldingTable
         rows={rows}
         onEdit={(row) =>
@@ -738,7 +723,7 @@ function LiveView({
         onClose={() => setDraft(null)}
         onSubmit={submitHolding}
       />
-    </>
+    </div>
   );
 }
 
@@ -2699,7 +2684,7 @@ export default function App() {
       <InstallBanner />
       <AppHeader activeMenu={activeMenu} onChangeMenu={setActiveMenu} onLogout={() => setUnlocked(false)} secretMode={secretMode} onToggleSecret={() => setSecretMode((v) => !v)} />
       {activeMenu === 'live' && (
-        <LiveView data={data} rows={rows} summary={summary} onDataChange={persist} />
+        <LiveView data={data} rows={rows} onDataChange={persist} />
       )}
       {activeMenu === 'account' && (
         <AccountView data={data} summary={summary} onDataChange={persist} />

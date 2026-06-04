@@ -476,6 +476,58 @@ input:focus {
   font-size: clamp(13px, 3.4vw, 19px);
 }
 
+/* ─── Live Summary (실시간 잔고 요약) ─────────────────────────────────────────── */
+
+.live-summary {
+  margin: 0 0 4px;
+}
+
+.live-summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid rgba(145, 181, 220, 0.1);
+}
+
+.live-summary-row:first-child {
+  border-top: 1px solid rgba(145, 181, 220, 0.1);
+}
+
+.live-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.live-summary-item:first-child {
+  padding-right: 20px;
+  border-right: 1px solid rgba(145, 181, 220, 0.1);
+}
+
+.live-summary-item:last-child {
+  padding-left: 20px;
+}
+
+.live-summary-label {
+  font-size: 12px;
+  color: #7fa9db;
+  font-weight: 400;
+}
+
+.live-summary-value {
+  font-size: 14px;
+  color: #dceaff;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Live View 범위 Bold 제거 ──────────────────────────────────────────────── */
+
+.live-view .primary-button,
+.live-view .ghost-button {
+  font-weight: 400;
+}
+
 .toolbar {
   display: flex;
   gap: 8px;
@@ -536,11 +588,10 @@ input:focus {
 
 .holdings-shell {
   overflow-x: auto;
-  width: max-content;
-  max-width: 100%;
-  border: 1px solid rgba(145, 181, 220, 0.2);
-  border-radius: 18px;
-  background: rgba(8, 24, 45, 0.86);
+  margin-left: -14px;
+  margin-right: -14px;
+  border-top: 1px solid rgba(145, 181, 220, 0.2);
+  border-bottom: 1px solid rgba(145, 181, 220, 0.2);
 }
 
 .holdings-table {
@@ -556,10 +607,10 @@ input:focus {
 }
 
 .table-header {
-  color: #adc4df;
+  color: #8ba8c8;
   background: #0d2543;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 400;
   border-bottom: 1px solid rgba(145, 181, 220, 0.22);
 }
 
@@ -622,21 +673,22 @@ input:focus {
 }
 
 .holding-name strong {
-  color: #f4f8ff;
-  font-size: 15px;
+  color: #dceaff;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 1.3;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   word-break: break-all;
-  height: 39px;
+  height: 36px;
 }
 
 .holding-name span {
   color: #83a6cc;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .holding-name em {
@@ -857,21 +909,6 @@ label {
     padding-right: 10px;
   }
 
-  .summary-strip {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-strip div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  .summary-strip span {
-    margin: 0;
-  }
-
   .toolbar {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -881,13 +918,17 @@ label {
     width: 100%;
   }
 
+  .holdings-shell {
+    margin-left: -10px;
+    margin-right: -10px;
+  }
+
   .holdings-table {
     min-width: 657px;
   }
 
   .table-header,
-  .holding-row,
-  .holdings-summary-row {
+  .holding-row {
     grid-template-columns: 110px 503px 44px;
   }
 }
