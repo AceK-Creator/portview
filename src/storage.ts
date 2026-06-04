@@ -11,6 +11,7 @@ export const defaultData: AppData = {
   },
   holdings: [],
   dividends: [],
+  realizedGains: [],
 };
 
 export function loadData(): AppData {
@@ -30,6 +31,7 @@ export function loadData(): AppData {
       ? parsed.holdings.map((h) => ({ ...h, quoteError: undefined }))
       : [],
       dividends: Array.isArray(parsed.dividends) ? parsed.dividends : [],
+      realizedGains: Array.isArray(parsed.realizedGains) ? parsed.realizedGains : [],
     };
   } catch {
     return defaultData;
@@ -83,6 +85,15 @@ export function validateBackup(value: unknown): AppData {
           stockName: String(d.stockName),
           paidAt: String(d.paidAt),
           amount: Number(d.amount) || 0,
+        }))
+      : [],
+    realizedGains: Array.isArray(data.realizedGains)
+      ? data.realizedGains.map((r) => ({
+          id: String(r.id),
+          stockCode: String(r.stockCode),
+          stockName: String(r.stockName),
+          date: String(r.date),
+          amount: Number(r.amount) || 0,
         }))
       : [],
   };

@@ -24,7 +24,7 @@ import {
   saveData,
   validateBackup,
 } from './storage';
-import type { AppData, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult } from './types';
+import type { AppData, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord } from './types';
 
 type HoldingDraft = {
   id?: string;
@@ -845,13 +845,361 @@ function PasswordView({
   );
 }
 
-function ComingSoonView({ label }: { label: string }) {
+// ─── Realized Gain Add Modal ──────────────────────────────────────────────────
+
+function RealizedGainAddModal({
+  holdings,
+  onClose,
+  onSave,
+}: {
+  holdings: Holding[];
+  onClose: () => void;
+  onSave: (record: RealizedGainRecord) => void;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [stockInput, setStockInput] = useState('');
+  const [stockCode, setStockCode] = useState('');
+  const [stockName, setStockName] = useState('');
+  const [date, setDate] = useState(today);
+  const [amountStr, setAmountStr] = useState('');
+  const [gainType, setGainType] = useState<'gain' | 'loss'>('gain');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedFromDropdown, setSelectedFromDropdown] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const comboRef = useRef<HTMLDivElement>(null);
+
+  const filtered = holdings.filter(
+    (h) => h.name.includes(stockInput) || h.code.includes(stockInput),
+  );
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (comboRef.current && !comboRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectHolding = (h: Holding) => {
+    setStockInput(h.name);
+    setStockCode(h.code);
+    setStockName(h.name);
+    setShowDropdown(false);
+    setSelectedFromDropdown(true);
+  };
+
+  const handleStockChange = (val: string) => {
+    setStockInput(val);
+    setStockCode('');
+    setStockName('');
+    setShowDropdown(true);
+    setSelectedFromDropdown(false);
+  };
+
+  const handleSave = async (e: FormEvent) => {
+    e.preventDefault();
+    const amount = parseNumberFromCommas(amountStr);
+    if (!stockInput.trim()) {
+      alert('종목을 입력해주세요.');
+      return;
+    }
+    if (amount <= 0) {
+      alert('금액을 입력해주세요.');
+      return;
+    }
+
+    let resolvedCode = stockCode || stockInput.trim();
+    let resolvedName = stockName || stockInput.trim();
+
+    if (!selectedFromDropdown) {
+      setBusy(true);
+      try {
+        const quote = await fetchQuote(stockInput.trim());
+        resolvedCode = quote.code;
+        resolvedName = quote.name;
+      } catch {
+        // 조회 실패 시 입력값 그대로 사용
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    const record: RealizedGainRecord = {
+      id: crypto.randomUUID(),
+      stockCode: resolvedCode,
+      stockName: resolvedName,
+      date,
+      amount: gainType === 'gain' ? amount : -amount,
+    };
+    onSave(record);
+    onClose();
+  };
+
   return (
-    <section className="coming-soon-view">
-      <div className="coming-soon-icon">🚧</div>
-      <strong>{label}</strong>
-      <p>준비 중입니다.</p>
-    </section>
+    <div className="modal-backdrop" role="presentation">
+      <form className="modal" onSubmit={handleSave}>
+        <div className="modal-title">
+          <strong>실현손익 추가</strong>
+          <button aria-label="닫기" type="button" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <label>
+          종목
+          <div className="combo-input-wrap" ref={comboRef}>
+            <input
+              autoComplete="off"
+              placeholder="종목명 또는 코드 입력"
+              value={stockInput}
+              onFocus={() => setShowDropdown(true)}
+              onChange={(e) => handleStockChange(e.target.value)}
+            />
+            {showDropdown && filtered.length > 0 && (
+              <div className="combo-dropdown">
+                {filtered.map((h) => (
+                  <button key={h.id} type="button" onClick={() => selectHolding(h)}>
+                    <span className="combo-name">{h.name}</span>
+                    <span className="combo-code">{h.code}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </label>
+
+        <label>
+          날짜
+          <input
+            required
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+
+        <label>
+          구분
+          <div className="rg-type-toggle">
+            <button
+              type="button"
+              className={`gain-btn${gainType === 'gain' ? ' active' : ''}`}
+              onClick={() => setGainType('gain')}
+            >
+              수익
+            </button>
+            <button
+              type="button"
+              className={`loss-btn${gainType === 'loss' ? ' active' : ''}`}
+              onClick={() => setGainType('loss')}
+            >
+              손실
+            </button>
+          </div>
+        </label>
+
+        <label>
+          금액
+          <div className={gainType === 'gain' ? 'rg-amount-gain' : 'rg-amount-loss'}>
+            <input
+              inputMode="numeric"
+              placeholder="예: 150,000"
+              value={amountStr}
+              onChange={(e) => setAmountStr(formatNumberWithCommas(e.target.value))}
+            />
+          </div>
+        </label>
+
+        <button className="primary-button" disabled={busy} type="submit">
+          <Save size={17} />
+          {busy ? '종목 확인 중…' : '저장'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// ─── Realized Gains View ──────────────────────────────────────────────────────
+
+function RealizedGainsView({
+  data,
+  onDataChange,
+}: {
+  data: AppData;
+  onDataChange: (data: AppData) => void;
+}) {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [top5Type, setTop5Type] = useState<'gain' | 'loss'>('gain');
+  const records = data.realizedGains ?? [];
+
+  const thisYear = new Date().getFullYear();
+  const totalAll = records.reduce((sum, r) => sum + r.amount, 0);
+  const totalThisYear = records
+    .filter((r) => r.date.startsWith(String(thisYear)))
+    .reduce((sum, r) => sum + r.amount, 0);
+
+  // 종목별 누적
+  const stockMap: Record<string, { name: string; total: number }> = {};
+  records.forEach((r) => {
+    if (!stockMap[r.stockCode]) stockMap[r.stockCode] = { name: r.stockName, total: 0 };
+    stockMap[r.stockCode].total += r.amount;
+  });
+
+  const top5Data =
+    top5Type === 'gain'
+      ? Object.entries(stockMap)
+          .filter(([, v]) => v.total > 0)
+          .sort((a, b) => b[1].total - a[1].total)
+          .slice(0, 5)
+      : Object.entries(stockMap)
+          .filter(([, v]) => v.total < 0)
+          .sort((a, b) => a[1].total - b[1].total)
+          .slice(0, 5);
+
+  const top5Max = top5Data.length > 0 ? Math.abs(top5Data[0][1].total) : 1;
+
+  const sortedRecords = [...records].sort((a, b) => b.date.localeCompare(a.date));
+
+  const deleteRecord = (id: string) => {
+    onDataChange({ ...data, realizedGains: records.filter((r) => r.id !== id) });
+  };
+
+  return (
+    <div className="realized-view">
+      {/* 추가 버튼 */}
+      <button
+        className="primary-button"
+        style={{ width: '100%' }}
+        type="button"
+        onClick={() => setShowAddModal(true)}
+      >
+        <Plus size={17} />
+        실현손익 추가
+      </button>
+
+      {/* 요약 카드 */}
+      <div className="rg-summary-row">
+        <div className="rg-section">
+          <div className="dividend-stat-label">누적 실현손익</div>
+          <div className={`dividend-stat-value ${tone(totalAll)}`}>
+            <span className="secret-value">{signedCurrency(totalAll)}</span>
+          </div>
+          <div className="dividend-stat-sub">총 {records.length}건</div>
+        </div>
+        <div className="rg-section">
+          <div className="dividend-stat-label">{thisYear}년 실현손익</div>
+          <div className={`dividend-stat-value ${tone(totalThisYear)}`}>
+            <span className="secret-value">{signedCurrency(totalThisYear)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* TOP5 */}
+      <div className="rg-section">
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+          <span className="dividend-stat-label" style={{ marginBottom: 0, flex: 1 }}>
+            종목별 TOP5
+          </span>
+          <div className="rg-tab-switch">
+            <button
+              type="button"
+              className={top5Type === 'gain' ? 'gain-active' : ''}
+              onClick={() => setTop5Type('gain')}
+            >
+              수익
+            </button>
+            <button
+              type="button"
+              className={top5Type === 'loss' ? 'loss-active' : ''}
+              onClick={() => setTop5Type('loss')}
+            >
+              손실
+            </button>
+          </div>
+        </div>
+        {top5Data.length === 0 ? (
+          <div className="dividend-empty">해당 데이터가 없습니다.</div>
+        ) : (
+          top5Data.map(([code, { name, total }], idx) => (
+            <div className="dividend-top5-row" key={code}>
+              <span className={`top5-rank ${top5Type === 'gain' ? 'gain-rank' : 'loss-rank'}`}>
+                {idx + 1}
+              </span>
+              <span className="top5-name">{name}</span>
+              <div style={{ flex: 1 }}>
+                <div className="dividend-top5-bar">
+                  <div
+                    className={top5Type === 'gain' ? 'rg-top5-bar-gain' : 'rg-top5-bar-loss'}
+                    style={{ width: `${Math.round((Math.abs(total) / top5Max) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              <span className={`top5-amount secret-value ${top5Type === 'gain' ? 'gain' : 'loss'}`}>
+                {signedCurrency(total)}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* 리스트 */}
+      {sortedRecords.length === 0 ? (
+        <div className="dividend-empty-state">
+          <Plus size={28} style={{ opacity: 0.4 }} />
+          <strong>실현손익 기록이 없습니다.</strong>
+          <p>위 버튼으로 첫 기록을 추가해보세요.</p>
+        </div>
+      ) : (
+        <>
+          <div className="rg-record-list">
+            {sortedRecords.map((r) => (
+              <div className="dividend-record-row" key={r.id}>
+                <span className="record-date">{r.date}</span>
+                <span className="record-name">{r.stockName}</span>
+                <span className={`record-amount secret-value ${tone(r.amount)}`}>
+                  {signedCurrency(r.amount)}
+                </span>
+                <button
+                  aria-label={`${r.stockName} 삭제`}
+                  className="record-delete"
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`${r.stockName} ${r.date} 실현손익 기록을 삭제할까요?`)) {
+                      deleteRecord(r.id);
+                    }
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="dividend-summary-bar">
+            <span>
+              합계{' '}
+              <strong>
+                <span className={`secret-value ${tone(totalAll)}`}>{signedCurrency(totalAll)}</span>
+              </strong>
+            </span>
+            <span>
+              총 <strong>{records.length}건</strong>
+            </span>
+          </div>
+        </>
+      )}
+
+      {showAddModal && (
+        <RealizedGainAddModal
+          holdings={data.holdings}
+          onClose={() => setShowAddModal(false)}
+          onSave={(record) =>
+            onDataChange({ ...data, realizedGains: [...records, record] })
+          }
+        />
+      )}
+    </div>
   );
 }
 
@@ -1905,7 +2253,7 @@ export default function App() {
         <AccountView data={data} summary={summary} onDataChange={persist} />
       )}
       {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}
-      {activeMenu === 'realized-gains' && <ComingSoonView label="실현손익" />}
+      {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
       {activeMenu === 'password' && <PasswordView data={data} onDataChange={persist} />}
       <button className="floating-menu" type="button" onClick={() => setActiveMenu('live')}>
         <ChevronDown size={16} />

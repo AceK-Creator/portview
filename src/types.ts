@@ -45,12 +45,21 @@ export interface DividendRecord {
   amount: number;
 }
 
+export interface RealizedGainRecord {
+  id: string;
+  stockCode: string;
+  stockName: string;
+  date: string;        // YYYY-MM-DD
+  amount: number;      // positive = gain, negative = loss
+}
+
 export interface AppData {
   version: number;
   password: string;
   account: AccountInputs;
   holdings: Holding[];
   dividends: DividendRecord[];
+  realizedGains: RealizedGainRecord[];
 }
 
 export interface QuoteResult {
