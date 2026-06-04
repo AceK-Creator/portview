@@ -260,7 +260,7 @@ input:focus {
   border: none;
   background: transparent;
   color: #5a7a9c;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 400;
   letter-spacing: 0.01em;
   transition: color 180ms ease;
