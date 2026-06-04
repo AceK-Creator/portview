@@ -305,48 +305,6 @@ function AppHeader({
 
   return (
     <header className="app-header">
-      <div className="app-header-row">
-        <span className="eyebrow">PortView</span>
-        <div className="menu-wrap" ref={menuRef}>
-          <button
-            aria-expanded={open}
-            aria-label="메뉴"
-            className="menu-dots-btn"
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-          >
-            <MoreVertical size={20} />
-          </button>
-          {open && (
-            <nav className="dropdown-menu">
-              <button
-                type="button"
-                className="menu-util-btn"
-                onClick={() => { onChangeMenu('password'); setOpen(false); }}
-              >
-                <KeyRound size={15} />
-                비밀번호 변경
-              </button>
-              <button
-                className={`menu-secret-btn${secretMode ? ' active' : ''}`}
-                type="button"
-                onClick={() => { onToggleSecret(); setOpen(false); }}
-              >
-                {secretMode ? <Eye size={15} /> : <EyeOff size={15} />}
-                {secretMode ? '시크릿 해제' : '시크릿 모드'}
-              </button>
-              <button
-                className="menu-logout-btn"
-                type="button"
-                onClick={() => { setOpen(false); onLogout(); }}
-              >
-                <LogOut size={15} />
-                로그아웃
-              </button>
-            </nav>
-          )}
-        </div>
-      </div>
       <nav className="nav-tabs">
         {TAB_ITEMS.map((tab, i) => (
           <div key={tab.key} className="nav-tab-item">
@@ -361,6 +319,45 @@ function AppHeader({
           </div>
         ))}
       </nav>
+      <div className="menu-wrap" ref={menuRef}>
+        <button
+          aria-expanded={open}
+          aria-label="메뉴"
+          className="menu-dots-btn"
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <MoreVertical size={20} />
+        </button>
+        {open && (
+          <nav className="dropdown-menu">
+            <button
+              type="button"
+              className="menu-util-btn"
+              onClick={() => { onChangeMenu('password'); setOpen(false); }}
+            >
+              <KeyRound size={15} />
+              비밀번호 변경
+            </button>
+            <button
+              className={`menu-secret-btn${secretMode ? ' active' : ''}`}
+              type="button"
+              onClick={() => { onToggleSecret(); setOpen(false); }}
+            >
+              {secretMode ? <Eye size={15} /> : <EyeOff size={15} />}
+              {secretMode ? '시크릿 해제' : '시크릿 모드'}
+            </button>
+            <button
+              className="menu-logout-btn"
+              type="button"
+              onClick={() => { setOpen(false); onLogout(); }}
+            >
+              <LogOut size={15} />
+              로그아웃
+            </button>
+          </nav>
+        )}
+      </div>
     </header>
   );
 }

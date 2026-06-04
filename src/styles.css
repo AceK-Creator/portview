@@ -208,40 +208,26 @@ input:focus {
   top: 0;
   z-index: 20;
   display: flex;
-  flex-direction: column;
-  gap: 0;
+  flex-direction: row;
+  align-items: center;
   margin-left: -14px;
   margin-right: -14px;
-  padding: max(12px, env(safe-area-inset-top)) 14px 0;
+  padding: max(8px, env(safe-area-inset-top)) 6px max(8px, env(safe-area-inset-top)) 0;
   background: #071426;
-}
-
-.app-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 8px;
-}
-
-.eyebrow {
-  display: block;
-  color: #7fa9db;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
 }
 
 .menu-wrap {
   position: relative;
+  flex-shrink: 0;
 }
 
 /* ─── 상단 탭 네비게이션 ──────────────────────────────────────────────────── */
 
 .nav-tabs {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-bottom: 2px;
 }
 
 .nav-tab-item {
@@ -258,7 +244,7 @@ input:focus {
 
 .nav-tab {
   position: relative;
-  padding: 8px 20px;
+  padding: 10px 14px;
   border: none;
   background: transparent;
   color: #5a7a9c;
@@ -1057,8 +1043,7 @@ label {
   .app-header {
     margin-left: -10px;
     margin-right: -10px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-right: 4px;
   }
 
   .toolbar {
