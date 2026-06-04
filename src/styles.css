@@ -63,7 +63,7 @@ button:disabled {
 }
 
 .login-screen {
-  min-height: 100vh;
+  height: 100svh;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -89,12 +89,12 @@ button:disabled {
 .login-screen::before {
   top: 15%;
   left: 15%;
-  background: rgba(124, 77, 255, 0.25);
+  background: rgba(124, 77, 255, 0.5);
 }
 .login-screen::after {
   bottom: 15%;
   right: 15%;
-  background: rgba(0, 180, 216, 0.2);
+  background: rgba(0, 180, 216, 0.4);
 }
 
 .login-panel {
@@ -118,8 +118,6 @@ button:disabled {
   width: 80px;
   height: 80px;
   margin: 0 auto;
-  display: grid;
-  place-items: center;
 }
 
 .login-icon {
@@ -127,9 +125,6 @@ button:disabled {
   height: 100%;
   object-fit: contain;
   display: block;
-  filter:
-    drop-shadow(0 0 14px rgba(124, 77, 255, 0.7))
-    drop-shadow(0 0 28px rgba(0, 180, 216, 0.4));
 }
 
 .login-panel h1 {

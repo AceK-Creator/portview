@@ -13,6 +13,8 @@ if [ -f server.pid ]; then
 fi
 
 lsof -t -i:$PORT 2>/dev/null | xargs kill -9 2>/dev/null || true
+sleep 3
+lsof -t -i:$PORT 2>/dev/null | xargs kill -9 2>/dev/null || true
 sleep 2
 
 if [ ! -d node_modules ]; then

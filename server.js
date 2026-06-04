@@ -127,9 +127,12 @@ app.post('/api/client-error', (req, res) => {
   res.status(204).end();
 });
 
-app.use(express.static(DIST_DIR, { extensions: ['html'] }));
-app.get('*', (_req, res) => {
+app.use('/portview', express.static(DIST_DIR, { extensions: ['html'] }));
+app.get('/portview/*', (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'index.html'));
+});
+app.get('/', (_req, res) => {
+  res.redirect('/portview/');
 });
 
 if (!fs.existsSync(DIST_DIR)) {
