@@ -470,6 +470,30 @@ function HoldingTable({
             </div>
           </article>
         ))}
+        {(() => {
+          const totalProfitLoss = rows.reduce((s, r) => s + (r.profitLoss ?? 0), 0);
+          const totalInvested = rows.reduce((s, r) => s + (r.investedAmount ?? 0), 0);
+          const totalMarketValue = rows.reduce((s, r) => s + (r.marketValue ?? 0), 0);
+          const totalReturnRate = totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
+          return (
+            <div className="holdings-summary-row">
+              <div className="summary-label">합계</div>
+              <div className="metrics-grid">
+                <div></div>
+                <div></div>
+                <div className={tone(totalProfitLoss)}><span className="secret-value">{signedCurrency(totalProfitLoss)}</span></div>
+                <div><span className="secret-value">{currency(totalInvested)}</span></div>
+                <div></div>
+                <div></div>
+                <div></div>
+                <div className={tone(totalReturnRate)}><span className="secret-value">{percent(totalReturnRate)}</span></div>
+                <div><span className="secret-value">{currency(totalMarketValue)}</span></div>
+                <div></div>
+              </div>
+              <div className="summary-actions-spacer"></div>
+            </div>
+          );
+        })()}
       </div>
     </section>
   );

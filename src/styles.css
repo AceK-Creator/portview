@@ -667,6 +667,41 @@ input:focus {
   padding: 5px 0;
 }
 
+.holdings-summary-row {
+  display: grid;
+  grid-template-columns: 120px 503px 44px;
+  align-items: stretch;
+  height: 62px;
+  border-top: 2px solid rgba(145, 181, 220, 0.4);
+  background: rgba(13, 37, 67, 0.95);
+}
+
+.summary-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #adc4df;
+  letter-spacing: 0.5px;
+  border-right: 1px solid rgba(145, 181, 220, 0.14);
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: rgba(13, 37, 67, 0.95);
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.holdings-summary-row .metrics-grid {
+  grid-auto-rows: 31px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.summary-actions-spacer {
+  width: 44px;
+}
+
 
 .gain {
   color: #ff6464 !important;
