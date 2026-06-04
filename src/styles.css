@@ -150,7 +150,8 @@ button:disabled {
 
 .app-header h1 {
   margin: 0;
-  letter-spacing: 0;
+  font-size: 20px;
+  letter-spacing: -0.3px;
 }
 
 .login-panel p {
