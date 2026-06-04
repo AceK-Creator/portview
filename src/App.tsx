@@ -1,6 +1,5 @@
 import {
   ChevronDown,
-  ChevronRight,
   Download,
   Eye,
   EyeOff,
@@ -39,25 +38,19 @@ type GroupMenuItem = { kind: 'group'; label: string; children: Array<{ key: Menu
 type MenuItem = FlatMenuItem | GroupMenuItem;
 
 const menuItems: MenuItem[] = [
-  { kind: 'item', key: 'live', label: '실시간 현황' },
-  { kind: 'item', key: 'account', label: '전체 계좌 손익 누계' },
-  {
-    kind: 'group',
-    label: '수익관리',
-    children: [
-      { key: 'dividend', label: '배당' },
-      { key: 'realized-gains', label: '실현손익' },
-    ],
-  },
+  { kind: 'item', key: 'live', label: '실시간 종목 현황' },
+  { kind: 'item', key: 'account', label: '자산 현황' },
+  { kind: 'item', key: 'dividend', label: '배당관리' },
+  { kind: 'item', key: 'realized-gains', label: '실현손익현황' },
   { kind: 'item', key: 'password', label: '비밀번호 변경' },
 ];
 
 // ─── Particle Background ──────────────────────────────────────────────────────
 
 function ptColor(t: number, alpha: number): string {
-  const r = Math.round(124 + (0 - 124) * t);
-  const g = Math.round(77 + (180 - 77) * t);
-  const b = Math.round(255 + (216 - 255) * t);
+  const r = Math.round(160 + (0 - 160) * t);
+  const g = Math.round(50 + (220 - 50) * t);
+  const b = Math.round(255 + (255 - 255) * t);
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
@@ -109,7 +102,7 @@ function ParticleBackground() {
           if (dx * dx + dy * dy > MAX_D * MAX_D) continue;
           const dist = Math.sqrt(dx * dx + dy * dy);
           const prog = 1 - dist / MAX_D;
-          const alpha = Math.pow(prog, 1.8) * 0.28;
+          const alpha = Math.pow(prog, 1.5) * 0.48;
 
           const grad = ctx.createLinearGradient(pts[i].x, pts[i].y, pts[j].x, pts[j].y);
           grad.addColorStop(0, ptColor(pts[i].t, alpha));
@@ -119,15 +112,15 @@ function ParticleBackground() {
           ctx.moveTo(pts[i].x, pts[i].y);
           ctx.lineTo(pts[j].x, pts[j].y);
           ctx.strokeStyle = grad;
-          ctx.lineWidth = 0.75;
+          ctx.lineWidth = 1.1;
           ctx.stroke();
         }
       }
 
       for (const p of pts) {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
-        ctx.fillStyle = ptColor(p.t, 0.6);
+        ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = ptColor(p.t, 0.88);
         ctx.fill();
       }
 
@@ -154,17 +147,9 @@ function findMenuLabel(key: MenuKey): string {
       if (child) return child.label;
     }
   }
-  return '실시간 현황';
+  return '실시간 종목 현황';
 }
 
-function findParentGroup(key: MenuKey): string | null {
-  for (const item of menuItems) {
-    if (item.kind === 'group' && item.children.some((c) => c.key === key)) {
-      return item.label;
-    }
-  }
-  return null;
-}
 
 function currency(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return '-';
@@ -281,21 +266,20 @@ function AppHeader({
   onToggleSecret: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
-    const parent = findParentGroup(activeMenu);
-    return parent ? new Set([parent]) : new Set();
-  });
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const activeLabel = findMenuLabel(activeMenu);
 
-  const toggleGroup = (label: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(label)) next.delete(label);
-      else next.add(label);
-      return next;
-    });
-  };
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
   return (
     <header className="app-header">
@@ -303,7 +287,7 @@ function AppHeader({
         <span className="eyebrow">PortView</span>
         <h1>{activeLabel}</h1>
       </div>
-      <div className="menu-wrap">
+      <div className="menu-wrap" ref={menuRef}>
         <button
           aria-expanded={open}
           aria-label="전체 메뉴"
@@ -328,36 +312,7 @@ function AppHeader({
                 >
                   {item.label}
                 </button>
-              ) : (
-                <div key={item.label} className="menu-group">
-                  <button
-                    className={`menu-group-label${expandedGroups.has(item.label) ? ' expanded' : ''}`}
-                    type="button"
-                    onClick={() => toggleGroup(item.label)}
-                  >
-                    <span>{item.label}</span>
-                    <ChevronRight size={14} className="group-chevron" />
-                  </button>
-                  {expandedGroups.has(item.label) && (
-                    <div className="menu-sub-list">
-                      {item.children.map((child) => (
-                        <button
-                          key={child.key}
-                          className={`menu-sub-item${activeMenu === child.key ? ' active' : ''}`}
-                          type="button"
-                          onClick={() => {
-                            onChangeMenu(child.key);
-                            setOpen(false);
-                          }}
-                        >
-                          <span className="sub-dot" aria-hidden="true" />
-                          {child.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ),
+              ) : null,
             )}
             <div className="menu-logout-divider" />
             <button
