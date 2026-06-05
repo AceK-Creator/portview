@@ -2871,6 +2871,12 @@ export default function App() {
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
+      // 구버전 서비스워커(scope: 루트 /) 자동 제거
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((reg) => {
+          if (!reg.scope.includes('/portview/')) reg.unregister();
+        });
+      });
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         window.location.reload();
       });
