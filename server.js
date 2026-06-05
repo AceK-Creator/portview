@@ -91,9 +91,35 @@ async function resolveCodeFromSearch(query) {
   return match[1];
 }
 
+const INDEX_CODES = new Set(['KOSPI', 'KOSDAQ']);
+
+async function fetchNaverIndex(indexCode) {
+  const url = `https://polling.finance.naver.com/api/realtime/domestic/index/${encodeURIComponent(indexCode)}`;
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error(`지수 응답 오류 ${response.status}`);
+  const payload = await response.json();
+  const item = payload?.datas?.[0];
+  if (!item) throw new Error('지수 데이터가 비어 있습니다.');
+  const changeRaw = parseFloat(item.compareToPreviousClosePriceRaw);
+  const changeRateRaw = parseFloat(item.fluctuationsRatioRaw);
+  return {
+    code: indexCode,
+    name: item.stockName || indexCode,
+    price: parseFloat(item.closePriceRaw) || 0,
+    change: Number.isFinite(changeRaw) ? changeRaw : null,
+    changeRate: Number.isFinite(changeRateRaw) ? changeRateRaw : null,
+    source: 'naver-index',
+    tradedAt: item.localTradedAt || new Date().toISOString(),
+  };
+}
+
 async function quote(query) {
   const normalized = normalizeQuery(query);
   if (!normalized) throw new Error('종목명 또는 종목코드를 입력해 주세요.');
+
+  if (INDEX_CODES.has(normalized.toUpperCase())) {
+    return fetchNaverIndex(normalized.toUpperCase());
+  }
 
   const code = /^[0-9]{6}$/.test(normalized)
     ? normalized
@@ -105,35 +131,6 @@ async function quote(query) {
     return fetchNaverPage(code);
   }
 }
-
-async function fetchNaverIndex(indexCode) {
-  const url = `https://polling.finance.naver.com/api/realtime/domestic/index/${encodeURIComponent(indexCode)}`;
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error(`지수 응답 오류 ${response.status}`);
-  const payload = await response.json();
-  const item = payload?.datas?.[0];
-  if (!item) throw new Error('지수 데이터가 비어 있습니다.');
-  return {
-    code: indexCode,
-    name: item.stockName || indexCode,
-    price: parseFloat(item.closePriceRaw) || 0,
-    change: parseFloat(item.compareToPreviousClosePriceRaw) || 0,
-    changeRate: parseFloat(item.fluctuationsRatioRaw) || 0,
-    direction: item.compareToPreviousPrice?.name || 'EVEN',
-  };
-}
-
-app.get('/api/market-index', async (_req, res) => {
-  try {
-    const [kospi, kosdaq] = await Promise.all([
-      fetchNaverIndex('KOSPI'),
-      fetchNaverIndex('KOSDAQ'),
-    ]);
-    res.json({ kospi, kosdaq });
-  } catch (error) {
-    res.status(502).json({ message: error instanceof Error ? error.message : '지수 조회 실패' });
-  }
-});
 
 app.get('/api/quote', async (req, res) => {
   try {

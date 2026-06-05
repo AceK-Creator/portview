@@ -495,16 +495,18 @@ function MarketIndexBar() {
   const fmtRate = (n: number) => `${Math.abs(n).toFixed(2)}%`;
 
   function IndexRow({ item }: { item: MarketIndexItem }) {
-    const up = item.change > 0;
-    const down = item.change < 0;
+    const chg = item.change ?? 0;
+    const rate = item.changeRate ?? 0;
+    const up = chg > 0;
+    const down = chg < 0;
     const tone = up ? 'idx-up' : down ? 'idx-down' : '';
     const arrow = up ? '▲' : down ? '▼' : '–';
     return (
       <div className="market-index-row">
         <span className="idx-name">{item.name}</span>
         <span className={`idx-price ${tone}`}>{item.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        <span className={`idx-change ${tone}`}>{arrow} {fmt(item.change)}</span>
-        <span className={`idx-rate ${tone}`}>{fmtRate(item.changeRate)}</span>
+        <span className={`idx-change ${tone}`}>{arrow} {fmt(chg)}</span>
+        <span className={`idx-rate ${tone}`}>{fmtRate(rate)}</span>
       </div>
     );
   }

@@ -13,14 +13,7 @@ export async function fetchQuote(query: string): Promise<QuoteResult> {
   return payload as QuoteResult;
 }
 
-export interface MarketIndexItem {
-  code: string;
-  name: string;
-  price: number;
-  change: number;
-  changeRate: number;
-  direction: string;
-}
+export type MarketIndexItem = QuoteResult;
 
 export interface MarketIndexResult {
   kospi: MarketIndexItem;
@@ -28,10 +21,11 @@ export interface MarketIndexResult {
 }
 
 export async function fetchMarketIndex(): Promise<MarketIndexResult> {
-  const response = await fetch(`${API_BASE}/api/market-index`);
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload?.message || '지수를 불러오지 못했습니다.');
-  return payload as MarketIndexResult;
+  const [kospi, kosdaq] = await Promise.all([
+    fetchQuote('KOSPI'),
+    fetchQuote('KOSDAQ'),
+  ]);
+  return { kospi, kosdaq };
 }
 
 export async function logClientError(payload: unknown): Promise<void> {
