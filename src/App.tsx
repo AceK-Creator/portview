@@ -1101,9 +1101,13 @@ function RealizedGainsView({
   };
 
   const thisYear = new Date().getFullYear();
+  const prevYear = thisYear - 1;
   const totalAll = records.reduce((sum, r) => sum + r.amount, 0);
   const totalThisYear = records
     .filter((r) => r.date.startsWith(String(thisYear)))
+    .reduce((sum, r) => sum + r.amount, 0);
+  const totalPrevYear = records
+    .filter((r) => r.date.startsWith(String(prevYear)))
     .reduce((sum, r) => sum + r.amount, 0);
 
   // 종목별 누적
@@ -1277,18 +1281,26 @@ function RealizedGainsView({
       </div>
 
       {/* 요약 카드 */}
-      <div className="rg-summary-row">
-        <div className="rg-section">
-          <div className="dividend-stat-label">누적 실현손익</div>
-          <div className={`dividend-stat-value ${tone(totalAll)}`}>
-            <span className="secret-value">{signedCurrency(totalAll)}</span>
-          </div>
-          <div className="dividend-stat-sub">총 {records.length}건</div>
+      <div className="dividend-total-card">
+        <div className="dividend-stat-label">누적 실현손익</div>
+        <div className={`rg-total-xl secret-value ${tone(totalAll)}`}>
+          {signedCurrency(totalAll)}
         </div>
-        <div className="rg-section">
-          <div className="dividend-stat-label">{thisYear}년 실현손익</div>
-          <div className={`dividend-stat-value ${tone(totalThisYear)}`}>
-            <span className="secret-value">{signedCurrency(totalThisYear)}</span>
+        <div className="dividend-stat-sub">총 {records.length}건</div>
+      </div>
+      <div className="dividend-section">
+        <div style={{ display: 'flex' }}>
+          <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
+            <div className="dividend-stat-label">{prevYear}년 실현손익</div>
+            <div className={`dividend-stat-value ${tone(totalPrevYear)}`}>
+              <span className="secret-value">{signedCurrency(totalPrevYear)}</span>
+            </div>
+          </div>
+          <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
+            <div className="dividend-stat-label">{thisYear}년 실현손익</div>
+            <div className={`dividend-stat-value ${tone(totalThisYear)}`}>
+              <span className="secret-value">{signedCurrency(totalThisYear)}</span>
+            </div>
           </div>
         </div>
       </div>
