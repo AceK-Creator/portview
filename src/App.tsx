@@ -482,11 +482,12 @@ function MarketIndexBar() {
   const [kospi, setKospi] = useState<MarketIndexItem | null>(null);
   const [kosdaq, setKosdaq] = useState<MarketIndexItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetchMarketIndex()
       .then(({ kospi, kosdaq }) => { setKospi(kospi); setKosdaq(kosdaq); })
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -512,6 +513,8 @@ function MarketIndexBar() {
     <div className="market-index-bar">
       {loading ? (
         <div className="idx-loading">지수 로딩 중…</div>
+      ) : error ? (
+        <div className="idx-loading">지수 조회 실패</div>
       ) : kospi && kosdaq ? (
         <>
           <IndexRow item={kospi} />
@@ -2907,13 +2910,13 @@ export default function App() {
       {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
       {activeMenu === 'password' && <PasswordView data={data} onDataChange={persist} />}
-      {activeMenu === 'live' && <MarketIndexBar />}
       <button className="floating-menu" type="button" onClick={() => setActiveMenu('live')}>
         <ChevronDown size={16} />
         실시간
       </button>
     </main>
       )}
+      {unlocked && activeMenu === 'live' && <MarketIndexBar />}
     </>
   );
 }
