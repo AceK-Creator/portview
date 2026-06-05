@@ -237,7 +237,23 @@ function LoginScreen({
 }) {
   const [pin, setPin] = useState('');
   const [shake, setShake] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardOffset(kb > 50 ? kb : 0);
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (shake) return;
@@ -259,7 +275,10 @@ function LoginScreen({
 
   return (
     <main className="login-screen" onClick={() => inputRef.current?.focus()}>
-      <div className="login-panel">
+      <div
+        className="login-panel"
+        style={{ transform: keyboardOffset > 0 ? `translateY(-${Math.min(keyboardOffset * 0.5, 120)}px)` : undefined, transition: 'transform 300ms ease' }}
+      >
         <div className="login-mark">
           <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
         </div>
@@ -1806,8 +1825,8 @@ function DividendSummaryTab({
             <div className="dividend-stat-value"><span className="secret-value">{currency(prevYearTotal)}</span></div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-              <span className="dividend-stat-label" style={{ marginBottom: 0 }}>{currentYear}년 (예상)</span>
+            <div className="dividend-stat-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <span>{currentYear}년 (예상)</span>
               <div className="est-info-wrap" ref={estInfoRef}>
                 <button
                   type="button"

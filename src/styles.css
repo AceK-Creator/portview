@@ -1227,11 +1227,10 @@ label {
 
 .est-info-popup {
   position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(100% + 6px);
+  right: 0;
   z-index: 50;
-  min-width: 180px;
+  min-width: 160px;
   padding: 10px 14px;
   border: 1px solid rgba(145, 181, 220, 0.25);
   border-radius: 12px;
@@ -1244,14 +1243,13 @@ label {
   text-align: center;
 }
 
-.est-info-popup::after {
+.est-info-popup::before {
   content: '';
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 100%;
+  right: 10px;
   border: 6px solid transparent;
-  border-top-color: #0d2240;
+  border-bottom-color: #0d2240;
 }
 
 .est-info-calc {
