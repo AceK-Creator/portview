@@ -1236,10 +1236,11 @@ label {
   z-index: 200;
   min-width: 180px;
   padding: 10px 14px;
-  border: 1px solid rgba(145, 181, 220, 0.25);
+  /* border 대신 drop-shadow: 박스+화살표를 하나의 도형으로 처리하여 junction 선 완전 제거 */
+  border: none;
   border-radius: 12px;
   background: #0d2240;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  filter: drop-shadow(0 0 0.5px rgba(145, 181, 220, 0.45)) drop-shadow(0 8px 28px rgba(0, 0, 0, 0.45));
   color: #a8c8e8;
   font-size: 12px;
   line-height: 1.6;
@@ -1247,43 +1248,21 @@ label {
   text-align: center;
 }
 
-/* ── 아래 배치: 팝업 위쪽에 위를 향한 화살표 ──
-   ::before (8px, border색, 뒤) > ::after (7px, fill색, 앞)
-   → ::after가 ::before 중앙을 덮어 1px 테두리만 노출
-   → ::after를 1px 낮춰 팝업 상단 border와의 junction을 채움
-── */
-.est-info-popup[data-placement="bottom"]::before {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: calc(var(--arrow-x, 16px) - 8px);
-  border: 8px solid transparent;
-  border-bottom-color: rgba(145, 181, 220, 0.25);
-}
-
+/* ── 아래 배치: 팝업 위쪽에 위를 향한 화살표 (fill만, border 불필요) ── */
 .est-info-popup[data-placement="bottom"]::after {
   content: '';
   position: absolute;
-  bottom: calc(100% - 1px);
+  bottom: 100%;
   left: calc(var(--arrow-x, 16px) - 7px);
   border: 7px solid transparent;
   border-bottom-color: #0d2240;
 }
 
 /* ── 위 배치: 팝업 아래쪽에 아래를 향한 화살표 ── */
-.est-info-popup[data-placement="top"]::before {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: calc(var(--arrow-x, 16px) - 8px);
-  border: 8px solid transparent;
-  border-top-color: rgba(145, 181, 220, 0.25);
-}
-
 .est-info-popup[data-placement="top"]::after {
   content: '';
   position: absolute;
-  top: calc(100% - 1px);
+  top: 100%;
   left: calc(var(--arrow-x, 16px) - 7px);
   border: 7px solid transparent;
   border-top-color: #0d2240;
