@@ -1048,7 +1048,7 @@ label {
 .account-panel {
   display: grid;
   gap: 40px;
-  padding-top: 20px;
+  padding-top: 30px;
 }
 
 .password-panel {
