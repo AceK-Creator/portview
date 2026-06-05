@@ -819,7 +819,6 @@ function LiveView({
         onClose={() => setDraft(null)}
         onSubmit={submitHolding}
       />
-      <MarketIndexBar />
     </div>
   );
 }
@@ -2908,6 +2907,7 @@ export default function App() {
       {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
       {activeMenu === 'password' && <PasswordView data={data} onDataChange={persist} />}
+      {activeMenu === 'live' && <MarketIndexBar />}
       <button className="floating-menu" type="button" onClick={() => setActiveMenu('live')}>
         <ChevronDown size={16} />
         실시간

@@ -258,6 +258,7 @@ input:focus {
   z-index: 2;
 }
 
+
 .app-header {
   position: sticky;
   top: 0;
@@ -686,32 +687,36 @@ input:focus {
 
 .live-view {
   padding-top: 20px;
+  padding-bottom: 110px;
 }
 
 .market-index-bar {
-  margin-top: 18px;
-  border-top: 1px solid rgba(145, 181, 220, 0.15);
-  padding: 10px 4px 4px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #071e38;
+  border-top: 1px solid rgba(145, 181, 220, 0.18);
+  padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
 }
 
 .market-index-row {
   display: grid;
-  grid-template-columns: 60px 1fr 1fr 64px;
+  grid-template-columns: 52px 1fr 1fr 60px;
   align-items: center;
-  gap: 6px;
-  padding: 6px 2px;
-  font-size: 12.5px;
+  gap: 4px;
+  padding: 4px 0;
 }
 
 .idx-divider {
   height: 1px;
   background: rgba(145, 181, 220, 0.12);
-  margin: 0 2px;
 }
 
 .idx-name {
   color: #7a9cbf;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: -0.2px;
 }
@@ -720,21 +725,21 @@ input:focus {
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12.5px;
   color: #c5daf5;
 }
 
 .idx-change {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: 11.5px;
   color: #7a9cbf;
 }
 
 .idx-rate {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #7a9cbf;
 }
@@ -746,7 +751,7 @@ input:focus {
   text-align: center;
   font-size: 11px;
   color: #4a6888;
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .live-view .primary-button,
