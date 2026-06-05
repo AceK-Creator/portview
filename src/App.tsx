@@ -1705,13 +1705,28 @@ function DividendSummaryTab({
     .filter((d) => d.paidAt.startsWith(String(prevYear)))
     .reduce((sum, d) => sum + d.amount, 0);
 
-  // 올해 (예상) = 월평균배당금 × 12 (소수점 없음)
-  const thisYearActual = dividends
-    .filter((d) => d.paidAt.startsWith(String(currentYear)))
+  // 올해 (예상) = 최근 12개월 평균 배당금 × 12
+  const twelveMonthsAgo = new Date(currentYear, currentMonth - 13, 1);
+  const recent12Total = dividends
+    .filter((d) => new Date(d.paidAt) >= twelveMonthsAgo)
     .reduce((sum, d) => sum + d.amount, 0);
-  const thisYearMonthsElapsed = currentMonth;
-  const thisYearMonthlyAvg = thisYearMonthsElapsed > 0 ? thisYearActual / thisYearMonthsElapsed : 0;
-  const thisYearEstimated = Math.round(thisYearMonthlyAvg * 12);
+  const monthlyAvg = Math.round(recent12Total / 12);
+  const thisYearEstimated = monthlyAvg * 12;
+
+  // 예상 배당금 설명 팝업 state
+  const [showEstInfo, setShowEstInfo] = useState(false);
+  const estInfoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showEstInfo) return;
+    const handler = (e: MouseEvent) => {
+      if (estInfoRef.current && !estInfoRef.current.contains(e.target as Node)) {
+        setShowEstInfo(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showEstInfo]);
 
   // 이번달 배당 요약 state
   const [selYear, setSelYear] = useState(currentYear);
@@ -1791,7 +1806,28 @@ function DividendSummaryTab({
             <div className="dividend-stat-value"><span className="secret-value">{currency(prevYearTotal)}</span></div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
-            <div className="dividend-stat-label">{currentYear}년 (예상)</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+              <span className="dividend-stat-label" style={{ marginBottom: 0 }}>{currentYear}년 (예상)</span>
+              <div className="est-info-wrap" ref={estInfoRef}>
+                <button
+                  type="button"
+                  className="est-info-btn"
+                  onClick={() => setShowEstInfo((v) => !v)}
+                  aria-label="예상 배당금 계산 방식"
+                >
+                  ⓘ
+                </button>
+                {showEstInfo && (
+                  <div className="est-info-popup">
+                    최근 12개월 평균 배당금 × 12
+                    <br />
+                    <span className="est-info-calc">
+                      {currency(monthlyAvg)} × 12
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="dividend-stat-value"><span className="secret-value">{currency(thisYearEstimated)}</span></div>
           </div>
         </div>

@@ -1201,6 +1201,66 @@ label {
   gap: 12px;
 }
 
+/* ⓘ 예상 배당금 팝업 */
+.est-info-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.est-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #5a7a9c;
+  font-size: 13px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 150ms ease;
+}
+
+.est-info-btn:hover {
+  color: #a8c8e8;
+}
+
+.est-info-popup {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  min-width: 180px;
+  padding: 10px 14px;
+  border: 1px solid rgba(145, 181, 220, 0.25);
+  border-radius: 12px;
+  background: #0d2240;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  color: #a8c8e8;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.est-info-popup::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #0d2240;
+}
+
+.est-info-calc {
+  color: #e9f4ff;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .dividend-section {
   border: 1px solid rgba(145, 181, 220, 0.18);
   background: rgba(11, 31, 56, 0.88);
