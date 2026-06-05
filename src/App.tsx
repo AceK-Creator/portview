@@ -731,8 +731,36 @@ function LiveView({
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [notice, setNotice] = useState('');
+  const [showLiveCsvGuide, setShowLiveCsvGuide] = useState(false);
+  const [liveCsvRows, setLiveCsvRows] = useState<LiveCsvRow[] | null>(null);
+  const liveCsvInputRef = useRef<HTMLInputElement>(null);
 
   const saveHoldings = (holdings: Holding[]) => onDataChange({ ...data, holdings });
+
+  const handleLiveCsvFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length === 0) return;
+      const startIdx = /^\d/.test(lines[0].split(',')[0].trim()) ? 0 : 1;
+      const parsed: LiveCsvRow[] = [];
+      for (let i = startIdx; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length < 3) continue;
+        const code = cols[0].trim();
+        const shares = Number(cols[1].trim().replace(/[^0-9]/g, ''));
+        const averagePrice = Number(cols[2].trim().replace(/[^0-9.]/g, ''));
+        if (!code || !shares || !averagePrice) continue;
+        parsed.push({ code, shares, averagePrice });
+      }
+      if (parsed.length > 0) setLiveCsvRows(parsed);
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
 
   const submitHolding = async (nextDraft: HoldingDraft) => {
     if (Number(nextDraft.shares) <= 0 || Number(nextDraft.averagePrice) <= 0) {
@@ -803,6 +831,11 @@ function LiveView({
           <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
           새로고침
         </button>
+        <button className="ghost-button" type="button" onClick={() => setShowLiveCsvGuide(true)}>
+          <Upload size={17} />
+          파일 업로드
+        </button>
+        <input ref={liveCsvInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleLiveCsvFile} />
       </section>
       {notice && <p className="notice">{notice}</p>}
       <LiveSummary rows={rows} />
@@ -827,6 +860,29 @@ function LiveView({
         onClose={() => setDraft(null)}
         onSubmit={submitHolding}
       />
+      {showLiveCsvGuide && (
+        <CsvGuideModal
+          columns={[
+            { name: '종목코드', desc: '6자리 숫자' },
+            { name: '주식수', desc: '보유 수량 (정수)' },
+            { name: '매입가', desc: '평균 매입 단가 (원)' },
+          ]}
+          sample={'005930,10,75000\n000660,5,120000'}
+          note="헤더 행은 있어도 없어도 됩니다. 기존 종목에 추가로 업로드됩니다."
+          onClose={() => setShowLiveCsvGuide(false)}
+          onSelectFile={() => liveCsvInputRef.current?.click()}
+        />
+      )}
+      {liveCsvRows && (
+        <LiveHoldingCsvPreviewModal
+          rows={liveCsvRows}
+          onConfirm={(holdings) => {
+            saveHoldings([...data.holdings, ...holdings]);
+            setLiveCsvRows(null);
+          }}
+          onClose={() => setLiveCsvRows(null)}
+        />
+      )}
     </div>
   );
 }
@@ -2243,6 +2299,7 @@ function CsvGuideModal({
 
 type CsvRow = { stockCode: string; paidAt: string; amount: number };
 type RgCsvRow = { stockCode: string; date: string; amount: number };
+type LiveCsvRow = { code: string; shares: number; averagePrice: number };
 
 function CsvPreviewModal({
   rows,
@@ -2359,6 +2416,117 @@ function CsvPreviewModal({
             onClick={handleConfirm}
           >
             총 {rows.length}건 업로드
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Live Holding CSV Preview Modal ─────────────────────────────────────────
+
+function LiveHoldingCsvPreviewModal({
+  rows,
+  onConfirm,
+  onClose,
+}: {
+  rows: LiveCsvRow[];
+  onConfirm: (holdings: Holding[]) => void;
+  onClose: () => void;
+}) {
+  const [results, setResults] = useState<(QuoteResult | null)[]>(() => rows.map(() => null));
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<(string | null)[]>(() => rows.map(() => null));
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(
+      rows.map((row, i) =>
+        fetchQuote(row.code)
+          .then((q) => ({ i, q, err: null as string | null }))
+          .catch((e) => ({ i, q: null as QuoteResult | null, err: e instanceof Error ? e.message : '조회 실패' }))
+      )
+    ).then((all) => {
+      if (cancelled) return;
+      const newResults = [...rows.map(() => null as QuoteResult | null)];
+      const newErrors = [...rows.map(() => null as string | null)];
+      all.forEach(({ i, q, err }) => { newResults[i] = q; newErrors[i] = err; });
+      setResults(newResults);
+      setErrors(newErrors);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const hasError = errors.some((e) => e !== null);
+
+  const handleConfirm = () => {
+    const holdings: Holding[] = rows
+      .map((row, i) => {
+        const q = results[i];
+        if (!q) return null;
+        return createHoldingFromQuote(q, { query: row.code, shares: String(row.shares), averagePrice: String(row.averagePrice) });
+      })
+      .filter((h): h is Holding => h !== null);
+    onConfirm(holdings);
+  };
+
+  const successCount = results.filter((r) => r !== null).length;
+
+  return (
+    <div className="modal-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-panel csv-preview-modal">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <strong style={{ fontSize: 16, color: '#dceaff' }}>CSV 미리보기</strong>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: '#7fa9db', cursor: 'pointer' }}>
+            <X size={18} />
+          </button>
+        </div>
+        {loading && <p style={{ color: '#6a88aa', fontSize: 13 }}>시세 조회 중…</p>}
+        <div className="csv-preview-table-wrap">
+          <table className="csv-preview-table">
+            <thead>
+              <tr>
+                <th>종목코드</th>
+                <th>종목명</th>
+                <th>주식수</th>
+                <th>매입가</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => {
+                const q = results[i];
+                const err = errors[i];
+                return (
+                  <tr key={i}>
+                    <td>{row.code}</td>
+                    <td>
+                      {loading && !q && !err && <span className="csv-name-loading">조회 중…</span>}
+                      {err && <span className="csv-name-error">조회 실패</span>}
+                      {q && q.name}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>{row.shares.toLocaleString()}</td>
+                    <td style={{ textAlign: 'right' }}>{row.averagePrice.toLocaleString()}원</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {hasError && (
+          <p style={{ fontSize: 12, color: '#ff6b6b', marginTop: 6 }}>
+            ⚠ 조회 실패한 종목은 업로드에서 제외됩니다.
+          </p>
+        )}
+        <div className="csv-preview-footer">
+          <button className="secondary-button" type="button" onClick={onClose}>취소</button>
+          <button
+            className="primary-button"
+            type="button"
+            disabled={loading || successCount === 0}
+            onClick={handleConfirm}
+          >
+            총 {successCount}건 업로드
           </button>
         </div>
       </div>

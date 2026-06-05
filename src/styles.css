@@ -757,12 +757,12 @@ input:focus {
 .live-view .primary-button,
 .live-view .ghost-button {
   font-weight: 400;
+  flex: 1;
 }
 
 .toolbar {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
   align-items: center;
   margin: 0 0 10px;
 }
@@ -1905,6 +1905,16 @@ label {
 .realized-view .primary-button,
 .realized-view .ghost-button {
   font-weight: 400;
+  flex: 1;
+}
+
+.rg-toolbar > .filter-dropdown-wrap {
+  flex: 1;
+  display: flex;
+}
+
+.rg-toolbar > .filter-dropdown-wrap > button {
+  flex: 1;
 }
 
 
