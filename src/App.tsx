@@ -2550,15 +2550,15 @@ function DividendRecordsTab({
     <div className="dividend-records-content">
       {/* 상단 3버튼 바 */}
       <div className="dividend-records-topbar">
-        <button className="primary-button compact" type="button" onClick={onOpenAdd}>
-          <Plus size={15} />
+        <button className="primary-button" type="button" onClick={onOpenAdd}>
+          <Plus size={17} />
           배당 추가
         </button>
 
         {/* 필터 버튼 */}
         <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
           <button
-            className="ghost-button compact"
+            className="ghost-button"
             type="button"
             style={isFiltered ? { color: '#ffe082' } : undefined}
             onClick={() => setFilterOpen((v) => !v)}
@@ -2637,11 +2637,11 @@ function DividendRecordsTab({
 
         {/* 파일 업로드 */}
         <button
-          className="ghost-button compact"
+          className="ghost-button"
           type="button"
           onClick={() => setShowDivCsvGuide(true)}
         >
-          <Upload size={15} />
+          <Upload size={17} />
           파일 업로드
         </button>
         <input
