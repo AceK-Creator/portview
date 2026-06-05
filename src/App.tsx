@@ -1370,7 +1370,7 @@ function RealizedGainsView({
             style={isFiltered ? { color: '#ffe082' } : undefined}
             onClick={() => setFilterOpen((v) => !v)}
           >
-            필터{isFiltered ? ` (${selectedCodes.size}/${allCodes.length})` : ''}
+            필터
           </button>
         </div>
 
@@ -2784,7 +2784,7 @@ function DividendRecordsTab({
             style={isFiltered ? { color: '#ffe082' } : undefined}
             onClick={() => setFilterOpen((v) => !v)}
           >
-            필터{isFiltered ? ` (${selectedCodes.size}/${allCodes.length})` : ''}
+            필터
           </button>
         </div>
 
