@@ -236,42 +236,60 @@ function LoginScreen({
   onSuccess: () => void;
 }) {
   const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
+  const [shake, setShake] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (pin === password) {
-      setError('');
-      onSuccess();
-      return;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (shake) return;
+    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setPin(val);
+    if (val.length === 4) {
+      if (val === password) {
+        onSuccess();
+      } else {
+        setShake(true);
+        setTimeout(() => {
+          setPin('');
+          setShake(false);
+          inputRef.current?.focus();
+        }, 650);
+      }
     }
-    setError('비밀번호가 맞지 않습니다.');
-    setPin('');
   };
 
   return (
-    <main className="login-screen">
-      <form className="login-panel" onSubmit={submit}>
+    <main className="login-screen" onClick={() => inputRef.current?.focus()}>
+      <div className="login-panel">
         <div className="login-mark">
           <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
         </div>
         <h1>PortView</h1>
         <p>Enter your 4-digit PIN to continue.</p>
+        <div
+          className={`pin-dots${shake ? ' shake' : ''}`}
+          onClick={() => inputRef.current?.focus()}
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className={`pin-dot${pin.length > i ? ' filled' : ''}${shake ? ' error' : ''}`}
+            />
+          ))}
+        </div>
         <input
+          ref={inputRef}
           aria-label="비밀번호"
           autoComplete="current-password"
+          autoFocus
           inputMode="numeric"
           maxLength={4}
           pattern="[0-9]*"
           type="password"
           value={pin}
-          onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))}
+          onChange={handleChange}
+          className="pin-hidden-input"
         />
-        {error && <span className="form-error">{error}</span>}
-        <button className="primary-button" type="submit">
-          LOGIN
-        </button>
-      </form>
+      </div>
     </main>
   );
 }
