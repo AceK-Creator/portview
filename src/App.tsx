@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { fetchQuote, fetchMarketIndex, type MarketIndexItem } from './api';
+import { fetchQuote, fetchMarketIndex, logClientError, type MarketIndexItem } from './api';
 import { calculateAccountSummary, calculateHoldingRows } from './portfolioMath';
 import {
   createBackupBlob,
@@ -487,7 +487,10 @@ function MarketIndexBar() {
   useEffect(() => {
     fetchMarketIndex()
       .then(({ kospi, kosdaq }) => { setKospi(kospi); setKosdaq(kosdaq); })
-      .catch(() => setError(true))
+      .catch((err) => {
+        setError(true);
+        logClientError({ context: 'MarketIndexBar', message: err instanceof Error ? err.message : String(err) });
+      })
       .finally(() => setLoading(false));
   }, []);
 
