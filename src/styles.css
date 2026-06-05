@@ -1233,14 +1233,14 @@ label {
 
 .est-info-popup {
   /* position/top/left/bottom은 JS inline style로 주입 */
+  position: relative;
   z-index: 200;
   min-width: 180px;
   padding: 10px 14px;
-  /* border 대신 drop-shadow: 박스+화살표를 하나의 도형으로 처리하여 junction 선 완전 제거 */
-  border: none;
+  border: 1px solid rgba(145, 181, 220, 0.25);
   border-radius: 12px;
   background: #0d2240;
-  filter: drop-shadow(0 0 0.5px rgba(145, 181, 220, 0.45)) drop-shadow(0 8px 28px rgba(0, 0, 0, 0.45));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   color: #a8c8e8;
   font-size: 12px;
   line-height: 1.6;
@@ -1248,24 +1248,36 @@ label {
   text-align: center;
 }
 
-/* ── 아래 배치: 팝업 위쪽에 위를 향한 화살표 (fill만, border 불필요) ── */
+/* ── 아래 배치: 팝업 위쪽에 위를 향한 화살표
+   회전 사각형을 z-index:-1로 박스 배경 아래에 묻혀 junction 선 완전 제거
+── */
 .est-info-popup[data-placement="bottom"]::after {
   content: '';
   position: absolute;
-  bottom: 100%;
-  left: calc(var(--arrow-x, 16px) - 7px);
-  border: 7px solid transparent;
-  border-bottom-color: #0d2240;
+  width: 10px;
+  height: 10px;
+  background: #0d2240;
+  border-top: 1px solid rgba(145, 181, 220, 0.25);
+  border-left: 1px solid rgba(145, 181, 220, 0.25);
+  transform: rotate(45deg);
+  bottom: calc(100% - 5px);
+  left: calc(var(--arrow-x, 16px) - 5px);
+  z-index: -1;
 }
 
 /* ── 위 배치: 팝업 아래쪽에 아래를 향한 화살표 ── */
 .est-info-popup[data-placement="top"]::after {
   content: '';
   position: absolute;
-  top: 100%;
-  left: calc(var(--arrow-x, 16px) - 7px);
-  border: 7px solid transparent;
-  border-top-color: #0d2240;
+  width: 10px;
+  height: 10px;
+  background: #0d2240;
+  border-bottom: 1px solid rgba(145, 181, 220, 0.25);
+  border-right: 1px solid rgba(145, 181, 220, 0.25);
+  transform: rotate(45deg);
+  top: calc(100% - 5px);
+  left: calc(var(--arrow-x, 16px) - 5px);
+  z-index: -1;
 }
 
 .est-info-calc {
