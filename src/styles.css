@@ -1247,6 +1247,15 @@ label {
   content: '';
   position: absolute;
   bottom: 100%;
+  right: 9px;
+  border: 7px solid transparent;
+  border-bottom-color: rgba(145, 181, 220, 0.25);
+}
+
+.est-info-popup::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 1px);
   right: 10px;
   border: 6px solid transparent;
   border-bottom-color: #0d2240;
