@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { fetchQuote } from './api';
+import { fetchQuote, fetchMarketIndex, type MarketIndexItem } from './api';
 import { calculateAccountSummary, calculateHoldingRows } from './portfolioMath';
 import {
   createBackupBlob,
@@ -478,6 +478,51 @@ function AppHeader({
   );
 }
 
+function MarketIndexBar() {
+  const [kospi, setKospi] = useState<MarketIndexItem | null>(null);
+  const [kosdaq, setKosdaq] = useState<MarketIndexItem | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMarketIndex()
+      .then(({ kospi, kosdaq }) => { setKospi(kospi); setKosdaq(kosdaq); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const fmt = (n: number) => Math.abs(n).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtRate = (n: number) => `${Math.abs(n).toFixed(2)}%`;
+
+  function IndexRow({ item }: { item: MarketIndexItem }) {
+    const up = item.change > 0;
+    const down = item.change < 0;
+    const tone = up ? 'idx-up' : down ? 'idx-down' : '';
+    const arrow = up ? '▲' : down ? '▼' : '–';
+    return (
+      <div className="market-index-row">
+        <span className="idx-name">{item.name}</span>
+        <span className={`idx-price ${tone}`}>{item.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <span className={`idx-change ${tone}`}>{arrow} {fmt(item.change)}</span>
+        <span className={`idx-rate ${tone}`}>{fmtRate(item.changeRate)}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="market-index-bar">
+      {loading ? (
+        <div className="idx-loading">지수 로딩 중…</div>
+      ) : kospi && kosdaq ? (
+        <>
+          <IndexRow item={kospi} />
+          <div className="idx-divider" />
+          <IndexRow item={kosdaq} />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function LiveSummary({ rows }: { rows: HoldingRow[] }) {
   const totalInvested = rows.reduce((s, r) => s + (r.investedAmount ?? 0), 0);
   const totalProfitLoss = rows.reduce((s, r) => s + (r.profitLoss ?? 0), 0);
@@ -774,6 +819,7 @@ function LiveView({
         onClose={() => setDraft(null)}
         onSubmit={submitHolding}
       />
+      <MarketIndexBar />
     </div>
   );
 }

@@ -688,6 +688,67 @@ input:focus {
   padding-top: 20px;
 }
 
+.market-index-bar {
+  margin-top: 18px;
+  border-top: 1px solid rgba(145, 181, 220, 0.15);
+  padding: 10px 4px 4px;
+}
+
+.market-index-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr 64px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  font-size: 12.5px;
+}
+
+.idx-divider {
+  height: 1px;
+  background: rgba(145, 181, 220, 0.12);
+  margin: 0 2px;
+}
+
+.idx-name {
+  color: #7a9cbf;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.idx-price {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 13px;
+  color: #c5daf5;
+}
+
+.idx-change {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: #7a9cbf;
+}
+
+.idx-rate {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a9cbf;
+}
+
+.idx-up { color: #ff6b6b; }
+.idx-down { color: #5eaeff; }
+
+.idx-loading {
+  text-align: center;
+  font-size: 11px;
+  color: #4a6888;
+  padding: 8px 0;
+}
+
 .live-view .primary-button,
 .live-view .ghost-button {
   font-weight: 400;
