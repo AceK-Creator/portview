@@ -15,7 +15,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuote } from './api';
 import { calculateAccountSummary, calculateHoldingRows } from './portfolioMath';
 import {
@@ -26,6 +26,64 @@ import {
   validateBackup,
 } from './storage';
 import type { AppData, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord } from './types';
+
+// ─── Smart Popup Position Hook ───────────────────────────────────────────────
+
+type SmartPopupPlacement = 'bottom' | 'top';
+
+interface SmartPopupOptions {
+  gap?: number;
+  minWidth?: number;
+  margin?: number;
+}
+
+function useSmartPopup(
+  anchorRef: React.RefObject<HTMLElement | null>,
+  open: boolean,
+  options: SmartPopupOptions = {},
+) {
+  const { gap = 6, minWidth = 180, margin = 8 } = options;
+  const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({ position: 'fixed', visibility: 'hidden' });
+  const [arrowX, setArrowX] = useState(16);
+  const [placement, setPlacement] = useState<SmartPopupPlacement>('bottom');
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current) {
+      setPopupStyle({ position: 'fixed', visibility: 'hidden' });
+      return;
+    }
+    const rect = anchorRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+
+    // 상/하 배치 결정
+    const spaceBelow = vh - rect.bottom;
+    const spaceAbove = rect.top;
+    const place: SmartPopupPlacement = spaceBelow >= 100 || spaceBelow >= spaceAbove ? 'bottom' : 'top';
+
+    // 수직 위치
+    const vertStyle: React.CSSProperties =
+      place === 'bottom'
+        ? { top: rect.bottom + gap }
+        : { bottom: vh - rect.top + gap };
+
+    // 수평 위치: 버튼 중앙 기준, 뷰포트 경계에서 clamp
+    let left = rect.left + rect.width / 2 - minWidth / 2;
+    if (left + minWidth > vw - margin) left = vw - minWidth - margin;
+    if (left < margin) left = margin;
+
+    // 화살표 위치: 버튼 중앙이 팝업 내에서 어느 x 위치인지
+    const rawArrow = rect.left + rect.width / 2 - left;
+    const clampedArrow = Math.max(12, Math.min(minWidth - 12, rawArrow));
+
+    setPopupStyle({ position: 'fixed', left, ...vertStyle, zIndex: 200 });
+    setArrowX(clampedArrow);
+    setPlacement(place);
+  }, [open, anchorRef, gap, minWidth, margin]);
+
+  // 스크롤/리사이즈 시 팝업 닫기용 cleanup effect (호출 측에서 onClose 전달)
+  return { popupStyle, arrowX, placement };
+}
 
 // ─── Custom Confirm Dialog ────────────────────────────────────────────────────
 
@@ -319,12 +377,16 @@ function AppHeader({
   onLogout,
   secretMode,
   onToggleSecret,
+  onExportBackup,
+  onImportBackup,
 }: {
   activeMenu: MenuKey;
   onChangeMenu: (menu: MenuKey) => void;
   onLogout: () => void;
   secretMode: boolean;
   onToggleSecret: () => void;
+  onExportBackup: () => void;
+  onImportBackup: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -368,6 +430,23 @@ function AppHeader({
         </button>
         {open && (
           <nav className="dropdown-menu">
+            <button
+              type="button"
+              className="menu-util-btn"
+              onClick={() => { onExportBackup(); setOpen(false); }}
+            >
+              <Download size={15} />
+              백업
+            </button>
+            <button
+              type="button"
+              className="menu-util-btn"
+              onClick={() => { onImportBackup(); setOpen(false); }}
+            >
+              <Upload size={15} />
+              복원
+            </button>
+            <div className="dropdown-divider" />
             <button
               type="button"
               className="menu-util-btn"
@@ -595,7 +674,6 @@ function LiveView({
   rows: HoldingRow[];
   onDataChange: (data: AppData) => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<HoldingDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -661,32 +739,6 @@ function LiveView({
     setNotice('시세 새로고침을 마쳤습니다.');
   };
 
-  const exportBackup = () => {
-    const blob = createBackupBlob(data);
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `dad-portfolio-backup-${nowStamp()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const importBackup = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const parsed = JSON.parse(String(reader.result));
-        const restored = validateBackup(parsed);
-        if (!await customConfirm('백업 파일의 데이터로 현재 내용을 교체할까요?')) return;
-        onDataChange(restored);
-        setNotice('백업을 복원했습니다.');
-      } catch (error) {
-        alert(error instanceof Error ? error.message : '백업 파일을 읽지 못했습니다.');
-      }
-    };
-    reader.readAsText(file);
-  };
-
   return (
     <div className="live-view">
       <section className="toolbar">
@@ -698,25 +750,6 @@ function LiveView({
           <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
           새로고침
         </button>
-        <button className="ghost-button icon-label" type="button" onClick={exportBackup}>
-          <Download size={17} />
-          백업
-        </button>
-        <button className="ghost-button icon-label" type="button" onClick={() => fileInputRef.current?.click()}>
-          <Upload size={17} />
-          복원
-        </button>
-        <input
-          ref={fileInputRef}
-          hidden
-          accept="application/json"
-          type="file"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) importBackup(file);
-            event.target.value = '';
-          }}
-        />
       </section>
       {notice && <p className="notice">{notice}</p>}
       <LiveSummary rows={rows} />
@@ -1735,16 +1768,29 @@ function DividendSummaryTab({
   // 예상 배당금 설명 팝업 state
   const [showEstInfo, setShowEstInfo] = useState(false);
   const estInfoRef = useRef<HTMLDivElement>(null);
+  const estBtnRef = useRef<HTMLButtonElement>(null);
+  const { popupStyle: estPopupStyle, arrowX: estArrowX, placement: estPlacement } =
+    useSmartPopup(estBtnRef, showEstInfo, { minWidth: 180 });
 
   useEffect(() => {
     if (!showEstInfo) return;
-    const handler = (e: MouseEvent) => {
-      if (estInfoRef.current && !estInfoRef.current.contains(e.target as Node)) {
+    const onDown = (e: MouseEvent) => {
+      if (
+        estInfoRef.current && !estInfoRef.current.contains(e.target as Node) &&
+        estBtnRef.current && !estBtnRef.current.contains(e.target as Node)
+      ) {
         setShowEstInfo(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const onScroll = () => setShowEstInfo(false);
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
   }, [showEstInfo]);
 
   // 이번달 배당 요약 state
@@ -1830,6 +1876,7 @@ function DividendSummaryTab({
               <div className="est-info-wrap" ref={estInfoRef}>
                 <button
                   type="button"
+                  ref={estBtnRef}
                   className="est-info-btn"
                   onClick={() => setShowEstInfo((v) => !v)}
                   aria-label="예상 배당금 계산 방식"
@@ -1837,7 +1884,14 @@ function DividendSummaryTab({
                   ⓘ
                 </button>
                 {showEstInfo && (
-                  <div className="est-info-popup">
+                  <div
+                    className="est-info-popup"
+                    data-placement={estPlacement}
+                    style={{
+                      ...estPopupStyle,
+                      '--arrow-x': `${estArrowX}px`,
+                    } as React.CSSProperties}
+                  >
                     최근 12개월 평균 배당금 × 12
                     <br />
                     <span className="est-info-calc">
@@ -2721,6 +2775,7 @@ export default function App() {
   const [unlocked, setUnlocked] = useState(false);
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
+  const backupFileRef = useRef<HTMLInputElement>(null);
 
   const rows = useMemo(() => calculateHoldingRows(data.holdings), [data.holdings]);
   const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);
@@ -2728,6 +2783,31 @@ export default function App() {
   const persist = (nextData: AppData) => {
     setData(nextData);
     saveData(nextData);
+  };
+
+  const exportBackup = () => {
+    const blob = createBackupBlob(data);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `dad-portfolio-backup-${nowStamp()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importBackup = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        const restored = validateBackup(parsed);
+        if (!await customConfirm('백업 파일의 데이터로 현재 내용을 교체할까요?')) return;
+        persist(restored);
+      } catch (error) {
+        alert(error instanceof Error ? error.message : '백업 파일을 읽지 못했습니다.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   useEffect(() => {
@@ -2753,7 +2833,26 @@ export default function App() {
       ) : (
       <main className={`app-shell${secretMode ? ' secret-mode' : ''}`}>
       <InstallBanner />
-      <AppHeader activeMenu={activeMenu} onChangeMenu={setActiveMenu} onLogout={() => setUnlocked(false)} secretMode={secretMode} onToggleSecret={() => setSecretMode((v) => !v)} />
+      <AppHeader
+        activeMenu={activeMenu}
+        onChangeMenu={setActiveMenu}
+        onLogout={() => setUnlocked(false)}
+        secretMode={secretMode}
+        onToggleSecret={() => setSecretMode((v) => !v)}
+        onExportBackup={exportBackup}
+        onImportBackup={() => backupFileRef.current?.click()}
+      />
+      <input
+        ref={backupFileRef}
+        hidden
+        accept="application/json"
+        type="file"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) importBackup(file);
+          event.target.value = '';
+        }}
+      />
       {activeMenu === 'live' && (
         <LiveView data={data} rows={rows} onDataChange={persist} />
       )}

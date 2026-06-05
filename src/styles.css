@@ -392,6 +392,12 @@ input:focus {
   background: #143a66;
 }
 
+.dropdown-divider {
+  height: 1px;
+  margin: 4px 8px;
+  background: rgba(145, 181, 220, 0.15);
+}
+
 .icon-button,
 .modal-title button,
 .install-banner > button:last-child {
@@ -1226,11 +1232,9 @@ label {
 }
 
 .est-info-popup {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 50;
-  min-width: 160px;
+  /* position/top/left/bottom은 JS inline style로 주입 */
+  z-index: 200;
+  min-width: 180px;
   padding: 10px 14px;
   border: 1px solid rgba(145, 181, 220, 0.25);
   border-radius: 12px;
@@ -1243,22 +1247,46 @@ label {
   text-align: center;
 }
 
-.est-info-popup::before {
+/* ── 아래 배치 (기본): 팝업 위쪽에 위를 향한 화살표 ──
+   ::before  (border 삼각, 7px) → bottom: calc(100%+1px) = 팝업 outer-top에서 시작
+   ::after   (fill 삼각, 8px)  → bottom: 100% = 팝업 inner-top에서 시작
+   outer-top에서 ::after의 너비 = 2*(8-1)=14px = ::before base(14px) → 완전히 덮어 double-alpha 제거
+── */
+.est-info-popup[data-placement="bottom"]::before {
   content: '';
   position: absolute;
-  bottom: 100%;
-  right: 9px;
+  bottom: calc(100% + 1px);
+  left: calc(var(--arrow-x, 16px) - 7px);
   border: 7px solid transparent;
   border-bottom-color: rgba(145, 181, 220, 0.25);
 }
 
-.est-info-popup::after {
+.est-info-popup[data-placement="bottom"]::after {
   content: '';
   position: absolute;
-  bottom: calc(100% - 1px);
-  right: 10px;
-  border: 6px solid transparent;
+  bottom: 100%;
+  left: calc(var(--arrow-x, 16px) - 8px);
+  border: 8px solid transparent;
   border-bottom-color: #0d2240;
+}
+
+/* ── 위 배치: 팝업 아래쪽에 아래를 향한 화살표 ── */
+.est-info-popup[data-placement="top"]::before {
+  content: '';
+  position: absolute;
+  top: calc(100% + 1px);
+  left: calc(var(--arrow-x, 16px) - 7px);
+  border: 7px solid transparent;
+  border-top-color: rgba(145, 181, 220, 0.25);
+}
+
+.est-info-popup[data-placement="top"]::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: calc(var(--arrow-x, 16px) - 8px);
+  border: 8px solid transparent;
+  border-top-color: #0d2240;
 }
 
 .est-info-calc {
