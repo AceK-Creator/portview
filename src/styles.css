@@ -698,7 +698,7 @@ input:focus {
   z-index: 100;
   background: #071e38;
   border-top: 1px solid rgba(145, 181, 220, 0.18);
-  padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 4px 16px calc(4px + env(safe-area-inset-bottom, 0px));
 }
 
 .market-index-row {
@@ -706,7 +706,7 @@ input:focus {
   grid-template-columns: 52px 1fr 1fr 60px;
   align-items: center;
   gap: 4px;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .idx-divider {
