@@ -1908,13 +1908,21 @@ label {
   flex: 1;
 }
 
+.rg-toolbar > .primary-button {
+  flex: 0 0 auto;
+}
+
+.rg-toolbar > .icon-btn {
+  flex: 1 !important;
+}
+
 .rg-toolbar > .filter-dropdown-wrap {
-  flex: none;
+  flex: 1;
   display: flex;
 }
 
 .rg-toolbar > .filter-dropdown-wrap > button {
-  width: 44px;
+  width: 100%;
 }
 
 

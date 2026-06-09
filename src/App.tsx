@@ -1391,7 +1391,7 @@ function RealizedGainsView({
       <div className="rg-toolbar">
         <button
           className="primary-button"
-          style={{ flex: 1, whiteSpace: 'nowrap' }}
+          style={{ whiteSpace: 'nowrap' }}
           type="button"
           onClick={() => setShowAddModal(true)}
         >
