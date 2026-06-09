@@ -3,6 +3,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  Filter,
   KeyRound,
   Lock,
   LogOut,
@@ -734,6 +735,38 @@ function LiveView({
   const [showLiveCsvGuide, setShowLiveCsvGuide] = useState(false);
   const [liveCsvRows, setLiveCsvRows] = useState<LiveCsvRow[] | null>(null);
   const liveCsvInputRef = useRef<HTMLInputElement>(null);
+  const [cooldown, setCooldown] = useState(false);
+  const [cooldownProgress, setCooldownProgress] = useState(0);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const COOLDOWN_MS = 3_000;
+
+  useEffect(() => {
+    return () => { if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current); };
+  }, []);
+
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(''), 3000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
+  const startCooldown = () => {
+    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+    setCooldown(true);
+    setCooldownProgress(0);
+    const start = Date.now();
+    cooldownIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min((elapsed / COOLDOWN_MS) * 100, 100);
+      setCooldownProgress(progress);
+      if (elapsed >= COOLDOWN_MS) {
+        clearInterval(cooldownIntervalRef.current!);
+        cooldownIntervalRef.current = null;
+        setCooldown(false);
+        setCooldownProgress(0);
+      }
+    }, 80);
+  };
 
   const saveHoldings = (holdings: Holding[]) => onDataChange({ ...data, holdings });
 
@@ -817,7 +850,7 @@ function LiveView({
     );
     saveHoldings(refreshed);
     setRefreshing(false);
-    setNotice('시세 새로고침을 마쳤습니다.');
+    startCooldown();
   };
 
   return (
@@ -827,13 +860,21 @@ function LiveView({
           <Plus size={17} />
           종목 추가
         </button>
-        <button className="ghost-button" disabled={refreshing || rows.length === 0} type="button" onClick={refreshQuotes}>
-          <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
-          새로고침
+        <button
+          className="ghost-button icon-btn"
+          disabled={refreshing || cooldown || rows.length === 0}
+          type="button"
+          aria-label="시세 새로고침"
+          onClick={refreshQuotes}
+          style={{ position: 'relative', overflow: 'hidden' }}
+        >
+          {cooldown && <span className="cooldown-fill" style={{ width: `${cooldownProgress}%` }} />}
+          <span className="cooldown-content">
+            <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
+          </span>
         </button>
-        <button className="ghost-button" type="button" onClick={() => setShowLiveCsvGuide(true)}>
+        <button className="ghost-button icon-btn" type="button" aria-label="CSV 파일 업로드" onClick={() => setShowLiveCsvGuide(true)}>
           <Upload size={17} />
-          파일 업로드
         </button>
         <input ref={liveCsvInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleLiveCsvFile} />
       </section>
@@ -868,7 +909,7 @@ function LiveView({
             { name: '매입가', desc: '평균 매입 단가 (원)' },
           ]}
           sample={'005930,10,75000\n000660,5,120000'}
-          note="헤더 행은 있어도 없어도 됩니다. 기존 종목에 추가로 업로드됩니다."
+          note={<>헤더 행은 있어도 없어도 됩니다. 기존 종목에 추가로 업로드됩니다.<br /><span style={{ color: '#ffe082' }}>엑셀 사용 시 A열/B열/C열에 값 입력 후 반드시 CSV 형식(.csv)으로 저장하세요.</span></>}
           onClose={() => setShowLiveCsvGuide(false)}
           onSelectFile={() => liveCsvInputRef.current?.click()}
         />
@@ -1363,24 +1404,25 @@ function RealizedGainsView({
         </button>
 
         {/* 필터 버튼 */}
-        <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
+        <div className="filter-dropdown-wrap" ref={filterDropdownRef} style={{ flex: 'none' }}>
           <button
-            className="ghost-button"
+            className="ghost-button icon-btn"
             type="button"
+            aria-label="필터"
             style={isFiltered ? { color: '#ffe082' } : undefined}
             onClick={() => setFilterOpen((v) => !v)}
           >
-            필터
+            <Filter size={17} />
           </button>
         </div>
 
         <button
-          className="ghost-button"
+          className="ghost-button icon-btn"
           type="button"
+          aria-label="CSV 파일 업로드"
           onClick={() => setShowRgCsvGuide(true)}
         >
           <Upload size={17} />
-          파일 업로드
         </button>
 
         {filterOpen && (
@@ -2245,7 +2287,7 @@ function CsvGuideModal({
 }: {
   columns: CsvGuideColumn[];
   sample: string;
-  note?: string;
+  note?: React.ReactNode;
   onClose: () => void;
   onSelectFile: () => void;
 }) {
@@ -2276,7 +2318,7 @@ function CsvGuideModal({
           <span className="csv-guide-sample-label">예시</span>
           <pre className="csv-guide-pre">{sample}</pre>
         </div>
-        {note && <p className="csv-guide-note">{note}</p>}
+        {note && <div className="csv-guide-note">{note}</div>}
         <div className="csv-guide-footer">
           <button className="secondary-button" type="button" onClick={onClose}>
             취소
@@ -2777,14 +2819,15 @@ function DividendRecordsTab({
         </button>
 
         {/* 필터 버튼 */}
-        <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
+        <div className="filter-dropdown-wrap" ref={filterDropdownRef} style={{ flex: 'none' }}>
           <button
-            className="ghost-button"
+            className="ghost-button icon-btn"
             type="button"
+            aria-label="필터"
             style={isFiltered ? { color: '#ffe082' } : undefined}
             onClick={() => setFilterOpen((v) => !v)}
           >
-            필터
+            <Filter size={17} />
           </button>
         </div>
 
@@ -2858,12 +2901,12 @@ function DividendRecordsTab({
 
         {/* 파일 업로드 */}
         <button
-          className="ghost-button"
+          className="ghost-button icon-btn"
           type="button"
+          aria-label="CSV 파일 업로드"
           onClick={() => setShowDivCsvGuide(true)}
         >
           <Upload size={17} />
-          파일 업로드
         </button>
         <input
           ref={csvInputRef}

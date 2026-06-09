@@ -2182,6 +2182,30 @@ label {
   line-height: 1.5;
 }
 
+.icon-btn {
+  flex: none !important;
+  width: 44px;
+  padding: 0 !important;
+}
+
+.cooldown-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(124, 77, 255, 0.4), rgba(0, 180, 216, 0.4));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cooldown-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .csv-guide-footer {
   display: flex;
   gap: 10px;
