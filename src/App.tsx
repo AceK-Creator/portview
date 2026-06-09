@@ -1637,7 +1637,7 @@ function RealizedGainsView({
             { name: '금액', desc: '양수=수익  /  음수(-)=손실' },
           ]}
           sample={'005930,2024-01-15,150000\n000660,2024-02-20,-50000'}
-          note="헤더 행은 있어도 없어도 됩니다. 금액이 양수면 수익, 음수(-)이면 손실로 처리됩니다."
+          note={<>헤더 행은 있어도 없어도 됩니다. 금액이 양수면 수익, 음수(-)이면 손실로 처리됩니다.<br /><span style={{ color: '#ffe082' }}>엑셀 사용 시 A열/B열/C열에 값 입력 후 반드시 CSV 형식(.csv)으로 저장하세요.</span></>}
           onClose={() => setShowRgCsvGuide(false)}
           onSelectFile={() => rgCsvInputRef.current?.click()}
         />
@@ -2972,7 +2972,7 @@ function DividendRecordsTab({
             { name: '배당금액', desc: '숫자 (원 단위, 양수)' },
           ]}
           sample={'005930,2024-01-15,50000\n000660,2024-03-20,30000'}
-          note="헤더 행은 있어도 없어도 됩니다."
+          note={<>헤더 행은 있어도 없어도 됩니다.<br /><span style={{ color: '#ffe082' }}>엑셀 사용 시 A열/B열/C열에 값 입력 후 반드시 CSV 형식(.csv)으로 저장하세요.</span></>}
           onClose={() => setShowDivCsvGuide(false)}
           onSelectFile={() => csvInputRef.current?.click()}
         />
