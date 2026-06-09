@@ -1982,6 +1982,16 @@ label {
 }
 
 @media (max-width: 520px) {
+  .dividend-records-topbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dividend-records-topbar > button,
+  .dividend-records-topbar > .filter-dropdown-wrap {
+    width: 100%;
+  }
+
   .dividend-two-col {
     grid-template-columns: 1fr;
   }
@@ -2372,6 +2382,16 @@ label {
 }
 
 @media (max-width: 520px) {
+  .rg-toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .rg-toolbar > button,
+  .rg-toolbar > .filter-dropdown-wrap {
+    width: 100%;
+  }
+
   .rg-summary-row {
     grid-template-columns: 1fr 1fr;
   }

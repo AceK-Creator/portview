@@ -736,12 +736,12 @@ function LiveView({
   const [liveCsvRows, setLiveCsvRows] = useState<LiveCsvRow[] | null>(null);
   const liveCsvInputRef = useRef<HTMLInputElement>(null);
   const [cooldown, setCooldown] = useState(false);
-  const [cooldownProgress, setCooldownProgress] = useState(0);
-  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [cooldownFill, setCooldownFill] = useState(false);
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const COOLDOWN_MS = 3_000;
 
   useEffect(() => {
-    return () => { if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current); };
+    return () => { if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current); };
   }, []);
 
   useEffect(() => {
@@ -751,21 +751,17 @@ function LiveView({
   }, [notice]);
 
   const startCooldown = () => {
-    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+    if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
     setCooldown(true);
-    setCooldownProgress(0);
-    const start = Date.now();
-    cooldownIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const progress = Math.min((elapsed / COOLDOWN_MS) * 100, 100);
-      setCooldownProgress(progress);
-      if (elapsed >= COOLDOWN_MS) {
-        clearInterval(cooldownIntervalRef.current!);
-        cooldownIntervalRef.current = null;
-        setCooldown(false);
-        setCooldownProgress(0);
-      }
-    }, 80);
+    setCooldownFill(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setCooldownFill(true));
+    });
+    cooldownTimerRef.current = setTimeout(() => {
+      cooldownTimerRef.current = null;
+      setCooldown(false);
+      setCooldownFill(false);
+    }, COOLDOWN_MS);
   };
 
   const saveHoldings = (holdings: Holding[]) => onDataChange({ ...data, holdings });
@@ -868,7 +864,7 @@ function LiveView({
           onClick={refreshQuotes}
           style={{ position: 'relative', overflow: 'hidden' }}
         >
-          {cooldown && <span className="cooldown-fill" style={{ width: `${cooldownProgress}%` }} />}
+          {cooldown && <span className="cooldown-fill" style={{ width: cooldownFill ? '100%' : '0%', transition: `width ${COOLDOWN_MS}ms linear` }} />}
           <span className="cooldown-content">
             <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
           </span>
@@ -1404,7 +1400,7 @@ function RealizedGainsView({
         </button>
 
         {/* 필터 버튼 */}
-        <div className="filter-dropdown-wrap" ref={filterDropdownRef} style={{ flex: 'none' }}>
+        <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
           <button
             className="ghost-button icon-btn"
             type="button"
@@ -2819,7 +2815,7 @@ function DividendRecordsTab({
         </button>
 
         {/* 필터 버튼 */}
-        <div className="filter-dropdown-wrap" ref={filterDropdownRef} style={{ flex: 'none' }}>
+        <div className="filter-dropdown-wrap" ref={filterDropdownRef}>
           <button
             className="ghost-button icon-btn"
             type="button"
