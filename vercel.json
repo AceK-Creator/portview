@@ -4,5 +4,8 @@
     "api/quote.js": {
       "maxDuration": 10
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/portview/:path*", "destination": "/:path*" }
+  ]
 }
