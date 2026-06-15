@@ -69,6 +69,28 @@ async function resolveCodeFromSearch(query) {
   return match[1];
 }
 
+const INDEX_CODES = new Set(['KOSPI', 'KOSDAQ']);
+
+async function fetchNaverIndex(indexCode) {
+  const url = `https://polling.finance.naver.com/api/realtime/domestic/index/${encodeURIComponent(indexCode)}`;
+  const response = await fetch(url, { headers: HEADERS });
+  if (!response.ok) throw new Error(`지수 응답 오류 ${response.status}`);
+  const payload = await response.json();
+  const item = payload?.datas?.[0];
+  if (!item) throw new Error('지수 데이터가 비어 있습니다.');
+  const changeRaw = parseFloat(item.compareToPreviousClosePriceRaw);
+  const changeRateRaw = parseFloat(item.fluctuationsRatioRaw);
+  return {
+    code: indexCode,
+    name: item.stockName || indexCode,
+    price: parseFloat(item.closePriceRaw) || 0,
+    change: Number.isFinite(changeRaw) ? changeRaw : null,
+    changeRate: Number.isFinite(changeRateRaw) ? changeRateRaw : null,
+    source: 'naver-index',
+    tradedAt: item.localTradedAt || new Date().toISOString(),
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -81,6 +103,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (INDEX_CODES.has(query.toUpperCase())) {
+      return res.json(await fetchNaverIndex(query.toUpperCase()));
+    }
+
     const code = /^[0-9]{6}$/.test(query) ? query : await resolveCodeFromSearch(query);
 
     let result;
