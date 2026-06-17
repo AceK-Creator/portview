@@ -1113,32 +1113,19 @@ function AccountView({
   const displayProfit   = krwProfitLoss   ?? summary.totalProfitLoss;
   const displayReturn   = krwReturnRate   ?? summary.totalReturnRate;
 
+  const LOADING = 'Loading...';
+
   return (
     <section className="account-panel">
       <div className="account-metrics">
-        {showSkeleton ? (
-          <div className="account-metrics-skeleton">
-            <div className="skeleton-bar wide" />
-            <div className="account-metrics-divider" />
-            <div className="account-metrics-grid">
-              <div className="skeleton-bar" />
-              <div className="skeleton-bar" />
-              <div className="skeleton-bar" />
-              <div className="skeleton-bar" />
-            </div>
-          </div>
-        ) : (
-          <>
-            <Metric label="자산평가액" value={currency(displayAssets)} secret highlight />
-            <div className="account-metrics-divider" />
-            <div className="account-metrics-grid">
-              <Metric label={isOverseas ? '예수금(₩)' : '예수금'} value={currency(displayCash)} secret right />
-              <Metric label="예수금비중" value={plainPercent(displayCashRatio)} secret right />
-              <Metric label="수익" value={signedCurrency(displayProfit)} tone={tone(displayProfit)} secret right />
-              <Metric label="수익률" value={percent(displayReturn)} tone={tone(displayReturn)} secret right />
-            </div>
-          </>
-        )}
+        <Metric label="자산평가액" value={showSkeleton ? LOADING : currency(displayAssets)} secret={!showSkeleton} highlight loading={showSkeleton} />
+        <div className="account-metrics-divider" />
+        <div className="account-metrics-grid">
+          <Metric label={isOverseas ? '예수금(₩)' : '예수금'} value={showSkeleton ? LOADING : currency(displayCash)} secret={!showSkeleton} right loading={showSkeleton} />
+          <Metric label="예수금비중" value={showSkeleton ? LOADING : plainPercent(displayCashRatio)} secret={!showSkeleton} right loading={showSkeleton} />
+          <Metric label="수익" value={showSkeleton ? LOADING : signedCurrency(displayProfit)} tone={showSkeleton ? undefined : tone(displayProfit)} secret={!showSkeleton} right loading={showSkeleton} />
+          <Metric label="수익률" value={showSkeleton ? LOADING : percent(displayReturn)} tone={showSkeleton ? undefined : tone(displayReturn)} secret={!showSkeleton} right loading={showSkeleton} />
+        </div>
       </div>
       <div className="input-grid">
         <label>
@@ -1170,13 +1157,13 @@ function AccountView({
   );
 }
 
-function Metric({ label, value, tone: metricTone, secret, highlight, right }: { label: string; value: string; tone?: string; secret?: boolean; highlight?: boolean; right?: boolean }) {
-  const cls = [metricTone, highlight ? 'metric-highlight' : ''].filter(Boolean).join(' ');
+function Metric({ label, value, tone: metricTone, secret, highlight, right, loading }: { label: string; value: string; tone?: string; secret?: boolean; highlight?: boolean; right?: boolean; loading?: boolean }) {
+  const cls = [metricTone, highlight ? 'metric-highlight' : '', loading ? 'metric-loading' : ''].filter(Boolean).join(' ');
   return (
     <div className={`metric${right ? ' metric-right' : ''}`}>
       <span>{label}</span>
       <strong className={cls}>
-        {secret ? <span className="secret-value">{value}</span> : value}
+        {loading ? value : secret ? <span className="secret-value">{value}</span> : value}
       </strong>
     </div>
   );
