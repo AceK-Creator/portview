@@ -16,17 +16,61 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { fetchQuote, fetchMarketIndex, logClientError, type MarketIndexItem } from './api';
+import { FormEvent, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { fetchQuote, fetchMarketIndex, fetchOverseasIndex, logClientError, type MarketIndexItem, type OverseasIndexResult } from './api';
 import { calculateAccountSummary, calculateHoldingRows } from './portfolioMath';
 import {
   createBackupBlob,
   defaultData,
-  loadData,
-  saveData,
+  loadRootData,
+  saveRootData,
   validateBackup,
 } from './storage';
-import type { AppData, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord } from './types';
+import type { AccountMode, AppData, CurrencyMode, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData } from './types';
+
+// ─── 통화 컨텍스트 ─────────────────────────────────────────────────────────────
+
+interface CurrencyCtxType {
+  isOverseas: boolean;
+  currencyMode: CurrencyMode;
+  usdKrwRate: number | null;
+}
+
+const CurrencyCtx = createContext<CurrencyCtxType>({
+  isOverseas: false,
+  currencyMode: 'usd',
+  usdKrwRate: null,
+});
+
+function useCurrency() {
+  const { isOverseas, currencyMode, usdKrwRate } = useContext(CurrencyCtx);
+
+  const c = (value: number | null | undefined): string => {
+    if (value == null || Number.isNaN(value)) return '-';
+    if (!isOverseas) return `${Math.round(value).toLocaleString('ko-KR')}원`;
+    if (currencyMode === 'usd') {
+      return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (usdKrwRate == null) return `$${value.toFixed(2)}`;
+    return `${Math.round(value * usdKrwRate).toLocaleString('ko-KR')}원`;
+  };
+
+  const sc = (value: number): string => {
+    if (Number.isNaN(value)) return '-';
+    if (!isOverseas) {
+      return `${value > 0 ? '+' : ''}${Math.round(value).toLocaleString('ko-KR')}원`;
+    }
+    const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+    const abs = Math.abs(value);
+    if (currencyMode === 'usd') {
+      return `${sign}$${abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (usdKrwRate == null) return `${sign}$${abs.toFixed(2)}`;
+    return `${sign}${Math.round(abs * usdKrwRate).toLocaleString('ko-KR')}원`;
+  };
+
+  return { c, sc, isOverseas, currencyMode, usdKrwRate };
+}
 
 // ─── Smart Popup Position Hook ───────────────────────────────────────────────
 
@@ -380,6 +424,10 @@ function AppHeader({
   onToggleSecret,
   onExportBackup,
   onImportBackup,
+  accountMode,
+  onChangeAccount,
+  currencyMode,
+  onToggleCurrency,
 }: {
   activeMenu: MenuKey;
   onChangeMenu: (menu: MenuKey) => void;
@@ -388,6 +436,10 @@ function AppHeader({
   onToggleSecret: () => void;
   onExportBackup: () => void;
   onImportBackup: () => void;
+  accountMode: AccountMode;
+  onChangeAccount: (mode: AccountMode) => void;
+  currencyMode: CurrencyMode;
+  onToggleCurrency: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -405,97 +457,151 @@ function AppHeader({
 
   return (
     <header className="app-header">
-      <nav className="nav-tabs">
-        {TAB_ITEMS.map((tab, i) => (
-          <div key={tab.key} className="nav-tab-item">
-            {i > 0 && <div className="tab-divider" />}
-            <button
-              className={`nav-tab${activeMenu === tab.key ? ' active' : ''}`}
-              type="button"
-              onClick={() => onChangeMenu(tab.key)}
-            >
-              {tab.label}
-            </button>
-          </div>
-        ))}
-      </nav>
-      <div className="menu-wrap" ref={menuRef}>
-        <button
-          aria-expanded={open}
-          aria-label="메뉴"
-          className="menu-dots-btn"
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-        >
-          <MoreVertical size={20} />
-        </button>
-        {open && (
-          <nav className="dropdown-menu">
-            <button
-              type="button"
-              className="menu-util-btn"
-              onClick={() => { onExportBackup(); setOpen(false); }}
-            >
-              <Download size={15} />
-              백업
-            </button>
-            <button
-              type="button"
-              className="menu-util-btn"
-              onClick={() => { onImportBackup(); setOpen(false); }}
-            >
-              <Upload size={15} />
-              복원
-            </button>
-            <div className="dropdown-divider" />
-            <button
-              type="button"
-              className="menu-util-btn"
-              onClick={() => { onChangeMenu('password'); setOpen(false); }}
-            >
-              <KeyRound size={15} />
-              비밀번호 변경
-            </button>
-            <button
-              className={`menu-secret-btn${secretMode ? ' active' : ''}`}
-              type="button"
-              onClick={() => { onToggleSecret(); setOpen(false); }}
-            >
-              {secretMode ? <Eye size={15} /> : <EyeOff size={15} />}
-              {secretMode ? '시크릿 해제' : '시크릿 모드'}
-            </button>
-            <button
-              className="menu-logout-btn"
-              type="button"
-              onClick={() => { setOpen(false); onLogout(); }}
-            >
-              <LogOut size={15} />
-              로그아웃
-            </button>
-          </nav>
+      {/* 계좌 스위처 행 */}
+      <div className="account-switcher-row">
+        <div className="account-pills">
+          <button
+            className={`account-pill${accountMode === 'domestic' ? ' active' : ''}`}
+            type="button"
+            onClick={() => onChangeAccount('domestic')}
+          >
+            🇰🇷 국내
+          </button>
+          <button
+            className={`account-pill${accountMode === 'overseas' ? ' active' : ''}`}
+            type="button"
+            onClick={() => onChangeAccount('overseas')}
+          >
+            🌍 해외
+          </button>
+        </div>
+        {accountMode === 'overseas' && (
+          <button
+            className={`currency-toggle-btn${currencyMode === 'krw' ? ' krw' : ''}`}
+            type="button"
+            onClick={onToggleCurrency}
+          >
+            {currencyMode === 'usd' ? '$ USD' : '₩ KRW'}
+          </button>
         )}
+      </div>
+      {/* 탭 + 메뉴 행 */}
+      <div className="tabs-row">
+        <nav className="nav-tabs">
+          {TAB_ITEMS.map((tab, i) => (
+            <div key={tab.key} className="nav-tab-item">
+              {i > 0 && <div className="tab-divider" />}
+              <button
+                className={`nav-tab${activeMenu === tab.key ? ' active' : ''}`}
+                type="button"
+                onClick={() => onChangeMenu(tab.key)}
+              >
+                {tab.label}
+              </button>
+            </div>
+          ))}
+        </nav>
+        <div className="menu-wrap" ref={menuRef}>
+          <button
+            aria-expanded={open}
+            aria-label="메뉴"
+            className="menu-dots-btn"
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+          >
+            <MoreVertical size={20} />
+          </button>
+          {open && (
+            <nav className="dropdown-menu">
+              <button
+                type="button"
+                className="menu-util-btn"
+                onClick={() => { onExportBackup(); setOpen(false); }}
+              >
+                <Download size={15} />
+                백업 (국내+해외)
+              </button>
+              <button
+                type="button"
+                className="menu-util-btn"
+                onClick={() => { onImportBackup(); setOpen(false); }}
+              >
+                <Upload size={15} />
+                복원
+              </button>
+              <div className="dropdown-divider" />
+              <button
+                type="button"
+                className="menu-util-btn"
+                onClick={() => { onChangeMenu('password'); setOpen(false); }}
+              >
+                <KeyRound size={15} />
+                비밀번호 변경
+              </button>
+              <button
+                className={`menu-secret-btn${secretMode ? ' active' : ''}`}
+                type="button"
+                onClick={() => { onToggleSecret(); setOpen(false); }}
+              >
+                {secretMode ? <Eye size={15} /> : <EyeOff size={15} />}
+                {secretMode ? '시크릿 해제' : '시크릿 모드'}
+              </button>
+              <button
+                className="menu-logout-btn"
+                type="button"
+                onClick={() => { setOpen(false); onLogout(); }}
+              >
+                <LogOut size={15} />
+                로그아웃
+              </button>
+            </nav>
+          )}
+        </div>
       </div>
     </header>
   );
 }
 
-function MarketIndexBar() {
+function MarketIndexBar({
+  mode,
+  onUsdKrwRate,
+}: {
+  mode: AccountMode;
+  onUsdKrwRate?: (rate: number) => void;
+}) {
   const [kospi, setKospi] = useState<MarketIndexItem | null>(null);
   const [kosdaq, setKosdaq] = useState<MarketIndexItem | null>(null);
+  const [overseas, setOverseas] = useState<OverseasIndexResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetchMarketIndex()
-      .then(({ kospi, kosdaq }) => { setKospi(kospi); setKosdaq(kosdaq); })
-      .catch((err) => {
-        setError(true);
-        logClientError({ context: 'MarketIndexBar', message: err instanceof Error ? err.message : String(err) });
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    setError(false);
 
-  const fmt = (n: number) => Math.abs(n).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (mode === 'domestic') {
+      fetchMarketIndex()
+        .then(({ kospi, kosdaq }) => { setKospi(kospi); setKosdaq(kosdaq); })
+        .catch((err) => {
+          setError(true);
+          logClientError({ context: 'MarketIndexBar/domestic', message: err instanceof Error ? err.message : String(err) });
+        })
+        .finally(() => setLoading(false));
+    } else {
+      fetchOverseasIndex()
+        .then((result) => {
+          setOverseas(result);
+          if (onUsdKrwRate && result.usdKrw?.price) onUsdKrwRate(result.usdKrw.price);
+        })
+        .catch((err) => {
+          setError(true);
+          logClientError({ context: 'MarketIndexBar/overseas', message: err instanceof Error ? err.message : String(err) });
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [mode]);
+
+  const fmt = (n: number) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtRate = (n: number) => `${Math.abs(n).toFixed(2)}%`;
 
   function IndexRow({ item }: { item: MarketIndexItem }) {
@@ -508,7 +614,7 @@ function MarketIndexBar() {
     return (
       <div className="market-index-row">
         <span className="idx-name">{item.name}</span>
-        <span className={`idx-price ${tone}`}>{item.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <span className={`idx-price ${tone}`}>{item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         <span className={`idx-change ${tone}`}>{arrow} {fmt(chg)}</span>
         <span className={`idx-rate ${tone}`}>{fmtRate(rate)}</span>
       </div>
@@ -521,11 +627,19 @@ function MarketIndexBar() {
         <div className="idx-loading">지수 로딩 중…</div>
       ) : error ? (
         <div className="idx-loading">지수 조회 실패</div>
-      ) : kospi && kosdaq ? (
+      ) : mode === 'domestic' && kospi && kosdaq ? (
         <>
           <IndexRow item={kospi} />
           <div className="idx-divider" />
           <IndexRow item={kosdaq} />
+        </>
+      ) : mode === 'overseas' && overseas ? (
+        <>
+          <IndexRow item={overseas.nasdaq} />
+          <div className="idx-divider" />
+          <IndexRow item={overseas.sp500} />
+          <div className="idx-divider" />
+          <IndexRow item={overseas.usdKrw} />
         </>
       ) : null}
     </div>
@@ -533,6 +647,7 @@ function MarketIndexBar() {
 }
 
 function LiveSummary({ rows }: { rows: HoldingRow[] }) {
+  const { c, sc } = useCurrency();
   const totalInvested = rows.reduce((s, r) => s + (r.investedAmount ?? 0), 0);
   const totalProfitLoss = rows.reduce((s, r) => s + (r.profitLoss ?? 0), 0);
   const totalMarketValue = rows.reduce((s, r) => s + (r.marketValue ?? 0), 0);
@@ -545,17 +660,17 @@ function LiveSummary({ rows }: { rows: HoldingRow[] }) {
       <div className="live-summary-row">
         <div className="live-summary-item">
           <span className="live-summary-label">매입금액</span>
-          <span className="live-summary-value"><span className="secret-value">{currency(totalInvested)}</span></span>
+          <span className="live-summary-value"><span className="secret-value">{c(totalInvested)}</span></span>
         </div>
         <div className="live-summary-item">
           <span className="live-summary-label">평가손익</span>
-          <span className={`live-summary-value ${tone(totalProfitLoss)}`}><span className="secret-value">{signedCurrency(totalProfitLoss)}</span></span>
+          <span className={`live-summary-value ${tone(totalProfitLoss)}`}><span className="secret-value">{sc(totalProfitLoss)}</span></span>
         </div>
       </div>
       <div className="live-summary-row">
         <div className="live-summary-item">
           <span className="live-summary-label">평가금액</span>
-          <span className="live-summary-value"><span className="secret-value">{currency(totalMarketValue)}</span></span>
+          <span className="live-summary-value"><span className="secret-value">{c(totalMarketValue)}</span></span>
         </div>
         <div className="live-summary-item">
           <span className="live-summary-label">수익률</span>
@@ -575,6 +690,8 @@ function HoldingTable({
   onEdit: (row: HoldingRow) => void;
   onDelete: (row: HoldingRow) => void;
 }) {
+  const { c, sc } = useCurrency();
+
   if (rows.length === 0) {
     return (
       <section className="empty-state">
@@ -612,14 +729,14 @@ function HoldingTable({
             </div>
             <div className="metrics-grid">
               <div><span className="secret-value">{numberText(row.shares, '주')}</span></div>
-              <div><span className="secret-value">{currency(row.averagePrice)}</span></div>
-              <div className={tone(row.profitLoss)}><span className="secret-value">{signedCurrency(row.profitLoss)}</span></div>
-              <div><span className="secret-value">{currency(row.investedAmount)}</span></div>
-              <div className={row.change != null ? tone(row.change) : ''}>{row.change != null ? signedCurrency(row.change) : '-'}</div>
+              <div><span className="secret-value">{c(row.averagePrice)}</span></div>
+              <div className={tone(row.profitLoss)}><span className="secret-value">{sc(row.profitLoss)}</span></div>
+              <div><span className="secret-value">{c(row.investedAmount)}</span></div>
+              <div className={row.change != null ? tone(row.change) : ''}>{row.change != null ? sc(row.change) : '-'}</div>
               <div><span className="secret-value">{plainPercent(row.weight)}</span></div>
-              <div>{currency(row.currentPrice)}</div>
+              <div>{c(row.currentPrice)}</div>
               <div className={tone(row.returnRate)}><span className="secret-value">{percent(row.returnRate)}</span></div>
-              <div><span className="secret-value">{currency(row.marketValue)}</span></div>
+              <div><span className="secret-value">{c(row.marketValue)}</span></div>
               <div className={row.changeRate != null ? tone(row.changeRate) : ''}>{row.changeRate != null ? percent(row.changeRate) : '-'}</div>
             </div>
             <div className="row-actions">
@@ -648,6 +765,7 @@ function HoldingModal({
   onClose: () => void;
   onSubmit: (draft: HoldingDraft) => Promise<void>;
 }) {
+  const { isOverseas } = useCurrency();
   const [form, setForm] = useState<HoldingDraft>(
     draft ?? { query: '', shares: '', averagePrice: '' },
   );
@@ -676,10 +794,10 @@ function HoldingModal({
           </button>
         </div>
         <label>
-          종목명 또는 종목코드
+          {isOverseas ? '티커 심볼 또는 종목명' : '종목명 또는 종목코드'}
           <input
             required
-            placeholder="예: 005930 또는 삼성전자"
+            placeholder={isOverseas ? '예: AAPL 또는 Apple' : '예: 005930 또는 삼성전자'}
             value={form.query}
             onChange={(event) => setForm((value) => ({ ...value, query: event.target.value }))}
           />
@@ -697,12 +815,12 @@ function HoldingModal({
           />
         </label>
         <label>
-          매입가
+          {isOverseas ? '매입가 (USD)' : '매입가'}
           <input
             required
-            inputMode="numeric"
+            inputMode="decimal"
             min="0"
-            step="1"
+            step={isOverseas ? '0.01' : '1'}
             type="number"
             value={form.averagePrice}
             onChange={(event) =>
@@ -791,6 +909,9 @@ function LiveView({
     reader.readAsText(file);
   };
 
+  const { isOverseas } = useCurrency();
+  const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
+
   const submitHolding = async (nextDraft: HoldingDraft) => {
     if (Number(nextDraft.shares) <= 0 || Number(nextDraft.averagePrice) <= 0) {
       alert('주식수와 매입가는 0보다 커야 합니다.');
@@ -804,7 +925,7 @@ function LiveView({
 
     setBusy(true);
     try {
-      const quote = await fetchQuote(nextDraft.query.trim());
+      const quote = await fetchQuote(nextDraft.query.trim(), market);
       const nextHolding = createHoldingFromQuote(quote, nextDraft);
       const holdings = nextDraft.id
         ? data.holdings.map((holding) => (holding.id === nextDraft.id ? nextHolding : holding))
@@ -825,7 +946,7 @@ function LiveView({
     const refreshed = await Promise.all(
       data.holdings.map(async (holding) => {
         try {
-          const quote = await fetchQuote(holding.code);
+          const quote = await fetchQuote(holding.code, market);
           return {
             ...holding,
             name: quote.name || holding.name,
@@ -944,6 +1065,7 @@ function AccountView({
   summary: ReturnType<typeof calculateAccountSummary>;
   onDataChange: (data: AppData) => void;
 }) {
+  const { c, sc, isOverseas } = useCurrency();
   const [totalContribution, setTotalContribution] = useState(formatNumberWithCommas(data.account.totalContribution || ''));
   const [cashBalance, setCashBalance] = useState(formatNumberWithCommas(data.account.cashBalance || ''));
 
@@ -966,31 +1088,31 @@ function AccountView({
   return (
     <section className="account-panel">
       <div className="account-metrics">
-        <Metric label="자산평가액" value={currency(summary.currentTotalAssets)} secret highlight />
+        <Metric label="자산평가액" value={c(summary.currentTotalAssets)} secret highlight />
         <div className="account-metrics-divider" />
         <div className="account-metrics-grid">
-          <Metric label="예수금" value={currency(data.account.cashBalance)} secret right />
+          <Metric label={isOverseas ? '예수금(USD)' : '예수금'} value={c(data.account.cashBalance)} secret right />
           <Metric label="예수금비중" value={plainPercent(summary.cashRatio)} secret right />
-          <Metric label="수익" value={signedCurrency(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
+          <Metric label="수익" value={sc(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
           <Metric label="수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
         </div>
       </div>
       <div className="input-grid">
         <label>
-          총투입금액
+          {isOverseas ? '총투입금액 (USD)' : '총투입금액'}
           <input
             className="secret-value"
-            inputMode="numeric"
+            inputMode="decimal"
             type="text"
             value={totalContribution}
             onChange={(event) => setTotalContribution(formatNumberWithCommas(event.target.value))}
           />
         </label>
         <label>
-          예수금
+          {isOverseas ? '예수금 (USD)' : '예수금'}
           <input
             className="secret-value"
-            inputMode="numeric"
+            inputMode="decimal"
             type="text"
             value={cashBalance}
             onChange={(event) => setCashBalance(formatNumberWithCommas(event.target.value))}
@@ -1102,6 +1224,8 @@ function RealizedGainAddModal({
   onClose: () => void;
   onSave: (record: RealizedGainRecord) => void;
 }) {
+  const { isOverseas } = useCurrency();
+  const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
   const today = new Date().toISOString().slice(0, 10);
   const [stockInput, setStockInput] = useState('');
   const [stockCode, setStockCode] = useState('');
@@ -1162,7 +1286,7 @@ function RealizedGainAddModal({
     if (!selectedFromDropdown) {
       setBusy(true);
       try {
-        const quote = await fetchQuote(stockInput.trim());
+        const quote = await fetchQuote(stockInput.trim(), market);
         resolvedCode = quote.code;
         resolvedName = quote.name;
       } catch {
@@ -1247,11 +1371,11 @@ function RealizedGainAddModal({
         </label>
 
         <label>
-          금액
+          {isOverseas ? '금액 (USD)' : '금액'}
           <div className={gainType === 'gain' ? 'rg-amount-gain' : 'rg-amount-loss'}>
             <input
-              inputMode="numeric"
-              placeholder="예: 150,000"
+              inputMode="decimal"
+              placeholder={isOverseas ? '예: 1,500.00' : '예: 150,000'}
               value={amountStr}
               onChange={(e) => setAmountStr(formatNumberWithCommas(e.target.value))}
             />
@@ -1276,6 +1400,7 @@ function RealizedGainsView({
   data: AppData;
   onDataChange: (data: AppData) => void;
 }) {
+  const { c, sc } = useCurrency();
   const [showAddModal, setShowAddModal] = useState(false);
   const [top5Type, setTop5Type] = useState<'gain' | 'loss'>('gain');
   const [rgCsvRows, setRgCsvRows] = useState<RgCsvRow[] | null>(null);
@@ -1501,7 +1626,7 @@ function RealizedGainsView({
       <div className="dividend-total-card">
         <div className="dividend-stat-label">누적 실현손익</div>
         <div className={`rg-total-xl secret-value ${tone(totalAll)}`}>
-          {signedCurrency(totalAll)}
+          {sc(totalAll)}
         </div>
         <div className="dividend-stat-sub">총 {records.length}건</div>
       </div>
@@ -1510,13 +1635,13 @@ function RealizedGainsView({
           <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
             <div className="dividend-stat-label">{prevYear}년 실현손익</div>
             <div className={`dividend-stat-value ${tone(totalPrevYear)}`}>
-              <span className="secret-value">{signedCurrency(totalPrevYear)}</span>
+              <span className="secret-value">{sc(totalPrevYear)}</span>
             </div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
             <div className="dividend-stat-label">{thisYear}년 실현손익</div>
             <div className={`dividend-stat-value ${tone(totalThisYear)}`}>
-              <span className="secret-value">{signedCurrency(totalThisYear)}</span>
+              <span className="secret-value">{sc(totalThisYear)}</span>
             </div>
           </div>
         </div>
@@ -1563,7 +1688,7 @@ function RealizedGainsView({
                 </div>
               </div>
               <span className={`top5-amount secret-value ${top5Type === 'gain' ? 'gain' : 'loss'}`}>
-                {signedCurrency(total)}
+                {sc(total)}
               </span>
             </div>
           ))
@@ -1587,7 +1712,7 @@ function RealizedGainsView({
                 <span className="record-date">{r.date}</span>
                 <span className="record-name">{r.stockName}</span>
                 <span className={`record-amount secret-value ${tone(r.amount)}`}>
-                  {signedCurrency(r.amount)}
+                  {sc(r.amount)}
                 </span>
                 <button
                   aria-label={`${r.stockName} 삭제`}
@@ -1608,7 +1733,7 @@ function RealizedGainsView({
             <span>
               합계{' '}
               <strong>
-                <span className={`secret-value ${tone(filteredTotal)}`}>{signedCurrency(filteredTotal)}</span>
+                <span className={`secret-value ${tone(filteredTotal)}`}>{sc(filteredTotal)}</span>
               </strong>
             </span>
             <span>
@@ -1669,6 +1794,8 @@ function DividendAddModal({
   onClose: () => void;
   onSave: (record: DividendRecord) => void;
 }) {
+  const { isOverseas } = useCurrency();
+  const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
   const today = new Date().toISOString().slice(0, 10);
   const [stockInput, setStockInput] = useState('');
   const [stockCode, setStockCode] = useState('');
@@ -1729,7 +1856,7 @@ function DividendAddModal({
     if (!selectedFromDropdown) {
       setBusy(true);
       try {
-        const quote = await fetchQuote(stockInput.trim());
+        const quote = await fetchQuote(stockInput.trim(), market);
         resolvedCode = quote.code;
         resolvedName = quote.name;
       } catch {
@@ -1798,10 +1925,10 @@ function DividendAddModal({
         </label>
 
         <label>
-          배당금액
+          {isOverseas ? '배당금액 (USD)' : '배당금액'}
           <input
-            inputMode="numeric"
-            placeholder="예: 150,000"
+            inputMode="decimal"
+            placeholder={isOverseas ? '예: 150.00' : '예: 150,000'}
             value={amountStr}
             onChange={(e) => setAmountStr(formatNumberWithCommas(e.target.value))}
           />
@@ -1891,6 +2018,7 @@ function DividendSummaryTab({
   dividends: DividendRecord[];
   onOpenAdd: () => void;
 }) {
+  const { c, sc } = useCurrency();
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
@@ -2006,7 +2134,7 @@ function DividendSummaryTab({
       {/* 1. 누적 배당금 카드 */}
       <div className="dividend-total-card">
         <div className="dividend-stat-label">누적 배당금 합계</div>
-        <div className="dividend-stat-value-xl secret-value">{currency(totalAll)}</div>
+        <div className="dividend-stat-value-xl secret-value">{c(totalAll)}</div>
         <div className="dividend-stat-sub">총 {dividends.length}건</div>
       </div>
 
@@ -2015,7 +2143,7 @@ function DividendSummaryTab({
         <div style={{ display: 'flex' }}>
           <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
             <div className="dividend-stat-label">{prevYear}년 (실제)</div>
-            <div className="dividend-stat-value"><span className="secret-value">{currency(prevYearTotal)}</span></div>
+            <div className="dividend-stat-value"><span className="secret-value">{c(prevYearTotal)}</span></div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
             <div className="dividend-stat-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
@@ -2042,13 +2170,13 @@ function DividendSummaryTab({
                     최근 12개월 평균 배당금 × 12
                     <br />
                     <span className="est-info-calc">
-                      {currency(monthlyAvg)} × 12
+                      {c(monthlyAvg)} × 12
                     </span>
                   </div>
                 )}
               </div>
             </div>
-            <div className="dividend-stat-value"><span className="secret-value">{currency(thisYearEstimated)}</span></div>
+            <div className="dividend-stat-value"><span className="secret-value">{c(thisYearEstimated)}</span></div>
           </div>
         </div>
       </div>
@@ -2179,7 +2307,7 @@ function DividendSummaryTab({
                         fontSize="17"
                         fontWeight="700"
                       >
-                        {item.total.toLocaleString('ko-KR')}원
+                        {c(item.total)}
                       </text>
                     </g>
                   )}
@@ -2216,9 +2344,9 @@ function DividendSummaryTab({
             </select>
           </div>
         </div>
-        <div className="dividend-stat-value"><span className="secret-value">{currency(selMonthTotal)}</span></div>
+        <div className="dividend-stat-value"><span className="secret-value">{c(selMonthTotal)}</span></div>
         <div className={`dividend-month-diff ${monthDiff > 0 ? 'gain' : monthDiff < 0 ? 'loss' : ''}`}>
-          전월 대비 <span className="secret-value">{monthDiff === 0 ? '±0원' : signedCurrency(monthDiff)}</span>
+          전월 대비 <span className="secret-value">{monthDiff === 0 ? '±0' : sc(monthDiff)}</span>
         </div>
       </div>
 
@@ -2253,7 +2381,7 @@ function DividendSummaryTab({
                   />
                 </div>
               </div>
-              <span className="top5-amount secret-value">{currency(total)}</span>
+              <span className="top5-amount secret-value">{c(total)}</span>
             </div>
           ))
         )}
@@ -2716,6 +2844,7 @@ function DividendRecordsTab({
   onDelete: (id: string) => void;
   onBulkAdd: (records: DividendRecord[]) => void;
 }) {
+  const { c } = useCurrency();
   // 종목 필터
   const allCodes = Array.from(new Set(dividends.map((d) => d.stockCode)));
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(() => new Set(allCodes));
@@ -2926,7 +3055,7 @@ function DividendRecordsTab({
             <div className="dividend-record-row" key={d.id}>
               <span className="record-date">{d.paidAt}</span>
               <span className="record-name">{d.stockName}</span>
-              <span className="record-amount secret-value">{currency(d.amount)}</span>
+              <span className="record-amount secret-value">{c(d.amount)}</span>
               <button
                 aria-label={`${d.stockName} 배당 삭제`}
                 className="record-delete"
@@ -2946,7 +3075,7 @@ function DividendRecordsTab({
 
       {/* 하단 고정 요약 바 */}
       <div className="dividend-summary-bar">
-        <span>합계 <strong><span className="secret-value">{currency(filteredTotal)}</span></strong></span>
+        <span>합계 <strong><span className="secret-value">{c(filteredTotal)}</span></strong></span>
         <span>총 <strong>{filtered.length}건</strong></span>
       </div>
 
@@ -3031,22 +3160,40 @@ function InstallBanner() {
 }
 
 export default function App() {
-  const [data, setData] = useState<AppData>(() => loadData());
+  const [rootData, setRootData] = useState<RootData>(() => loadRootData());
+  const [accountMode, setAccountMode] = useState<AccountMode>('domestic');
+  const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('usd');
+  const [usdKrwRate, setUsdKrwRate] = useState<number | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
   const backupFileRef = useRef<HTMLInputElement>(null);
 
+  // 현재 계좌 데이터
+  const data = rootData[accountMode];
+
   const rows = useMemo(() => calculateHoldingRows(data.holdings), [data.holdings]);
   const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);
 
-  const persist = (nextData: AppData) => {
-    setData(nextData);
-    saveData(nextData);
+  const persist = (nextAccountData: AppData) => {
+    const next: RootData = { ...rootData, [accountMode]: nextAccountData };
+    setRootData(next);
+    saveRootData(next);
+  };
+
+  const persistPassword = (nextAccountData: AppData) => {
+    // 비밀번호는 두 계좌 모두 동기화
+    const next: RootData = {
+      ...rootData,
+      domestic: { ...rootData.domestic, password: nextAccountData.password },
+      overseas: { ...rootData.overseas, password: nextAccountData.password },
+    };
+    setRootData(next);
+    saveRootData(next);
   };
 
   const exportBackup = () => {
-    const blob = createBackupBlob(data);
+    const blob = createBackupBlob(rootData);
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -3062,19 +3209,14 @@ export default function App() {
         const parsed = JSON.parse(String(reader.result));
         const restored = validateBackup(parsed);
         if (!await customConfirm('백업 파일의 데이터로 현재 내용을 교체할까요?')) return;
-        persist(restored);
+        setRootData(restored);
+        saveRootData(restored);
       } catch (error) {
         alert(error instanceof Error ? error.message : '백업 파일을 읽지 못했습니다.');
       }
     };
     reader.readAsText(file);
   };
-
-  useEffect(() => {
-    if (!localStorage.getItem('dad-portfolio-pwa:v1')) {
-      saveData(defaultData);
-    }
-  }, []);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -3090,12 +3232,18 @@ export default function App() {
     }
   }, []);
 
+  const ctxValue: CurrencyCtxType = {
+    isOverseas: accountMode === 'overseas',
+    currencyMode,
+    usdKrwRate,
+  };
+
   return (
-    <>
+    <CurrencyCtx.Provider value={ctxValue}>
       <ConfirmDialog />
       <ParticleBackground />
       {!unlocked ? (
-        <LoginScreen password={data.password} onSuccess={() => setUnlocked(true)} />
+        <LoginScreen password={rootData.domestic.password} onSuccess={() => setUnlocked(true)} />
       ) : (
       <main className={`app-shell${secretMode ? ' secret-mode' : ''}`}>
       <InstallBanner />
@@ -3107,6 +3255,10 @@ export default function App() {
         onToggleSecret={() => setSecretMode((v) => !v)}
         onExportBackup={exportBackup}
         onImportBackup={() => backupFileRef.current?.click()}
+        accountMode={accountMode}
+        onChangeAccount={setAccountMode}
+        currencyMode={currencyMode}
+        onToggleCurrency={() => setCurrencyMode((m) => (m === 'usd' ? 'krw' : 'usd'))}
       />
       <input
         ref={backupFileRef}
@@ -3127,14 +3279,21 @@ export default function App() {
       )}
       {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
-      {activeMenu === 'password' && <PasswordView data={data} onDataChange={persist} />}
+      {activeMenu === 'password' && (
+        <PasswordView data={rootData.domestic} onDataChange={persistPassword} />
+      )}
       <button className="floating-menu" type="button" onClick={() => setActiveMenu('live')}>
         <ChevronDown size={16} />
         실시간
       </button>
     </main>
       )}
-      {unlocked && activeMenu === 'live' && <MarketIndexBar />}
-    </>
+      {unlocked && activeMenu === 'live' && (
+        <MarketIndexBar
+          mode={accountMode}
+          onUsdKrwRate={setUsdKrwRate}
+        />
+      )}
+    </CurrencyCtx.Provider>
   );
 }

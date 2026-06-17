@@ -1,9 +1,11 @@
-import type { QuoteResult } from './types';
+import type { AccountMode, QuoteResult } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
-export async function fetchQuote(query: string): Promise<QuoteResult> {
-  const response = await fetch(`${API_BASE}/api/quote?query=${encodeURIComponent(query)}`);
+export async function fetchQuote(query: string, market: AccountMode = 'domestic'): Promise<QuoteResult> {
+  const params = new URLSearchParams({ query });
+  if (market === 'overseas') params.set('market', 'overseas');
+  const response = await fetch(`${API_BASE}/api/quote?${params}`);
   const payload = await response.json();
 
   if (!response.ok) {
@@ -20,12 +22,27 @@ export interface MarketIndexResult {
   kosdaq: MarketIndexItem;
 }
 
+export interface OverseasIndexResult {
+  nasdaq: MarketIndexItem;
+  sp500: MarketIndexItem;
+  usdKrw: MarketIndexItem;
+}
+
 export async function fetchMarketIndex(): Promise<MarketIndexResult> {
   const [kospi, kosdaq] = await Promise.all([
     fetchQuote('KOSPI'),
     fetchQuote('KOSDAQ'),
   ]);
   return { kospi, kosdaq };
+}
+
+export async function fetchOverseasIndex(): Promise<OverseasIndexResult> {
+  const [nasdaq, sp500, usdKrw] = await Promise.all([
+    fetchQuote('NASDAQ', 'overseas'),
+    fetchQuote('SP500', 'overseas'),
+    fetchQuote('USDKRW', 'overseas'),
+  ]);
+  return { nasdaq, sp500, usdKrw };
 }
 
 export async function logClientError(payload: unknown): Promise<void> {

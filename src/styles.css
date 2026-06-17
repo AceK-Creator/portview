@@ -264,12 +264,76 @@ input:focus {
   top: 0;
   z-index: 20;
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
   margin-left: -14px;
   margin-right: -14px;
-  padding: max(8px, env(safe-area-inset-top)) 6px 0 0;
+  padding-top: max(8px, env(safe-area-inset-top));
   background: #071426;
+}
+
+/* 계좌 스위처 행 */
+.account-switcher-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 14px 4px;
+  min-height: 34px;
+}
+
+.account-pills {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(5, 18, 38, 0.7);
+  border-radius: 8px;
+  padding: 2px;
+  border: 1px solid rgba(145, 181, 220, 0.14);
+}
+
+.account-pill {
+  padding: 3px 13px;
+  border: none;
+  background: transparent;
+  color: #4d6e8e;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: background 180ms ease, color 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.account-pill.active {
+  background: linear-gradient(135deg, rgba(124, 77, 255, 0.75), rgba(0, 180, 216, 0.75));
+  color: #fff;
+  font-weight: 700;
+}
+
+.currency-toggle-btn {
+  padding: 3px 11px;
+  border: 1px solid rgba(145, 181, 220, 0.22);
+  background: rgba(5, 18, 38, 0.7);
+  color: #7fa9db;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.02em;
+}
+
+.currency-toggle-btn.krw {
+  border-color: rgba(255, 224, 130, 0.4);
+  color: #ffe082;
+}
+
+/* 탭 + 메뉴 행 */
+.tabs-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding-right: 6px;
 }
 
 .app-header::after {
@@ -1183,6 +1247,9 @@ label {
   .app-header {
     margin-left: -10px;
     margin-right: -10px;
+  }
+
+  .tabs-row {
     padding-right: 4px;
   }
 
@@ -1193,6 +1260,10 @@ label {
 
   .nav-tabs {
     padding-left: 10px;
+  }
+
+  .account-switcher-row {
+    padding: 5px 10px 4px;
   }
 
   .toolbar {

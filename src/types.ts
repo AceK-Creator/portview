@@ -1,6 +1,8 @@
 export type MenuKey = 'live' | 'account' | 'dividend' | 'realized-gains' | 'password';
+export type AccountMode = 'domestic' | 'overseas';
+export type CurrencyMode = 'usd' | 'krw';
 
-export type PriceSource = 'naver-realtime' | 'naver-page' | 'naver-search' | 'test' | 'manual-seed';
+export type PriceSource = 'naver-realtime' | 'naver-page' | 'naver-search' | 'test' | 'manual-seed' | 'yahoo';
 
 export interface Holding {
   id: string;
@@ -60,6 +62,12 @@ export interface AppData {
   holdings: Holding[];
   dividends: DividendRecord[];
   realizedGains: RealizedGainRecord[];
+}
+
+export interface RootData {
+  version: 2;
+  domestic: AppData;
+  overseas: AppData;
 }
 
 export interface QuoteResult {
