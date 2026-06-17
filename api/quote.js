@@ -5,13 +5,6 @@ const NAVER_HEADERS = {
   Referer: 'https://finance.naver.com/',
 };
 
-const YAHOO_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36',
-  Accept: 'application/json',
-  'Accept-Language': 'en-US,en;q=0.9',
-};
-
 // ─── 국내 (네이버) ─────────────────────────────────────────────────────────────
 
 function parsePrice(value) {
@@ -100,53 +93,108 @@ async function fetchNaverIndex(indexCode) {
   };
 }
 
-// ─── 해외 (Yahoo Finance) ──────────────────────────────────────────────────────
+// ─── 해외 (네이버 worldstock + open.er-api) ────────────────────────────────────
 
-const OVERSEAS_INDEX_CODES = {
-  NASDAQ: { symbol: '^IXIC', displayName: 'NASDAQ' },
-  SP500:  { symbol: '^GSPC', displayName: 'S&P500' },
-  USDKRW: { symbol: 'KRW=X', displayName: '원/달러' },
+const OVERSEAS_INDEX_MAP = {
+  NASDAQ: { reutersCode: '.IXIC', displayName: 'NASDAQ 종합' },
+  SP500:  { reutersCode: '.INX',  displayName: 'S&P 500' },
 };
 
-async function fetchYahooQuote(ticker, displayName) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
-  const res = await fetch(url, { headers: YAHOO_HEADERS });
-  if (!res.ok) throw new Error(`Yahoo Finance 응답 오류 ${res.status}`);
-
-  const data = await res.json();
-  const meta = data?.chart?.result?.[0]?.meta;
-  if (!meta || meta.regularMarketPrice == null)
-    throw new Error('Yahoo Finance 데이터를 가져오지 못했습니다.');
-
-  const price = meta.regularMarketPrice;
-  const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? price;
-  const change = price - prevClose;
-  const changeRate = prevClose > 0 ? (change / prevClose) * 100 : 0;
-
+async function fetchNaverWorldIndex(reutersCode, displayName) {
+  const url = `https://polling.finance.naver.com/api/realtime/worldstock/index/${encodeURIComponent(reutersCode)}`;
+  const res = await fetch(url, { headers: NAVER_HEADERS });
+  if (!res.ok) throw new Error(`해외지수 응답 오류 ${res.status}`);
+  const payload = await res.json();
+  const item = payload?.datas?.[0];
+  if (!item) throw new Error('해외지수 데이터가 비어 있습니다.');
+  const price = parseFloat(item.closePriceRaw) || 0;
+  const change = parseFloat(item.compareToPreviousClosePriceRaw);
+  const changeRate = parseFloat(item.fluctuationsRatioRaw);
   return {
-    code: meta.symbol || ticker,
-    name: displayName || meta.shortName || meta.longName || ticker,
+    code: item.symbolCode || reutersCode,
+    name: displayName || item.indexName || reutersCode,
     price,
-    change,
-    changeRate,
-    source: 'yahoo',
-    tradedAt: meta.regularMarketTime
-      ? new Date(meta.regularMarketTime * 1000).toISOString()
-      : new Date().toISOString(),
+    change: Number.isFinite(change) ? change : null,
+    changeRate: Number.isFinite(changeRate) ? changeRate : null,
+    source: 'naver-worldindex',
+    tradedAt: item.localTradedAt || new Date().toISOString(),
   };
 }
 
-async function searchYahooTicker(query) {
-  const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=6&newsCount=0`;
-  const res = await fetch(url, { headers: YAHOO_HEADERS });
-  if (!res.ok) throw new Error(`Yahoo Finance 검색 오류 ${res.status}`);
-
+async function fetchUsdKrw() {
+  const res = await fetch('https://open.er-api.com/v6/latest/USD');
+  if (!res.ok) throw new Error(`환율 API 오류 ${res.status}`);
   const data = await res.json();
-  const quote = data?.quotes?.find((q) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF');
-  if (!quote?.symbol)
-    throw new Error(`"${query}"에 해당하는 해외 종목을 찾지 못했습니다. 정확한 티커를 입력해 주세요.`);
+  const price = data?.rates?.KRW;
+  if (!price) throw new Error('환율 데이터를 가져오지 못했습니다.');
+  return {
+    code: 'USDKRW',
+    name: '원/달러',
+    price,
+    change: null,
+    changeRate: null,
+    source: 'open-er-api',
+    tradedAt: data.time_last_update_utc || new Date().toISOString(),
+  };
+}
 
-  return { symbol: quote.symbol, name: quote.shortname || quote.longname || quote.symbol };
+async function searchNaverWorldTicker(query) {
+  const url = `https://ac.stock.naver.com/ac?q=${encodeURIComponent(query)}&target=worldstock`;
+  const res = await fetch(url, { headers: NAVER_HEADERS });
+  if (!res.ok) throw new Error(`네이버 종목 검색 오류 ${res.status}`);
+  const data = await res.json();
+  const item = data?.items?.[0];
+  if (!item?.reutersCode)
+    throw new Error(`"${query}"에 해당하는 해외 종목을 찾지 못했습니다. 정확한 티커를 입력해 주세요.`);
+  return { reutersCode: item.reutersCode, name: item.name };
+}
+
+async function fetchNaverWorldStock(reutersCode, displayName) {
+  const url = `https://polling.finance.naver.com/api/realtime/worldstock/stock/${encodeURIComponent(reutersCode)}`;
+  const res = await fetch(url, { headers: NAVER_HEADERS });
+  if (!res.ok) throw new Error(`해외주식 응답 오류 ${res.status}`);
+  const payload = await res.json();
+  const item = payload?.datas?.[0];
+  if (!item) throw new Error('해외주식 데이터가 비어 있습니다.');
+  const price = parseFloat(item.closePriceRaw) || 0;
+  const change = parseFloat(item.compareToPreviousClosePriceRaw);
+  const changeRate = parseFloat(item.fluctuationsRatioRaw);
+  return {
+    code: item.symbolCode || reutersCode,
+    name: displayName || item.stockName || reutersCode,
+    price,
+    change: Number.isFinite(change) ? change : null,
+    changeRate: Number.isFinite(changeRate) ? changeRate : null,
+    source: 'naver-worldstock',
+    tradedAt: item.localTradedAt || new Date().toISOString(),
+    currency: item.currencyType?.code || 'USD',
+  };
+}
+
+async function quoteOverseas(query) {
+  const upperQuery = query.toUpperCase();
+
+  if (OVERSEAS_INDEX_MAP[upperQuery]) {
+    const { reutersCode, displayName } = OVERSEAS_INDEX_MAP[upperQuery];
+    return fetchNaverWorldIndex(reutersCode, displayName);
+  }
+
+  if (upperQuery === 'USDKRW') {
+    return fetchUsdKrw();
+  }
+
+  // 거래소 접미사 있으면 직접 조회
+  if (/\.[A-Z]+$/.test(upperQuery)) {
+    return fetchNaverWorldStock(upperQuery);
+  }
+
+  // NASDAQ 종목은 .O suffix 먼저 시도, 실패 시 검색
+  try {
+    return await fetchNaverWorldStock(`${upperQuery}.O`);
+  } catch {
+    const { reutersCode, name } = await searchNaverWorldTicker(query);
+    return fetchNaverWorldStock(reutersCode, name);
+  }
 }
 
 // ─── 핸들러 ───────────────────────────────────────────────────────────────────
@@ -165,27 +213,11 @@ export default async function handler(req, res) {
   const market = String(req.query?.market || 'domestic').trim();
 
   try {
-    // ── 해외 경로 ──────────────────────────────────────────────────────────────
     if (market === 'overseas') {
-      const upperQuery = query.toUpperCase();
-
-      // 해외 지수 코드 (NASDAQ, SP500, USDKRW)
-      const indexEntry = OVERSEAS_INDEX_CODES[upperQuery];
-      if (indexEntry) {
-        return res.json(await fetchYahooQuote(indexEntry.symbol, indexEntry.displayName));
-      }
-
-      // 티커로 직접 조회 시도 → 실패 시 검색
-      try {
-        return res.json(await fetchYahooQuote(upperQuery));
-      } catch {
-        const { symbol, name } = await searchYahooTicker(query);
-        const result = await fetchYahooQuote(symbol);
-        return res.json({ ...result, name });
-      }
+      return res.json(await quoteOverseas(query));
     }
 
-    // ── 국내 경로 ──────────────────────────────────────────────────────────────
+    // 국내
     if (DOMESTIC_INDEX_CODES.has(query.toUpperCase())) {
       return res.json(await fetchNaverIndex(query.toUpperCase()));
     }
