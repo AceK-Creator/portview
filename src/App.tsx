@@ -567,9 +567,11 @@ function AppHeader({
 function MarketIndexBar({
   mode,
   onUsdKrwRate,
+  hidden,
 }: {
   mode: AccountMode;
   onUsdKrwRate?: (rate: number) => void;
+  hidden?: boolean;
 }) {
   const [kospi, setKospi] = useState<MarketIndexItem | null>(null);
   const [kosdaq, setKosdaq] = useState<MarketIndexItem | null>(null);
@@ -624,7 +626,7 @@ function MarketIndexBar({
   }
 
   return (
-    <div className="market-index-bar">
+    <div className="market-index-bar" style={hidden ? { display: 'none' } : undefined}>
       {loading ? (
         <div className="idx-loading">지수 로딩 중…</div>
       ) : error ? (
@@ -3324,10 +3326,11 @@ export default function App() {
       </button>
     </main>
       )}
-      {unlocked && activeMenu === 'live' && (
+      {unlocked && (
         <MarketIndexBar
           mode={accountMode}
           onUsdKrwRate={setUsdKrwRate}
+          hidden={activeMenu !== 'live'}
         />
       )}
     </CurrencyCtx.Provider>
