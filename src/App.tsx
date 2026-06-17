@@ -1091,7 +1091,7 @@ function AccountView({
         <Metric label="자산평가액" value={c(summary.currentTotalAssets)} secret highlight />
         <div className="account-metrics-divider" />
         <div className="account-metrics-grid">
-          <Metric label={isOverseas ? '예수금(USD)' : '예수금'} value={c(data.account.cashBalance)} secret right />
+          <Metric label={isOverseas ? '예수금(₩)' : '예수금'} value={currency(data.account.cashBalance)} secret right />
           <Metric label="예수금비중" value={plainPercent(summary.cashRatio)} secret right />
           <Metric label="수익" value={sc(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
           <Metric label="수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
@@ -1109,10 +1109,10 @@ function AccountView({
           />
         </label>
         <label>
-          {isOverseas ? '예수금 (USD)' : '예수금'}
+          {isOverseas ? '예수금 (₩원화)' : '예수금'}
           <input
             className="secret-value"
-            inputMode="decimal"
+            inputMode="numeric"
             type="text"
             value={cashBalance}
             onChange={(event) => setCashBalance(formatNumberWithCommas(event.target.value))}
