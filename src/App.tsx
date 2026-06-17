@@ -1,9 +1,11 @@
 import {
+  Building2,
   ChevronDown,
   Download,
   Eye,
   EyeOff,
   Filter,
+  Globe,
   KeyRound,
   Lock,
   LogOut,
@@ -465,14 +467,14 @@ function AppHeader({
             type="button"
             onClick={() => onChangeAccount('domestic')}
           >
-            🇰🇷 국내
+            <Building2 size={13} strokeWidth={2.2} style={{ marginRight: 4, verticalAlign: 'middle' }} />국내
           </button>
           <button
             className={`account-pill${accountMode === 'overseas' ? ' active' : ''}`}
             type="button"
             onClick={() => onChangeAccount('overseas')}
           >
-            🌍 해외
+            <Globe size={13} strokeWidth={2.2} style={{ marginRight: 4, verticalAlign: 'middle' }} />해외
           </button>
         </div>
         {accountMode === 'overseas' && (
