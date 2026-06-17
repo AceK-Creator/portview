@@ -1065,7 +1065,7 @@ function AccountView({
   summary: ReturnType<typeof calculateAccountSummary>;
   onDataChange: (data: AppData) => void;
 }) {
-  const { c, sc, isOverseas } = useCurrency();
+  const { isOverseas, usdKrwRate } = useCurrency();
   const [totalContribution, setTotalContribution] = useState(formatNumberWithCommas(data.account.totalContribution || ''));
   const [cashBalance, setCashBalance] = useState(formatNumberWithCommas(data.account.cashBalance || ''));
 
@@ -1085,24 +1085,39 @@ function AccountView({
     });
   };
 
+  // 해외 모드: USD 평가액 × 환율 + 예수금(원화) 로 원화 기준 지표 재계산
+  const krwMarketValue = isOverseas && usdKrwRate ? summary.totalMarketValue * usdKrwRate : null;
+  const krwTotalAssets = krwMarketValue != null ? krwMarketValue + data.account.cashBalance : null;
+  const krwProfitLoss = krwTotalAssets != null ? krwTotalAssets - data.account.totalContribution : null;
+  const krwReturnRate = data.account.totalContribution > 0 && krwProfitLoss != null
+    ? (krwProfitLoss / data.account.totalContribution) * 100 : null;
+  const krwCashRatio = krwTotalAssets != null && krwTotalAssets > 0
+    ? (data.account.cashBalance / krwTotalAssets) * 100 : null;
+
+  const displayAssets   = krwTotalAssets  ?? summary.currentTotalAssets;
+  const displayCash     = data.account.cashBalance;
+  const displayCashRatio = krwCashRatio   ?? summary.cashRatio;
+  const displayProfit   = krwProfitLoss   ?? summary.totalProfitLoss;
+  const displayReturn   = krwReturnRate   ?? summary.totalReturnRate;
+
   return (
     <section className="account-panel">
       <div className="account-metrics">
-        <Metric label="자산평가액" value={c(summary.currentTotalAssets)} secret highlight />
+        <Metric label="자산평가액" value={currency(displayAssets)} secret highlight />
         <div className="account-metrics-divider" />
         <div className="account-metrics-grid">
-          <Metric label={isOverseas ? '예수금(₩)' : '예수금'} value={currency(data.account.cashBalance)} secret right />
-          <Metric label="예수금비중" value={plainPercent(summary.cashRatio)} secret right />
-          <Metric label="수익" value={sc(summary.totalProfitLoss)} tone={tone(summary.totalProfitLoss)} secret right />
-          <Metric label="수익률" value={percent(summary.totalReturnRate)} tone={tone(summary.totalReturnRate)} secret right />
+          <Metric label={isOverseas ? '예수금(₩)' : '예수금'} value={currency(displayCash)} secret right />
+          <Metric label="예수금비중" value={plainPercent(displayCashRatio)} secret right />
+          <Metric label="수익" value={signedCurrency(displayProfit)} tone={tone(displayProfit)} secret right />
+          <Metric label="수익률" value={percent(displayReturn)} tone={tone(displayReturn)} secret right />
         </div>
       </div>
       <div className="input-grid">
         <label>
-          {isOverseas ? '총투입금액 (USD)' : '총투입금액'}
+          {isOverseas ? '총투입금액 (₩원화)' : '총투입금액'}
           <input
             className="secret-value"
-            inputMode="decimal"
+            inputMode="numeric"
             type="text"
             value={totalContribution}
             onChange={(event) => setTotalContribution(formatNumberWithCommas(event.target.value))}
