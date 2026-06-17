@@ -1391,9 +1391,20 @@ function RealizedGainAddModal({
           <div className={gainType === 'gain' ? 'rg-amount-gain' : 'rg-amount-loss'}>
             <input
               inputMode="decimal"
-              placeholder={isOverseas ? '예: 1,500.00' : '예: 150,000'}
+              placeholder={isOverseas ? '예: 1500.5000' : '예: 150,000'}
               value={amountStr}
-              onChange={(e) => setAmountStr(formatNumberWithCommas(e.target.value))}
+              onChange={(e) => {
+                if (isOverseas) {
+                  const v = e.target.value.replace(/[^0-9.]/g, '');
+                  const parts = v.split('.');
+                  const cleaned = parts.length > 1
+                    ? `${parts[0]}.${parts.slice(1).join('').slice(0, 4)}`
+                    : parts[0];
+                  setAmountStr(cleaned);
+                } else {
+                  setAmountStr(formatNumberWithCommas(e.target.value));
+                }
+              }}
             />
           </div>
         </label>
