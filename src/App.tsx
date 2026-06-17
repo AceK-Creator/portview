@@ -49,9 +49,9 @@ function useCurrency() {
     if (value == null || Number.isNaN(value)) return '-';
     if (!isOverseas) return `${Math.round(value).toLocaleString('ko-KR')}원`;
     if (currencyMode === 'usd') {
-      return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
     }
-    if (usdKrwRate == null) return `$${value.toFixed(2)}`;
+    if (usdKrwRate == null) return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
     return `${Math.round(value * usdKrwRate).toLocaleString('ko-KR')}원`;
   };
 
@@ -63,9 +63,9 @@ function useCurrency() {
     const sign = value > 0 ? '+' : value < 0 ? '-' : '';
     const abs = Math.abs(value);
     if (currencyMode === 'usd') {
-      return `${sign}$${abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return `${sign}$${abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
     }
-    if (usdKrwRate == null) return `${sign}$${abs.toFixed(2)}`;
+    if (usdKrwRate == null) return `${sign}$${abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
     return `${sign}${Math.round(abs * usdKrwRate).toLocaleString('ko-KR')}원`;
   };
 
@@ -820,7 +820,7 @@ function HoldingModal({
             required
             inputMode="decimal"
             min="0"
-            step={isOverseas ? '0.01' : '1'}
+            step={isOverseas ? '0.0001' : '1'}
             type="number"
             value={form.averagePrice}
             onChange={(event) =>
@@ -2693,7 +2693,7 @@ function LiveHoldingCsvPreviewModal({
                     <td style={{ textAlign: 'right' }}>{row.shares.toLocaleString()}</td>
                     <td style={{ textAlign: 'right' }}>
                       {isOverseas
-                        ? `$${row.averagePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        ? `$${row.averagePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
                         : `${row.averagePrice.toLocaleString()}원`}
                     </td>
                   </tr>
