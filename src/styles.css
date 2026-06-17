@@ -1179,9 +1179,6 @@ label {
 /* 환율 로딩 중 메트릭 값 */
 .metric-loading {
   color: rgba(145, 181, 220, 0.4) !important;
-  font-size: clamp(14px, 3.5vw, 17px) !important;
-  font-weight: 400 !important;
-  letter-spacing: 0.04em;
   animation: metric-pulse 1.2s ease-in-out infinite;
 }
 
