@@ -91,7 +91,13 @@ async function resolveCodeFromSearch(query) {
   return match[1];
 }
 
-const INDEX_CODES = new Set(['KOSPI', 'KOSDAQ']);
+const DOMESTIC_INDEX_CODES = new Set(['KOSPI', 'KOSDAQ']);
+
+// 네이버 worldstock/index reuters 코드 매핑
+const OVERSEAS_INDEX_MAP = {
+  NASDAQ: { reutersCode: '.IXIC', displayName: 'NASDAQ 종합' },
+  SP500:  { reutersCode: '.INX',  displayName: 'S&P 500' },
+};
 
 async function fetchNaverIndex(indexCode) {
   const url = `https://polling.finance.naver.com/api/realtime/domestic/index/${encodeURIComponent(indexCode)}`;
@@ -113,11 +119,111 @@ async function fetchNaverIndex(indexCode) {
   };
 }
 
-async function quote(query) {
+async function fetchNaverWorldIndex(reutersCode, displayName) {
+  const url = `https://polling.finance.naver.com/api/realtime/worldstock/index/${encodeURIComponent(reutersCode)}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`해외지수 응답 오류 ${res.status}`);
+  const payload = await res.json();
+  const item = payload?.datas?.[0];
+  if (!item) throw new Error('해외지수 데이터가 비어 있습니다.');
+  const price = parseFloat(item.closePriceRaw) || 0;
+  const change = parseFloat(item.compareToPreviousClosePriceRaw);
+  const changeRate = parseFloat(item.fluctuationsRatioRaw);
+  return {
+    code: item.symbolCode || reutersCode,
+    name: displayName || item.indexName || reutersCode,
+    price,
+    change: Number.isFinite(change) ? change : null,
+    changeRate: Number.isFinite(changeRate) ? changeRate : null,
+    source: 'naver-worldindex',
+    tradedAt: item.localTradedAt || new Date().toISOString(),
+  };
+}
+
+async function fetchUsdKrw() {
+  const res = await fetch('https://open.er-api.com/v6/latest/USD');
+  if (!res.ok) throw new Error(`환율 API 오류 ${res.status}`);
+  const data = await res.json();
+  const price = data?.rates?.KRW;
+  if (!price) throw new Error('환율 데이터를 가져오지 못했습니다.');
+  return {
+    code: 'USDKRW',
+    name: '원/달러',
+    price,
+    change: null,
+    changeRate: null,
+    source: 'open-er-api',
+    tradedAt: data.time_last_update_utc || new Date().toISOString(),
+  };
+}
+
+async function searchNaverWorldTicker(query) {
+  const url = `https://ac.stock.naver.com/ac?q=${encodeURIComponent(query)}&target=worldstock`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`네이버 종목 검색 오류 ${res.status}`);
+  const data = await res.json();
+  const item = data?.items?.[0];
+  if (!item?.reutersCode) throw new Error(`"${query}"에 해당하는 해외 종목을 찾지 못했습니다. 정확한 티커를 입력해 주세요.`);
+  return { reutersCode: item.reutersCode, name: item.name };
+}
+
+async function fetchNaverWorldStock(reutersCode, displayName) {
+  const url = `https://polling.finance.naver.com/api/realtime/worldstock/stock/${encodeURIComponent(reutersCode)}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`해외주식 응답 오류 ${res.status}`);
+  const payload = await res.json();
+  const item = payload?.datas?.[0];
+  if (!item) throw new Error('해외주식 데이터가 비어 있습니다.');
+  const price = parseFloat(item.closePriceRaw) || 0;
+  const change = parseFloat(item.compareToPreviousClosePriceRaw);
+  const changeRate = parseFloat(item.fluctuationsRatioRaw);
+  return {
+    code: item.symbolCode || reutersCode,
+    name: displayName || item.stockName || reutersCode,
+    price,
+    change: Number.isFinite(change) ? change : null,
+    changeRate: Number.isFinite(changeRate) ? changeRate : null,
+    source: 'naver-worldstock',
+    tradedAt: item.localTradedAt || new Date().toISOString(),
+    currency: item.currencyType?.code || 'USD',
+  };
+}
+
+async function quoteOverseas(query) {
+  const upperQuery = query.toUpperCase();
+
+  // 지수
+  if (OVERSEAS_INDEX_MAP[upperQuery]) {
+    const { reutersCode, displayName } = OVERSEAS_INDEX_MAP[upperQuery];
+    return fetchNaverWorldIndex(reutersCode, displayName);
+  }
+
+  // 환율
+  if (upperQuery === 'USDKRW') {
+    return fetchUsdKrw();
+  }
+
+  // 종목 - 티커에 거래소 접미사가 있으면 직접 조회, 없으면 검색
+  const hasExchangeSuffix = /\.[A-Z]+$/.test(upperQuery);
+  if (hasExchangeSuffix) {
+    return fetchNaverWorldStock(upperQuery);
+  }
+
+  // 검색 후 조회 (TSLA → TSLA.O 등)
+  try {
+    // NASDAQ 종목은 .O suffix가 일반적
+    return await fetchNaverWorldStock(`${upperQuery}.O`);
+  } catch {
+    const { reutersCode, name } = await searchNaverWorldTicker(query);
+    return fetchNaverWorldStock(reutersCode, name);
+  }
+}
+
+async function quoteDomestic(query) {
   const normalized = normalizeQuery(query);
   if (!normalized) throw new Error('종목명 또는 종목코드를 입력해 주세요.');
 
-  if (INDEX_CODES.has(normalized.toUpperCase())) {
+  if (DOMESTIC_INDEX_CODES.has(normalized.toUpperCase())) {
     return fetchNaverIndex(normalized.toUpperCase());
   }
 
@@ -134,7 +240,14 @@ async function quote(query) {
 
 app.get('/api/quote', async (req, res) => {
   try {
-    const result = await quote(req.query.query);
+    const query = normalizeQuery(req.query.query);
+    if (!query) return res.status(400).json({ message: '종목명 또는 종목코드를 입력해 주세요.' });
+
+    const market = String(req.query.market || 'domestic').trim();
+    const result = market === 'overseas'
+      ? await quoteOverseas(query)
+      : await quoteDomestic(query);
+
     res.json(result);
   } catch (error) {
     res.status(502).json({
