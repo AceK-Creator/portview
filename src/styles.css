@@ -1176,6 +1176,34 @@ label {
   color: #7fa9db;
 }
 
+/* 환율 로딩 중 스켈레톤 */
+.account-metrics-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.skeleton-bar {
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(145,181,220,0.08) 25%, rgba(145,181,220,0.18) 50%, rgba(145,181,220,0.08) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  max-width: 160px;
+  margin: 0 auto;
+}
+
+.skeleton-bar.wide {
+  height: 36px;
+  max-width: 220px;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .account-panel input {
   color: #ffffff;
 }

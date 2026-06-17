@@ -567,10 +567,12 @@ function AppHeader({
 function MarketIndexBar({
   mode,
   onUsdKrwRate,
+  onRateLoading,
   hidden,
 }: {
   mode: AccountMode;
   onUsdKrwRate?: (rate: number) => void;
+  onRateLoading?: (loading: boolean) => void;
   hidden?: boolean;
 }) {
   const [kospi, setKospi] = useState<MarketIndexItem | null>(null);
@@ -592,6 +594,7 @@ function MarketIndexBar({
         })
         .finally(() => setLoading(false));
     } else {
+      onRateLoading?.(true);
       fetchOverseasIndex()
         .then((result) => {
           setOverseas(result);
@@ -601,7 +604,7 @@ function MarketIndexBar({
           setError(true);
           logClientError({ context: 'MarketIndexBar/overseas', message: err instanceof Error ? err.message : String(err) });
         })
-        .finally(() => setLoading(false));
+        .finally(() => { setLoading(false); onRateLoading?.(false); });
     }
   }, [mode]);
 
@@ -1065,10 +1068,12 @@ function AccountView({
   data,
   summary,
   onDataChange,
+  rateLoading,
 }: {
   data: AppData;
   summary: ReturnType<typeof calculateAccountSummary>;
   onDataChange: (data: AppData) => void;
+  rateLoading?: boolean;
 }) {
   const { isOverseas, usdKrwRate } = useCurrency();
   const [totalContribution, setTotalContribution] = useState(formatNumberWithCommas(data.account.totalContribution || ''));
@@ -1090,6 +1095,9 @@ function AccountView({
     });
   };
 
+  // 해외 모드이고 환율 로딩 중이면 메트릭 숨김
+  const showSkeleton = isOverseas && rateLoading;
+
   // 해외 모드: USD 평가액 × 환율 + 예수금(원화) 로 원화 기준 지표 재계산
   const krwMarketValue = isOverseas && usdKrwRate ? summary.totalMarketValue * usdKrwRate : null;
   const krwTotalAssets = krwMarketValue != null ? krwMarketValue + data.account.cashBalance : null;
@@ -1108,14 +1116,29 @@ function AccountView({
   return (
     <section className="account-panel">
       <div className="account-metrics">
-        <Metric label="자산평가액" value={currency(displayAssets)} secret highlight />
-        <div className="account-metrics-divider" />
-        <div className="account-metrics-grid">
-          <Metric label={isOverseas ? '예수금(₩)' : '예수금'} value={currency(displayCash)} secret right />
-          <Metric label="예수금비중" value={plainPercent(displayCashRatio)} secret right />
-          <Metric label="수익" value={signedCurrency(displayProfit)} tone={tone(displayProfit)} secret right />
-          <Metric label="수익률" value={percent(displayReturn)} tone={tone(displayReturn)} secret right />
-        </div>
+        {showSkeleton ? (
+          <div className="account-metrics-skeleton">
+            <div className="skeleton-bar wide" />
+            <div className="account-metrics-divider" />
+            <div className="account-metrics-grid">
+              <div className="skeleton-bar" />
+              <div className="skeleton-bar" />
+              <div className="skeleton-bar" />
+              <div className="skeleton-bar" />
+            </div>
+          </div>
+        ) : (
+          <>
+            <Metric label="자산평가액" value={currency(displayAssets)} secret highlight />
+            <div className="account-metrics-divider" />
+            <div className="account-metrics-grid">
+              <Metric label={isOverseas ? '예수금(₩)' : '예수금'} value={currency(displayCash)} secret right />
+              <Metric label="예수금비중" value={plainPercent(displayCashRatio)} secret right />
+              <Metric label="수익" value={signedCurrency(displayProfit)} tone={tone(displayProfit)} secret right />
+              <Metric label="수익률" value={percent(displayReturn)} tone={tone(displayReturn)} secret right />
+            </div>
+          </>
+        )}
       </div>
       <div className="input-grid">
         <label>
@@ -3202,6 +3225,7 @@ export default function App() {
   const [accountMode, setAccountMode] = useState<AccountMode>('domestic');
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('usd');
   const [usdKrwRate, setUsdKrwRate] = useState<number | null>(null);
+  const [rateLoading, setRateLoading] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
@@ -3313,7 +3337,7 @@ export default function App() {
         <LiveView data={data} rows={rows} onDataChange={persist} />
       )}
       {activeMenu === 'account' && (
-        <AccountView data={data} summary={summary} onDataChange={persist} />
+        <AccountView data={data} summary={summary} onDataChange={persist} rateLoading={rateLoading} />
       )}
       {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
@@ -3330,6 +3354,7 @@ export default function App() {
         <MarketIndexBar
           mode={accountMode}
           onUsdKrwRate={setUsdKrwRate}
+          onRateLoading={setRateLoading}
           hidden={activeMenu !== 'live'}
         />
       )}
