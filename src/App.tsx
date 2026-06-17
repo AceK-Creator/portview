@@ -1034,6 +1034,7 @@ function LiveView({
       {liveCsvRows && (
         <LiveHoldingCsvPreviewModal
           rows={liveCsvRows}
+          market={market}
           onConfirm={(holdings) => {
             saveHoldings([...data.holdings, ...holdings]);
             setLiveCsvRows(null);
@@ -2608,22 +2609,25 @@ function CsvPreviewModal({
 
 function LiveHoldingCsvPreviewModal({
   rows,
+  market,
   onConfirm,
   onClose,
 }: {
   rows: LiveCsvRow[];
+  market: AccountMode;
   onConfirm: (holdings: Holding[]) => void;
   onClose: () => void;
 }) {
   const [results, setResults] = useState<(QuoteResult | null)[]>(() => rows.map(() => null));
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<(string | null)[]>(() => rows.map(() => null));
+  const isOverseas = market === 'overseas';
 
   useEffect(() => {
     let cancelled = false;
     Promise.all(
       rows.map((row, i) =>
-        fetchQuote(row.code)
+        fetchQuote(row.code, market)
           .then((q) => ({ i, q, err: null as string | null }))
           .catch((e) => ({ i, q: null as QuoteResult | null, err: e instanceof Error ? e.message : '조회 실패' }))
       )
@@ -2687,7 +2691,11 @@ function LiveHoldingCsvPreviewModal({
                       {q && q.name}
                     </td>
                     <td style={{ textAlign: 'right' }}>{row.shares.toLocaleString()}</td>
-                    <td style={{ textAlign: 'right' }}>{row.averagePrice.toLocaleString()}원</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {isOverseas
+                        ? `$${row.averagePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : `${row.averagePrice.toLocaleString()}원`}
+                    </td>
                   </tr>
                 );
               })}
