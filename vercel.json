@@ -1,11 +1,16 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "functions": {
     "api/quote.js": {
       "maxDuration": 10
+    },
+    "api/client-error.js": {
+      "maxDuration": 5
     }
   },
   "rewrites": [
-    { "source": "/portview/:path*", "destination": "/:path*" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
-    base: '/portview/',
+    base: '/',
     plugins: [
         react(),
         VitePWA({
@@ -19,8 +19,8 @@ export default defineConfig({
                 background_color: '#071426',
                 lang: 'ko',
                 display: 'standalone',
-                start_url: '/portview/',
-                scope: '/portview/',
+                start_url: '/',
+                scope: '/',
                 icons: [
                     {
                         src: 'portview-icon-192.png',
