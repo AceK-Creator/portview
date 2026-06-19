@@ -2398,18 +2398,17 @@ label {
 /* TOP5 수익/손실 탭 스위치 */
 .rg-tab-switch {
   display: flex;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid rgba(145, 181, 220, 0.22);
 }
 
 .rg-tab-switch button {
   flex: 1;
-  min-height: 32px;
-  padding: 0 14px;
+  padding: 4px 12px;
   border: none;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 700;
   background: transparent;
   color: #7fa9db;
   cursor: pointer;
