@@ -1157,22 +1157,24 @@ function AccountView({
   return (
     <section className="account-panel">
       <div className="account-metrics">
-        {/* 자산평가액: 값만 중앙정렬, 새로고침 버튼은 absolute로 우측 플로팅 */}
-        <div className="metric" style={{ textAlign: 'center', position: 'relative' }}>
-          <span>자산평가액</span>
-          <strong className={['metric-highlight', showSkeleton ? 'metric-loading' : ''].filter(Boolean).join(' ')}>
-            {showSkeleton ? LOADING : <span className="secret-value">{currency(displayAssets)}</span>}
-          </strong>
-          <button
-            type="button"
-            aria-label="시세 새로고침"
-            onClick={refreshQuotes}
-            disabled={refreshing || data.holdings.length === 0}
-            className="account-refresh-inline-btn"
-            style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
-          >
-            <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
-          </button>
+        {/* 자산평가액: spacer+값+버튼 flex로 중앙정렬, spacer가 버튼 너비 상쇄해서 값만 시각적 중앙 */}
+        <div className="metric">
+          <span style={{ display: 'block', textAlign: 'center' }}>자산평가액</span>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 25, flexShrink: 0 }} />
+            <strong className={['metric-highlight', showSkeleton ? 'metric-loading' : ''].filter(Boolean).join(' ')} style={{ display: 'block' }}>
+              {showSkeleton ? LOADING : <span className="secret-value">{currency(displayAssets)}</span>}
+            </strong>
+            <button
+              type="button"
+              aria-label="시세 새로고침"
+              onClick={refreshQuotes}
+              disabled={refreshing || data.holdings.length === 0}
+              className="account-refresh-inline-btn"
+            >
+              <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
+            </button>
+          </div>
         </div>
         <div className="account-metrics-divider" />
         <div className="account-metrics-grid">
@@ -2286,17 +2288,6 @@ function DividendSummaryTab({
                   >
                     ⓘ
                   </button>
-                  {showEstInfo && (
-                    <div
-                      className="est-info-popup"
-                      data-placement={estPlacement}
-                      style={{ ...estPopupStyle, '--arrow-x': `${estArrowX}px` } as React.CSSProperties}
-                    >
-                      최근 12개월 평균 배당금 × 12
-                      <br />
-                      <span className="est-info-calc">{c(monthlyAvg)} × 12</span>
-                    </div>
-                  )}
                 </div>
               </span>
             </div>
@@ -2308,6 +2299,19 @@ function DividendSummaryTab({
           </div>
         </div>
       </div>
+
+      {/* ⓘ 예상 배당금 팝업 — transform 조상 밖에서 렌더링해야 position:fixed가 뷰포트 기준으로 작동 */}
+      {showEstInfo && (
+        <div
+          className="est-info-popup"
+          data-placement={estPlacement}
+          style={{ ...estPopupStyle, '--arrow-x': `${estArrowX}px` } as React.CSSProperties}
+        >
+          최근 12개월 평균 배당금 × 12
+          <br />
+          <span className="est-info-calc">{c(monthlyAvg)} × 12</span>
+        </div>
+      )}
 
       {/* 3. 월별 배당금 추이 SVG 막대차트 */}
       <div className="dividend-section">
