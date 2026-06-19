@@ -343,6 +343,7 @@ function LoginScreen({
   const [pin, setPin] = useState('');
   const [shake, setShake] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [canTransition, setCanTransition] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -358,6 +359,13 @@ function LoginScreen({
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
     };
+  }, []);
+
+  // 초기 로드 시 visualViewport jitter로 인한 덜컹 방지:
+  // 마운트 후 600ms간 transition 비활성화
+  useEffect(() => {
+    const t = setTimeout(() => setCanTransition(true), 600);
+    return () => clearTimeout(t);
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -382,7 +390,7 @@ function LoginScreen({
     <main className="login-screen" onClick={() => inputRef.current?.focus()}>
       <div
         className="login-panel"
-        style={{ transform: keyboardOffset > 0 ? `translateY(-${Math.min(keyboardOffset * 0.5, 120)}px)` : undefined, transition: 'transform 300ms ease' }}
+        style={{ transform: keyboardOffset > 0 ? `translateY(-${Math.min(keyboardOffset * 0.5, 120)}px)` : undefined, transition: canTransition ? 'transform 300ms ease' : 'none' }}
       >
         <div className="login-mark">
           <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
