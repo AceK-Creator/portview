@@ -1,4 +1,3 @@
-/* v20260619 */
 :root {
   color-scheme: dark;
   font-family:
@@ -2412,7 +2411,7 @@ label {
   background: transparent;
   color: #7fa9db;
   cursor: pointer;
-  transition: all 150ms ease;
+  transition: all 160ms ease;
 }
 
 .rg-tab-switch button.gain-active {
