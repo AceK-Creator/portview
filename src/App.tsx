@@ -1157,7 +1157,24 @@ function AccountView({
   return (
     <section className="account-panel">
       <div className="account-metrics">
-        <Metric label="자산평가액" value={showSkeleton ? LOADING : currency(displayAssets)} secret={!showSkeleton} highlight loading={showSkeleton} />
+        {/* 자산평가액 + 새로고침 인라인 */}
+        <div className="metric" style={{ textAlign: 'center' }}>
+          <span>자산평가액</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <strong className={['metric-highlight', showSkeleton ? 'metric-loading' : ''].filter(Boolean).join(' ')}>
+              {showSkeleton ? LOADING : <span className="secret-value">{currency(displayAssets)}</span>}
+            </strong>
+            <button
+              type="button"
+              aria-label="시세 새로고침"
+              onClick={refreshQuotes}
+              disabled={refreshing || data.holdings.length === 0}
+              className="account-refresh-inline-btn"
+            >
+              <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
+            </button>
+          </div>
+        </div>
         <div className="account-metrics-divider" />
         <div className="account-metrics-grid">
           <Metric label={isOverseas ? '예수금(₩)' : '예수금'} value={showSkeleton ? LOADING : currency(displayCash)} secret={!showSkeleton} right loading={showSkeleton} />
@@ -1192,24 +1209,6 @@ function AccountView({
           저장
         </button>
       </div>
-      <button
-        type="button"
-        aria-label="시세 새로고침"
-        onClick={refreshQuotes}
-        disabled={refreshing || data.holdings.length === 0}
-        style={{
-          background: 'none',
-          border: 'none',
-          display: 'block',
-          margin: '0 auto',
-          padding: '10px',
-          cursor: data.holdings.length === 0 ? 'default' : 'pointer',
-          color: data.holdings.length === 0 ? 'rgba(145,181,220,0.2)' : 'rgba(145,181,220,0.45)',
-          transition: 'color 0.2s',
-        }}
-      >
-        <RefreshCw size={22} className={refreshing ? 'spin' : ''} />
-      </button>
     </section>
   );
 }
@@ -2138,6 +2137,14 @@ function DividendSummaryTab({
   const monthlyAvg = Math.round(recent12Total / 12);
   const thisYearEstimated = monthlyAvg * 12;
 
+  // 올해 실제 배당금 (연도 합계)
+  const thisYearActual = dividends
+    .filter((d) => d.paidAt.startsWith(String(currentYear)))
+    .reduce((sum, d) => sum + d.amount, 0);
+
+  // 실제/예상 토글 (기본: 실제)
+  const [thisYearMode, setThisYearMode] = useState<'actual' | 'estimated'>('actual');
+
   // 예상 배당금 설명 팝업 state
   const [showEstInfo, setShowEstInfo] = useState(false);
   const estInfoRef = useRef<HTMLDivElement>(null);
@@ -2244,37 +2251,51 @@ function DividendSummaryTab({
             <div className="dividend-stat-value"><span className="secret-value">{c(prevYearTotal)}</span></div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
-            <div className="dividend-stat-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <span>{currentYear}년 (예상)</span>
-              <div className="est-info-wrap" ref={estInfoRef}>
-                <button
-                  type="button"
-                  ref={estBtnRef}
-                  className="est-info-btn"
-                  onClick={() => setShowEstInfo((v) => !v)}
-                  aria-label="예상 배당금 계산 방식"
-                >
-                  ⓘ
-                </button>
-                {showEstInfo && (
-                  <div
-                    className="est-info-popup"
-                    data-placement={estPlacement}
-                    style={{
-                      ...estPopupStyle,
-                      '--arrow-x': `${estArrowX}px`,
-                    } as React.CSSProperties}
-                  >
-                    최근 12개월 평균 배당금 × 12
-                    <br />
-                    <span className="est-info-calc">
-                      {c(monthlyAvg)} × 12
-                    </span>
+            {/* 레이블: 좌측 spacer로 텍스트 정중앙, 토글은 우측 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <div style={{ width: 30, flexShrink: 0 }} />
+              <div className="dividend-stat-label" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span>{currentYear}년({thisYearMode === 'actual' ? '실제' : '예상'})</span>
+                {thisYearMode === 'estimated' && (
+                  <div className="est-info-wrap" ref={estInfoRef}>
+                    <button
+                      type="button"
+                      ref={estBtnRef}
+                      className="est-info-btn"
+                      onClick={() => setShowEstInfo((v) => !v)}
+                      aria-label="예상 배당금 계산 방식"
+                    >
+                      ⓘ
+                    </button>
+                    {showEstInfo && (
+                      <div
+                        className="est-info-popup"
+                        data-placement={estPlacement}
+                        style={{ ...estPopupStyle, '--arrow-x': `${estArrowX}px` } as React.CSSProperties}
+                      >
+                        최근 12개월 평균 배당금 × 12
+                        <br />
+                        <span className="est-info-calc">{c(monthlyAvg)} × 12</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
+              {/* 실제/예상 토글 스위치 */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={thisYearMode === 'estimated'}
+                onClick={() => { setThisYearMode((m) => m === 'actual' ? 'estimated' : 'actual'); setShowEstInfo(false); }}
+                className="year-mode-toggle"
+                aria-label="실제/예상 전환"
+              />
             </div>
-            <div className="dividend-stat-value"><span className="secret-value">{c(thisYearEstimated)}</span></div>
+            <div className="dividend-stat-value">
+              <span className="secret-value">
+                {c(thisYearMode === 'actual' ? thisYearActual : thisYearEstimated)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -3279,9 +3300,10 @@ export default function App() {
   useEffect(() => {
     const splash = document.getElementById('splash-overlay');
     if (!splash) return;
+    // scrollTo 먼저 적용 후 다음 프레임에 fade 시작
     const raf = requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
       requestAnimationFrame(() => {
-        window.scrollTo(0, 0);
         splash.style.opacity = '0';
         setTimeout(() => splash.remove(), 280);
       });
