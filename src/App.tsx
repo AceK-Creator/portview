@@ -2328,7 +2328,9 @@ function DividendSummaryTab({
                 key={n}
                 type="button"
                 style={{
-                  padding: '4px 12px',
+                  width: 52,
+                  padding: '4px 0',
+                  textAlign: 'center',
                   border: 'none',
                   fontSize: 12,
                   fontWeight: 700,
