@@ -3272,8 +3272,11 @@ export default function App() {
     const splash = document.getElementById('splash-overlay');
     if (!splash) return;
     const raf = requestAnimationFrame(() => {
-      splash.style.opacity = '0';
-      setTimeout(() => splash.remove(), 280);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        splash.style.opacity = '0';
+        setTimeout(() => splash.remove(), 280);
+      });
     });
     return () => cancelAnimationFrame(raf);
   }, []);

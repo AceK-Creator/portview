@@ -63,14 +63,14 @@ button:disabled {
 }
 
 .login-screen {
-  height: 100svh;
+  position: fixed;
+  inset: 0;
   display: grid;
   place-items: center;
   padding: 24px;
   background:
     radial-gradient(circle at 10% 20%, rgba(124, 77, 255, 0.15) 0%, transparent 45%),
     radial-gradient(circle at 90% 80%, rgba(0, 180, 216, 0.12) 0%, transparent 45%);
-  position: relative;
   z-index: 2;
   overflow: hidden;
 }
