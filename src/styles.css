@@ -1504,7 +1504,7 @@ label {
 
 .dividend-stat-label {
   color: #7fa9db;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -1513,7 +1513,7 @@ label {
 
 .dividend-stat-value {
   color: #f5f9ff;
-  font-size: clamp(16px, 4vw, 22px);
+  font-size: clamp(19px, 4.8vw, 26px);
   font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
