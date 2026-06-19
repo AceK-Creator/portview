@@ -1157,23 +1157,22 @@ function AccountView({
   return (
     <section className="account-panel">
       <div className="account-metrics">
-        {/* 자산평가액: 텍스트+버튼 inline-flex로 묶어서 중앙에 함께 정렬 */}
-        <div className="metric" style={{ textAlign: 'center' }}>
+        {/* 자산평가액: 값만 중앙정렬, 새로고침 버튼은 absolute로 우측 플로팅 */}
+        <div className="metric" style={{ textAlign: 'center', position: 'relative' }}>
           <span>자산평가액</span>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <strong className={['metric-highlight', showSkeleton ? 'metric-loading' : ''].filter(Boolean).join(' ')}>
-              {showSkeleton ? LOADING : <span className="secret-value">{currency(displayAssets)}</span>}
-            </strong>
-            <button
-              type="button"
-              aria-label="시세 새로고침"
-              onClick={refreshQuotes}
-              disabled={refreshing || data.holdings.length === 0}
-              className="account-refresh-inline-btn"
-            >
-              <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
-            </button>
-          </div>
+          <strong className={['metric-highlight', showSkeleton ? 'metric-loading' : ''].filter(Boolean).join(' ')}>
+            {showSkeleton ? LOADING : <span className="secret-value">{currency(displayAssets)}</span>}
+          </strong>
+          <button
+            type="button"
+            aria-label="시세 새로고침"
+            onClick={refreshQuotes}
+            disabled={refreshing || data.holdings.length === 0}
+            className="account-refresh-inline-btn"
+            style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
+          >
+            <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
+          </button>
         </div>
         <div className="account-metrics-divider" />
         <div className="account-metrics-grid">
@@ -1728,7 +1727,7 @@ function RealizedGainsView({
         <div className="dividend-stat-sub">총 {records.length}건</div>
       </div>
       <div className="dividend-section">
-        <div style={{ display: 'flex', paddingTop: 20 }}>
+        <div style={{ display: 'flex', padding: '20px 0' }}>
           <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
             <div className="dividend-stat-label">{prevYear}년 실현손익</div>
             <div className={`dividend-stat-value ${tone(totalPrevYear)}`}>
@@ -2245,7 +2244,7 @@ function DividendSummaryTab({
 
       {/* 2. 전년도 / 올해 카드 */}
       <div className="dividend-section">
-        <div style={{ display: 'flex', paddingTop: 20 }}>
+        <div style={{ display: 'flex', padding: '20px 0' }}>
           {/* 왼쪽 */}
           <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
             <div className="dividend-stat-label">{prevYear}년 (실제)</div>
