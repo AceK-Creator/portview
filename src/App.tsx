@@ -1160,8 +1160,7 @@ function AccountView({
         {/* 자산평가액 + 새로고침: 텍스트만 중앙, 버튼은 우측에 붙임 */}
         <div className="metric" style={{ textAlign: 'center' }}>
           <span>자산평가액</span>
-          <div>
-            {/* 좌측 spacer = 버튼 너비만큼 → 텍스트 정중앙 유지 */}
+          <div style={{ whiteSpace: 'nowrap' }}>
             <span style={{ display: 'inline-block', width: 29 }} aria-hidden="true" />
             <strong className={['metric-highlight', showSkeleton ? 'metric-loading' : ''].filter(Boolean).join(' ')}>
               {showSkeleton ? LOADING : <span className="secret-value">{currency(displayAssets)}</span>}
@@ -1172,6 +1171,7 @@ function AccountView({
               onClick={refreshQuotes}
               disabled={refreshing || data.holdings.length === 0}
               className="account-refresh-inline-btn"
+              style={{ display: 'inline-flex', verticalAlign: 'middle', marginLeft: 5 }}
             >
               <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
             </button>
@@ -2248,13 +2248,15 @@ function DividendSummaryTab({
       {/* 2. 전년도 / 올해 카드 */}
       <div className="dividend-section">
         <div style={{ display: 'flex' }}>
+          {/* 왼쪽: 2025년 — 토글 높이 placeholder로 오른쪽과 정렬 고정 */}
           <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
+            <div style={{ height: 23 }} />
             <div className="dividend-stat-label">{prevYear}년 (실제)</div>
             <div className="dividend-stat-value"><span className="secret-value">{c(prevYearTotal)}</span></div>
           </div>
+          {/* 오른쪽: 2026년 — 토글 위에, 레이블 텍스트 기준 중앙, (!)는 absolute */}
           <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
-            {/* 토글: 레이블 위에 중앙 배치 */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 3 }}>
+            <div style={{ height: 23, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <button
                 type="button"
                 role="switch"
@@ -2264,11 +2266,17 @@ function DividendSummaryTab({
                 aria-label="실제/예상 전환"
               />
             </div>
-            {/* 레이블: nowrap으로 줄바꿈 방지, ⓘ 바로 뒤에 */}
-            <div className="dividend-stat-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, flexWrap: 'nowrap' }}>
-              <span style={{ whiteSpace: 'nowrap' }}>{currentYear}년({thisYearMode === 'actual' ? '실제' : '예상'})</span>
+            {/* 텍스트는 inline-block으로 정중앙, (!)는 absolute로 텍스트 뒤에 붙음 */}
+            <div style={{ position: 'relative', display: 'inline-block', marginBottom: 6 }}>
+              <span className="dividend-stat-label" style={{ display: 'block', marginBottom: 0, whiteSpace: 'nowrap' }}>
+                {currentYear}년({thisYearMode === 'actual' ? '실제' : '예상'})
+              </span>
               {thisYearMode === 'estimated' && (
-                <div className="est-info-wrap" ref={estInfoRef} style={{ flexShrink: 0 }}>
+                <div
+                  className="est-info-wrap"
+                  ref={estInfoRef}
+                  style={{ position: 'absolute', right: -20, top: '50%', transform: 'translateY(-50%)' }}
+                >
                   <button
                     type="button"
                     ref={estBtnRef}
