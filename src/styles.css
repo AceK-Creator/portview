@@ -64,9 +64,12 @@ button:disabled {
 
 .login-screen {
   height: 100svh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  /* 36px = card 상단 패딩, 55px = 아이콘 높이 110px의 절반 → 아이콘 중심 = 50svh */
+  padding: max(20px, calc(50svh - 91px)) 24px 24px;
   background:
     radial-gradient(circle at 10% 20%, rgba(124, 77, 255, 0.15) 0%, transparent 45%),
     radial-gradient(circle at 90% 80%, rgba(0, 180, 216, 0.12) 0%, transparent 45%);
@@ -115,9 +118,10 @@ button:disabled {
 }
 
 .login-mark {
-  width: 80px;
-  height: 80px;
+  width: 110px;
+  height: 110px;
   margin: 0 auto;
+  flex-shrink: 0;
 }
 
 .login-icon {
