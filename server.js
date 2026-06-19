@@ -141,19 +141,25 @@ async function fetchNaverWorldIndex(reutersCode, displayName) {
 }
 
 async function fetchUsdKrw() {
-  const res = await fetch('https://open.er-api.com/v6/latest/USD');
+  const res = await fetch('https://api.stock.naver.com/marketindex/exchange/FX_USDKRW', {
+    headers,
+  });
   if (!res.ok) throw new Error(`환율 API 오류 ${res.status}`);
   const data = await res.json();
-  const price = data?.rates?.KRW;
+  const info = data?.exchangeInfo;
+  if (!info) throw new Error('환율 데이터를 가져오지 못했습니다.');
+  const price = parsePrice(info.calcPrice || info.closePrice);
   if (!price) throw new Error('환율 데이터를 가져오지 못했습니다.');
+  const change = parsePrice(info.fluctuations);
+  const changeRateRaw = info.fluctuationsRatio != null ? parseFloat(String(info.fluctuationsRatio)) : null;
   return {
     code: 'USDKRW',
     name: '원/달러',
     price,
-    change: null,
-    changeRate: null,
-    source: 'open-er-api',
-    tradedAt: data.time_last_update_utc || new Date().toISOString(),
+    change: Number.isFinite(change) ? change : null,
+    changeRate: Number.isFinite(changeRateRaw) ? changeRateRaw : null,
+    source: 'naver-exchange',
+    tradedAt: info.localTradedAt || new Date().toISOString(),
   };
 }
 

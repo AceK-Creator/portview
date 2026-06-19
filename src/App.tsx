@@ -1078,6 +1078,37 @@ function AccountView({
   const { isOverseas, usdKrwRate } = useCurrency();
   const [totalContribution, setTotalContribution] = useState(formatNumberWithCommas(data.account.totalContribution || ''));
   const [cashBalance, setCashBalance] = useState(formatNumberWithCommas(data.account.cashBalance || ''));
+  const [refreshing, setRefreshing] = useState(false);
+  const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
+
+  const refreshQuotes = async () => {
+    if (data.holdings.length === 0) return;
+    setRefreshing(true);
+    const refreshed = await Promise.all(
+      data.holdings.map(async (holding) => {
+        try {
+          const quote = await fetchQuote(holding.code, market);
+          return {
+            ...holding,
+            name: quote.name || holding.name,
+            currentPrice: quote.price,
+            change: quote.change,
+            changeRate: quote.changeRate,
+            lastPriceAt: quote.tradedAt,
+            priceSource: quote.source,
+            quoteError: undefined,
+          };
+        } catch (error) {
+          return {
+            ...holding,
+            quoteError: error instanceof Error ? error.message : '시세 조회 실패',
+          };
+        }
+      }),
+    );
+    onDataChange({ ...data, holdings: refreshed });
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     setTotalContribution(formatNumberWithCommas(data.account.totalContribution || ''));
@@ -1153,6 +1184,24 @@ function AccountView({
           저장
         </button>
       </div>
+      <button
+        type="button"
+        aria-label="시세 새로고침"
+        onClick={refreshQuotes}
+        disabled={refreshing || data.holdings.length === 0}
+        style={{
+          background: 'none',
+          border: 'none',
+          display: 'block',
+          margin: '0 auto',
+          padding: '10px',
+          cursor: data.holdings.length === 0 ? 'default' : 'pointer',
+          color: data.holdings.length === 0 ? 'rgba(145,181,220,0.2)' : 'rgba(145,181,220,0.45)',
+          transition: 'color 0.2s',
+        }}
+      >
+        <RefreshCw size={22} className={refreshing ? 'spin' : ''} />
+      </button>
     </section>
   );
 }
@@ -3217,6 +3266,17 @@ export default function App() {
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
   const backupFileRef = useRef<HTMLInputElement>(null);
+
+  // 스플래시 오버레이: React 첫 렌더링 후 fade-out
+  useEffect(() => {
+    const splash = document.getElementById('splash-overlay');
+    if (!splash) return;
+    const raf = requestAnimationFrame(() => {
+      splash.style.opacity = '0';
+      setTimeout(() => splash.remove(), 280);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // 현재 계좌 데이터
   const data = rootData[accountMode];
