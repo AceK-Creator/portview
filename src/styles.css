@@ -2404,6 +2404,7 @@ label {
 }
 
 .rg-tab-switch button {
+  min-width: 44px;
   padding: 4px 12px;
   border: none;
   font-size: 12px;
