@@ -1157,10 +1157,12 @@ function AccountView({
   return (
     <section className="account-panel">
       <div className="account-metrics">
-        {/* 자산평가액 + 새로고침 인라인 */}
+        {/* 자산평가액 + 새로고침: 텍스트만 중앙, 버튼은 우측에 붙임 */}
         <div className="metric" style={{ textAlign: 'center' }}>
           <span>자산평가액</span>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <div>
+            {/* 좌측 spacer = 버튼 너비만큼 → 텍스트 정중앙 유지 */}
+            <span style={{ display: 'inline-block', width: 29 }} aria-hidden="true" />
             <strong className={['metric-highlight', showSkeleton ? 'metric-loading' : ''].filter(Boolean).join(' ')}>
               {showSkeleton ? LOADING : <span className="secret-value">{currency(displayAssets)}</span>}
             </strong>
@@ -2251,37 +2253,8 @@ function DividendSummaryTab({
             <div className="dividend-stat-value"><span className="secret-value">{c(prevYearTotal)}</span></div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', paddingLeft: 8 }}>
-            {/* 레이블: 좌측 spacer로 텍스트 정중앙, 토글은 우측 */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <div style={{ width: 30, flexShrink: 0 }} />
-              <div className="dividend-stat-label" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
-                <span>{currentYear}년({thisYearMode === 'actual' ? '실제' : '예상'})</span>
-                {thisYearMode === 'estimated' && (
-                  <div className="est-info-wrap" ref={estInfoRef}>
-                    <button
-                      type="button"
-                      ref={estBtnRef}
-                      className="est-info-btn"
-                      onClick={() => setShowEstInfo((v) => !v)}
-                      aria-label="예상 배당금 계산 방식"
-                    >
-                      ⓘ
-                    </button>
-                    {showEstInfo && (
-                      <div
-                        className="est-info-popup"
-                        data-placement={estPlacement}
-                        style={{ ...estPopupStyle, '--arrow-x': `${estArrowX}px` } as React.CSSProperties}
-                      >
-                        최근 12개월 평균 배당금 × 12
-                        <br />
-                        <span className="est-info-calc">{c(monthlyAvg)} × 12</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              {/* 실제/예상 토글 스위치 */}
+            {/* 토글: 레이블 위에 중앙 배치 */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 3 }}>
               <button
                 type="button"
                 role="switch"
@@ -2290,6 +2263,34 @@ function DividendSummaryTab({
                 className="year-mode-toggle"
                 aria-label="실제/예상 전환"
               />
+            </div>
+            {/* 레이블: nowrap으로 줄바꿈 방지, ⓘ 바로 뒤에 */}
+            <div className="dividend-stat-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, flexWrap: 'nowrap' }}>
+              <span style={{ whiteSpace: 'nowrap' }}>{currentYear}년({thisYearMode === 'actual' ? '실제' : '예상'})</span>
+              {thisYearMode === 'estimated' && (
+                <div className="est-info-wrap" ref={estInfoRef} style={{ flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    ref={estBtnRef}
+                    className="est-info-btn"
+                    onClick={() => setShowEstInfo((v) => !v)}
+                    aria-label="예상 배당금 계산 방식"
+                  >
+                    ⓘ
+                  </button>
+                  {showEstInfo && (
+                    <div
+                      className="est-info-popup"
+                      data-placement={estPlacement}
+                      style={{ ...estPopupStyle, '--arrow-x': `${estArrowX}px` } as React.CSSProperties}
+                    >
+                      최근 12개월 평균 배당금 × 12
+                      <br />
+                      <span className="est-info-calc">{c(monthlyAvg)} × 12</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="dividend-stat-value">
               <span className="secret-value">
