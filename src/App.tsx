@@ -3309,20 +3309,6 @@ export default function App() {
   const [secretMode, setSecretMode] = useState(false);
   const backupFileRef = useRef<HTMLInputElement>(null);
 
-  // 스플래시 오버레이: React 첫 렌더링 후 fade-out
-  useEffect(() => {
-    const splash = document.getElementById('splash-overlay');
-    if (!splash) return;
-    // scrollTo 먼저 적용 후 다음 프레임에 fade 시작
-    const raf = requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-      requestAnimationFrame(() => {
-        splash.style.opacity = '0';
-        setTimeout(() => splash.remove(), 280);
-      });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, []);
 
   // 현재 계좌 데이터
   const data = rootData[accountMode];
