@@ -336,11 +336,16 @@ function createHoldingFromQuote(quote: QuoteResult, draft: HoldingDraft): Holdin
 function LoginScreen({
   password,
   onSuccess,
+  onSetPin,
 }: {
   password: string;
   onSuccess: () => void;
+  onSetPin?: (pin: string) => void;
 }) {
+  const isSetup = password === '';
   const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [step, setStep] = useState<'first' | 'confirm'>('first');
   const [shake, setShake] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [canTransition, setCanTransition] = useState(false);
@@ -368,23 +373,61 @@ function LoginScreen({
     return () => clearTimeout(t);
   }, []);
 
+  const triggerShake = (onDone: () => void) => {
+    setShake(true);
+    setTimeout(() => {
+      setShake(false);
+      onDone();
+      inputRef.current?.focus();
+    }, 650);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (shake) return;
     const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-    setPin(val);
-    if (val.length === 4) {
-      if (val === password) {
-        onSuccess();
+
+    if (isSetup) {
+      if (step === 'first') {
+        setPin(val);
+        if (val.length === 4) {
+          setStep('confirm');
+          setConfirmPin('');
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }
       } else {
-        setShake(true);
-        setTimeout(() => {
-          setPin('');
-          setShake(false);
-          inputRef.current?.focus();
-        }, 650);
+        setConfirmPin(val);
+        if (val.length === 4) {
+          if (val === pin) {
+            onSetPin?.(pin);
+            onSuccess();
+          } else {
+            triggerShake(() => {
+              setStep('first');
+              setPin('');
+              setConfirmPin('');
+            });
+          }
+        }
+      }
+    } else {
+      setPin(val);
+      if (val.length === 4) {
+        if (val === password) {
+          onSuccess();
+        } else {
+          triggerShake(() => setPin(''));
+        }
       }
     }
   };
+
+  const displayPin = isSetup ? (step === 'first' ? pin : confirmPin) : pin;
+
+  const guideText = isSetup
+    ? step === 'first'
+      ? '사용할 PIN 4자리를 입력하세요.'
+      : '한 번 더 입력해 주세요.'
+    : '4자리 PIN을 입력하세요.';
 
   return (
     <main className="login-screen" onClick={() => inputRef.current?.focus()}>
@@ -396,7 +439,7 @@ function LoginScreen({
           <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
         </div>
         <h1>PortView</h1>
-        <p>4자리 PIN을 입력하세요.</p>
+        <p>{guideText}</p>
         <div
           className={`pin-dots${shake ? ' shake' : ''}`}
           onClick={() => inputRef.current?.focus()}
@@ -404,20 +447,20 @@ function LoginScreen({
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className={`pin-dot${pin.length > i ? ' filled' : ''}${shake ? ' error' : ''}`}
+              className={`pin-dot${displayPin.length > i ? ' filled' : ''}${shake ? ' error' : ''}`}
             />
           ))}
         </div>
         <input
           ref={inputRef}
-          aria-label="비밀번호"
-          autoComplete="current-password"
+          aria-label={isSetup ? 'PIN 설정' : '비밀번호'}
+          autoComplete={isSetup ? 'new-password' : 'current-password'}
           autoFocus
           inputMode="numeric"
           maxLength={4}
           pattern="[0-9]*"
           type="password"
-          value={pin}
+          value={displayPin}
           onChange={handleChange}
           className="pin-hidden-input"
         />
@@ -3314,9 +3357,8 @@ export default function App() {
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('usd');
   const [usdKrwRate, setUsdKrwRate] = useState<number | null>(null);
   const [rateLoading, setRateLoading] = useState(false);
-  const noPassword = rootData.domestic.password === '';
-  const [unlocked, setUnlocked] = useState(noPassword);
-  const [activeMenu, setActiveMenu] = useState<MenuKey>(noPassword ? 'password' : 'live');
+  const [unlocked, setUnlocked] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
   const backupFileRef = useRef<HTMLInputElement>(null);
 
@@ -3394,7 +3436,19 @@ export default function App() {
       <ConfirmDialog />
       <ParticleBackground />
       {!unlocked ? (
-        <LoginScreen password={rootData.domestic.password} onSuccess={() => setUnlocked(true)} />
+        <LoginScreen
+          password={rootData.domestic.password}
+          onSuccess={() => setUnlocked(true)}
+          onSetPin={(pin) => {
+            const next: RootData = {
+              ...rootData,
+              domestic: { ...rootData.domestic, password: pin },
+              overseas: { ...rootData.overseas, password: pin },
+            };
+            setRootData(next);
+            saveRootData(next);
+          }}
+        />
       ) : (
       <main className={`app-shell${secretMode ? ' secret-mode' : ''}`}>
       <InstallBanner />
