@@ -439,6 +439,7 @@ function LoginScreen({
           <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
         </div>
         <h1>PortView</h1>
+        <p className="app-version-badge">Beta v0.8</p>
         <p>{guideText}</p>
         <div
           className={`pin-dots${shake ? ' shake' : ''}`}

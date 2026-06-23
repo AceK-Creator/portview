@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>PortView — 투자 자산 관리 앱</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #071426;
+      --indigo:  #6366f1;
+      --cyan:    #22d3ee;
+      --purple:  #a855f7;
+      --green:   #34d399;
+      --rose:    #fb7185;
+      --amber:   #fbbf24;
+      --text:    #e2e8f0;
+      --muted:   #94a3b8;
+      --border:  rgba(99, 102, 241, 0.18);
+    }
+
+    html {
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 400;
+      line-height: 1.6;
+      overflow-x: hidden;
+      width: 100%;
+    }
+
+    /* 배경 성운 효과 */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 15% 10%,  rgba(99,102,241,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 80%,  rgba(168,85,247,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 45% 35% at 55% 45%,  rgba(34,211,238,0.07) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 별 레이어 */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at  8% 12%, rgba(255,255,255,0.45) 0%, transparent 100%),
+        radial-gradient(1px 1px at 22% 68%, rgba(255,255,255,0.30) 0%, transparent 100%),
+        radial-gradient(1px 1px at 38% 28%, rgba(255,255,255,0.25) 0%, transparent 100%),
+        radial-gradient(1px 1px at 54% 82%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1px 1px at 67% 42%, rgba(255,255,255,0.20) 0%, transparent 100%),
+        radial-gradient(1px 1px at 80% 18%, rgba(255,255,255,0.40) 0%, transparent 100%),
+        radial-gradient(1px 1px at 91% 72%, rgba(255,255,255,0.25) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 12% 88%, rgba(99,102,241,0.65)  0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 74%  8%, rgba(34,211,238,0.55)  0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 48% 52%, rgba(168,85,247,0.45) 0%, transparent 100%),
+        radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.20) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 15%, rgba(255,255,255,0.30) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 80px 24px 64px;
+    }
+
+    .hero-icon {
+      width: 90px;
+      height: 90px;
+      margin-bottom: 28px;
+      filter: drop-shadow(0 0 28px rgba(99,102,241,0.7));
+    }
+
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 10vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e2e8f0 0%, #818cf8 45%, #22d3ee 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+
+    .version-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #818cf8;
+      letter-spacing: 0.06em;
+      background: rgba(129, 140, 248, 0.12);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+      border-radius: 20px;
+      padding: 3px 12px;
+      margin-bottom: 16px;
+    }
+
+    .hero-sub {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.85;
+      font-weight: 300;
+    }
+
+    .hero-line {
+      width: 44px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--indigo), var(--cyan));
+      border-radius: 2px;
+      margin: 28px auto 0;
+    }
+
+    /* ── FEATURE ── */
+    .feature {
+      position: relative;
+      z-index: 1;
+      padding: 52px 24px;
+      text-align: center;
+    }
+
+    .feature + .feature {
+      border-top: 1px solid var(--border);
+    }
+
+    /* 스크린샷 래퍼 — 그라디언트 테두리 */
+    .screen-wrap {
+      display: inline-block;
+      position: relative;
+      border-radius: 32px;
+      padding: 1.5px;
+      background: linear-gradient(145deg, rgba(99,102,241,0.5), rgba(34,211,238,0.25), rgba(168,85,247,0.4));
+      margin-bottom: 32px;
+      box-shadow: 0 28px 60px rgba(0,0,0,0.55);
+    }
+
+    .screen-wrap img {
+      display: block;
+      width: 218px;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* 태그 */
+    .tag {
+      display: inline-block;
+      padding: 3px 13px;
+      border-radius: 20px;
+      font-size: 0.70rem;
+      font-weight: 500;
+      letter-spacing: 0.09em;
+      margin-bottom: 13px;
+    }
+
+    .tag-security { background: rgba(168,85,247,0.15);  border: 1px solid rgba(168,85,247,0.35); color: #c084fc; }
+    .tag-portfolio{ background: rgba(99,102,241,0.15);  border: 1px solid rgba(99,102,241,0.35); color: #818cf8; }
+    .tag-asset    { background: rgba(34,211,238,0.10);  border: 1px solid rgba(34,211,238,0.35); color: #22d3ee; }
+    .tag-dividend { background: rgba(52,211,153,0.10);  border: 1px solid rgba(52,211,153,0.35); color: #34d399; }
+    .tag-gain     { background: rgba(251,113,133,0.10); border: 1px solid rgba(251,113,133,0.35); color: #fb7185; }
+    .tag-util     { background: rgba(251,191,36,0.10);  border: 1px solid rgba(251,191,36,0.35); color: #fbbf24; }
+
+    .feature h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature p {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.95;
+      font-weight: 300;
+    }
+
+    /* 스크롤 등장 */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 48px 24px 72px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-icon {
+      width: 36px;
+      opacity: 0.5;
+      margin-bottom: 14px;
+    }
+
+    footer .f-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: rgba(226,232,240,0.45);
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    footer .f-desc {
+      font-size: 0.78rem;
+      color: rgba(100,116,139,0.7);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <section class="hero">
+    <img class="hero-icon" src="../PortView_ICON(NOBG).png" alt="PortView 아이콘" />
+    <h1 class="hero-title">PortView</h1>
+    <span class="version-badge">Beta v0.8</span>
+    <p class="hero-sub">
+      국내·해외 주식 자산, 배당, 실현손익을<br>
+      하나의 앱으로 관리하세요
+    </p>
+    <div class="hero-line"></div>
+  </section>
+
+  <!-- 1 보안 -->
+  <section class="feature reveal">
+    <div class="wrap">
+      <div class="screen-wrap">
+        <img src="Cap01.jpg" alt="PIN 잠금 화면" />
+      </div>
+      <div>
+        <span class="tag tag-security">보안</span>
+        <h2>내 자산은 나만 본다</h2>
+        <p>4자리 PIN으로 앱을 잠궈<br>타인이 함부로 열 수 없습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 잔고 -->
+  <section class="feature reveal">
+    <div class="wrap">
+      <div class="screen-wrap">
+        <img src="Cap02.jpg" alt="잔고 화면" />
+      </div>
+      <div>
+        <span class="tag tag-portfolio">포트폴리오</span>
+        <h2>보유 종목 실시간 확인</h2>
+        <p>
+          국내·해외 계좌를 분리해서 관리하고<br>
+          종목별 매입가·현재가·수익률을<br>
+          네이버 실시간 시세로 자동 조회합니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 자산 -->
+  <section class="feature reveal">
+    <div class="wrap">
+      <div class="screen-wrap">
+        <img src="Cap03.jpg" alt="자산 화면" />
+      </div>
+      <div>
+        <span class="tag tag-asset">자산</span>
+        <h2>총 자산을 한눈에</h2>
+        <p>
+          자산평가액·수익·수익률을 한 화면에서 확인합니다.<br>
+          총투입금액과 예수금을 직접 입력하면<br>
+          수익률이 자동 계산됩니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 배당 -->
+  <section class="feature reveal">
+    <div class="wrap">
+      <div class="screen-wrap">
+        <img src="Cap04.jpg" alt="배당 화면" />
+      </div>
+      <div>
+        <span class="tag tag-dividend">배당</span>
+        <h2>배당금도 꼼꼼하게</h2>
+        <p>
+          누적 배당금 합계와 월별 추이를 차트로 확인하고<br>
+          연도별로 얼마나 받았는지 비교할 수 있습니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 손익 -->
+  <section class="feature reveal">
+    <div class="wrap">
+      <div class="screen-wrap">
+        <img src="Cap05.jpg" alt="손익 화면" />
+      </div>
+      <div>
+        <span class="tag tag-gain">실현손익</span>
+        <h2>매도 기록, 한 곳에</h2>
+        <p>
+          매도할 때마다 실현손익을 기록하면<br>
+          종목별 TOP5와 연도별 집계를<br>
+          자동으로 보여줍니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 편의기능 -->
+  <section class="feature reveal">
+    <div class="wrap">
+      <div class="screen-wrap">
+        <img src="Cap06.jpg" alt="메뉴 화면" />
+      </div>
+      <div>
+        <span class="tag tag-util">편의기능</span>
+        <h2>백업으로 데이터 안전하게</h2>
+        <p>
+          백업·복원으로 기기를 바꿔도 데이터를 지킵니다.<br>
+          시크릿 모드로 금액을 가리고<br>
+          화면을 공유할 수도 있어요.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <img class="footer-icon" src="../PortView_ICON(NOBG).png" alt="PortView" />
+    <span class="f-name">PortView</span>
+    <p class="f-desc">개인용 투자 자산, 배당 관리 특화 앱</p>
+  </footer>
+
+  <script>
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+
+</body>
+</html>

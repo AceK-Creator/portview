@@ -146,6 +146,19 @@ button:disabled {
   letter-spacing: -0.3px;
 }
 
+.app-version-badge {
+  margin: 4px 0 0 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #5a8acf !important;
+  letter-spacing: 0.5px;
+  background: rgba(90, 138, 207, 0.12);
+  border: 1px solid rgba(90, 138, 207, 0.3);
+  border-radius: 20px;
+  padding: 2px 10px !important;
+  display: inline-block;
+}
+
 .login-panel p {
   margin: -10px 0 5px;
   color: #a0aec0;
