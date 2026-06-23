@@ -2301,7 +2301,7 @@ function DividendSummaryTab({
         <div style={{ display: 'flex', padding: '20px 0' }}>
           {/* 왼쪽 */}
           <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
-            <div className="dividend-stat-label">{prevYear}년 (실제)</div>
+            <div className="dividend-stat-label">{prevYear}년(실제)</div>
             <div className="dividend-stat-value"><span className="secret-value">{c(prevYearTotal)}</span></div>
           </div>
           {/* 오른쪽: 토글은 absolute로 위에 얹음, ⓘ는 텍스트 끝에 absolute */}
