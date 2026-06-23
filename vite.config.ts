@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         name: 'PortView',
         short_name: 'PortView',
-        description: '개인용 투자 포트폴리오 관리 앱',
+        description: '개인용 투자 자산, 배당 관리 특화 앱',
         theme_color: '#071426',
         background_color: '#071426',
         lang: 'ko',
