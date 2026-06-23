@@ -396,7 +396,7 @@ function LoginScreen({
           <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
         </div>
         <h1>PortView</h1>
-        <p>Enter your 4-digit PIN to continue.</p>
+        <p>4자리 PIN을 입력하세요.</p>
         <div
           className={`pin-dots${shake ? ' shake' : ''}`}
           onClick={() => inputRef.current?.focus()}
@@ -1233,6 +1233,7 @@ function PasswordView({
   data: AppData;
   onDataChange: (data: AppData) => void;
 }) {
+  const isSetup = data.password === '';
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -1241,37 +1242,44 @@ function PasswordView({
 
   const savePassword = async (event: FormEvent) => {
     event.preventDefault();
-    if (current !== data.password) {
+    if (!isSetup && current !== data.password) {
       alert('현재 비밀번호가 맞지 않습니다.');
       return;
     }
     if (next.length !== 4 || next !== confirmPin) {
-      alert('새 비밀번호 4자리를 동일하게 입력하세요.');
+      alert('새 PIN 4자리를 동일하게 입력하세요.');
       return;
     }
-    if (!await customConfirm('비밀번호를 변경할까요?')) return;
+    if (!await customConfirm(isSetup ? 'PIN을 설정할까요?' : '비밀번호를 변경할까요?')) return;
     onDataChange({ ...data, password: next });
     setCurrent('');
     setNext('');
     setConfirmPin('');
-    alert('비밀번호가 변경되었습니다.');
+    alert(isSetup ? 'PIN이 설정되었습니다.' : '비밀번호가 변경되었습니다.');
   };
 
   return (
     <form className="password-panel" onSubmit={savePassword}>
+      {isSetup && (
+        <p style={{ marginBottom: '1rem', color: 'var(--text-secondary, #aaa)', fontSize: '0.9rem' }}>
+          앱을 보호할 4자리 PIN을 설정해 주세요.
+        </p>
+      )}
+      {!isSetup && (
+        <label>
+          현재 비밀번호
+          <input
+            required
+            inputMode="numeric"
+            maxLength={4}
+            type="password"
+            value={current}
+            onChange={(event) => setCurrent(cleanPin(event.target.value))}
+          />
+        </label>
+      )}
       <label>
-        현재 비밀번호
-        <input
-          required
-          inputMode="numeric"
-          maxLength={4}
-          type="password"
-          value={current}
-          onChange={(event) => setCurrent(cleanPin(event.target.value))}
-        />
-      </label>
-      <label>
-        새 비밀번호
+        {isSetup ? 'PIN 설정' : '새 비밀번호'}
         <input
           required
           inputMode="numeric"
@@ -1282,7 +1290,7 @@ function PasswordView({
         />
       </label>
       <label>
-        새 비밀번호 확인
+        {isSetup ? 'PIN 확인' : '새 비밀번호 확인'}
         <input
           required
           inputMode="numeric"
@@ -1294,7 +1302,7 @@ function PasswordView({
       </label>
       <button className="primary-button" type="submit">
         <Save size={17} />
-        변경 저장
+        {isSetup ? 'PIN 설정 완료' : '변경 저장'}
       </button>
     </form>
   );
@@ -3253,7 +3261,7 @@ function DividendRecordsTab({
 
 function InstallBanner() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  const [hidden, setHidden] = useState(localStorage.getItem('dad-portfolio-pwa:install-dismissed') === '1');
+  const [hidden, setHidden] = useState(localStorage.getItem('portview:install-dismissed') === '1');
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches;
@@ -3290,7 +3298,7 @@ function InstallBanner() {
         aria-label="설치 배너 닫기"
         type="button"
         onClick={() => {
-          localStorage.setItem('dad-portfolio-pwa:install-dismissed', '1');
+          localStorage.setItem('portview:install-dismissed', '1');
           setHidden(true);
         }}
       >
@@ -3306,8 +3314,9 @@ export default function App() {
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('usd');
   const [usdKrwRate, setUsdKrwRate] = useState<number | null>(null);
   const [rateLoading, setRateLoading] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
+  const noPassword = rootData.domestic.password === '';
+  const [unlocked, setUnlocked] = useState(noPassword);
+  const [activeMenu, setActiveMenu] = useState<MenuKey>(noPassword ? 'password' : 'live');
   const [secretMode, setSecretMode] = useState(false);
   const backupFileRef = useRef<HTMLInputElement>(null);
 
@@ -3340,7 +3349,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `dad-portfolio-backup-${nowStamp()}.json`;
+    link.download = `PortView_${nowStamp()}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };

@@ -5,7 +5,7 @@ const STORAGE_KEY_V2 = 'dad-portfolio-pwa:v2';
 
 export const defaultData: AppData = {
   version: 1,
-  password: '1235',
+  password: '',
   account: { totalContribution: 0, cashBalance: 0 },
   holdings: [],
   dividends: [],
@@ -78,7 +78,7 @@ function validateAppData(data: unknown): AppData {
   const d = data as Partial<AppData>;
   return {
     version: 1,
-    password: typeof d?.password === 'string' ? d.password : '1235',
+    password: typeof d?.password === 'string' ? d.password : '',
     account: {
       totalContribution: Number(d?.account?.totalContribution) || 0,
       cashBalance: Number(d?.account?.cashBalance) || 0,
