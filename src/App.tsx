@@ -2190,15 +2190,15 @@ function DividendSummaryTab({
 
   // 다음달 예상 배당금 (세션 캐시 활용)
   const cacheKey = `${isOverseas ? 'o' : 'd'}_${holdings.map(h => `${h.code}:${h.shares}`).join(',')}`;
-  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(
-    _estCacheKey === cacheKey ? _estCache : null
-  );
-  const [estimatedLoading, setEstimatedLoading] = useState(
-    _estCacheKey !== cacheKey && holdings.length > 0
-  );
+  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
+  const [estimatedLoading, setEstimatedLoading] = useState(holdings.length > 0);
 
   useEffect(() => {
-    if (!holdings || holdings.length === 0) return;
+    if (!holdings || holdings.length === 0) {
+      setEstimatedNextMonthTotal(0);
+      setEstimatedLoading(false);
+      return;
+    }
     // 캐시 히트: 동일한 보유종목·모드면 재계산 생략
     if (_estCacheKey === cacheKey && _estCache !== null) {
       setEstimatedNextMonthTotal(_estCache);
@@ -2207,8 +2207,11 @@ function DividendSummaryTab({
     }
     setEstimatedLoading(true);
     const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
-    const nextMonthNum = new Date(today.getFullYear(), today.getMonth() + 1, 1).getMonth() + 1;
+    const nextMonthDate = new Date();
+    nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+    const nextMonthNum = nextMonthDate.getMonth() + 1;
 
+    let cancelled = false;
     Promise.all(
       holdings.map(async (holding) => {
         try {
@@ -2220,14 +2223,16 @@ function DividendSummaryTab({
         }
       })
     ).then((amounts) => {
+      if (cancelled) return;
       const total = amounts.reduce((s, v) => s + v, 0);
       _estCache = total;
       _estCacheKey = cacheKey;
       setEstimatedNextMonthTotal(total);
       setEstimatedLoading(false);
     }).catch(() => {
-      setEstimatedLoading(false);
+      if (!cancelled) setEstimatedLoading(false);
     });
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cacheKey]);
 
@@ -2309,7 +2314,7 @@ function DividendSummaryTab({
   const [chartMonths, setChartMonths] = useState<6 | 12>(6);
   const [selectedBar, setSelectedBar] = useState<number | null>(null);
   const chartData: { label: string; year: number; month: number; total: number; isEstimated?: boolean }[] = [];
-  for (let i = chartMonths - 1; i >= 0; i--) {
+  for (let i = chartMonths - 2; i >= 0; i--) {
     const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     const y = d.getFullYear();
     const m = d.getMonth() + 1;
