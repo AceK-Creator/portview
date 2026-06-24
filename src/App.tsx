@@ -19,7 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { FormEvent, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { fetchQuote, fetchMarketIndex, fetchOverseasIndex, logClientError, type MarketIndexItem, type OverseasIndexResult } from './api';
+import { fetchQuote, fetchMarketIndex, fetchOverseasIndex, fetchDividendInfo, logClientError, type MarketIndexItem, type OverseasIndexResult } from './api';
 import { calculateAccountSummary, calculateHoldingRows } from './portfolioMath';
 import {
   createBackupBlob,
@@ -2143,6 +2143,7 @@ function DividendView({
       {tab === 'summary' && (
         <DividendSummaryTab
           dividends={dividends}
+          holdings={data.holdings}
           onOpenAdd={() => setShowAddModal(true)}
         />
       )}
@@ -2171,15 +2172,48 @@ function DividendView({
 
 function DividendSummaryTab({
   dividends,
+  holdings,
   onOpenAdd,
 }: {
   dividends: DividendRecord[];
+  holdings: Holding[];
   onOpenAdd: () => void;
 }) {
-  const { c, sc } = useCurrency();
+  const { c, sc, isOverseas } = useCurrency();
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
+
+  // 다음달 예상 배당금
+  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
+  const [estimatedLoading, setEstimatedLoading] = useState(false);
+
+  useEffect(() => {
+    if (!holdings || holdings.length === 0) return;
+    setEstimatedLoading(true);
+    setEstimatedNextMonthTotal(null);
+    const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
+    const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const nextMonthNum = nextMonthDate.getMonth() + 1;
+
+    Promise.all(
+      holdings.map(async (holding) => {
+        try {
+          const info = await fetchDividendInfo(holding.code, market);
+          if (!info.dps || !info.paymentMonths.includes(nextMonthNum)) return 0;
+          return info.dps * holding.shares;
+        } catch {
+          return 0;
+        }
+      })
+    ).then((amounts) => {
+      setEstimatedNextMonthTotal(amounts.reduce((s, v) => s + v, 0));
+      setEstimatedLoading(false);
+    }).catch(() => {
+      setEstimatedLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [holdings, isOverseas]);
 
   // 누적 배당금
   const totalAll = dividends.reduce((sum, d) => sum + d.amount, 0);
@@ -2258,7 +2292,7 @@ function DividendSummaryTab({
   // 월별 막대차트 데이터 (6/12개월 스위칭)
   const [chartMonths, setChartMonths] = useState<6 | 12>(6);
   const [selectedBar, setSelectedBar] = useState<number | null>(null);
-  const chartData: { label: string; year: number; month: number; total: number }[] = [];
+  const chartData: { label: string; year: number; month: number; total: number; isEstimated?: boolean }[] = [];
   for (let i = chartMonths - 1; i >= 0; i--) {
     const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     const y = d.getFullYear();
@@ -2270,6 +2304,19 @@ function DividendSummaryTab({
       })
       .reduce((sum, rec) => sum + rec.amount, 0);
     chartData.push({ label: `${m}월`, year: y, month: m, total });
+  }
+  // 다음달 예상 bar 추가
+  {
+    const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const ny = nextMonthDate.getFullYear();
+    const nm = nextMonthDate.getMonth() + 1;
+    chartData.push({
+      label: `${nm}월`,
+      year: ny,
+      month: nm,
+      total: estimatedNextMonthTotal ?? 0,
+      isEstimated: true,
+    });
   }
 
   const chartMax = Math.max(...chartData.map((m) => m.total), 1);
@@ -2419,26 +2466,32 @@ function DividendSummaryTab({
             </defs>
             {chartData.map((item, idx) => {
               const chartH = 100;
-              const barW = chartMonths === 6 ? 52 : 28;
-              const gap = (520 - chartData.length * barW) / (chartData.length + 1);
+              // 다음달 포함으로 barW 계산: chartMonths + 1개
+              const totalBars = chartData.length;
+              const barW = chartMonths === 6 ? Math.floor(520 / (totalBars + 1) - 4) : Math.floor(520 / (totalBars + 1) - 2);
+              const gap = (520 - totalBars * barW) / (totalBars + 1);
               const x = gap + idx * (barW + gap);
               const cx = x + barW / 2;
               const barH = item.total > 0 ? Math.max(4, (item.total / chartMax) * chartH) : 2;
               const barY = 140 - barH;
               const isSelected = selectedBar === idx;
 
-              // 팝업 위치 계산 (손가락에 안 가리도록 막대 위 충분히 위)
+              // 팝업 위치 계산
               const popupW = 140;
-              const popupH = 46;
+              const popupH = item.isEstimated ? 62 : 46;
               const popupX = Math.min(Math.max(2, cx - popupW / 2), 520 - popupW - 2);
               const popupY = Math.max(2, barY - popupH - 18);
+
+              const popupStroke = item.isEstimated ? 'rgba(100,200,100,0.8)' : 'rgba(124,77,255,0.7)';
+              const barFill = item.isEstimated ? '#a8e6a3' : 'url(#barGrad)';
+              const barOpacity = item.isEstimated ? 0.9 : (item.total === 0 ? 0.25 : isSelected ? 1 : 0.85);
+              const showPopup = isSelected && (item.total > 0 || item.isEstimated);
 
               return (
                 <g
                   key={`${item.year}-${item.month}`}
-                  style={{ cursor: item.total > 0 ? 'pointer' : 'default' }}
+                  style={{ cursor: 'pointer' }}
                   onClick={() => {
-                    if (item.total === 0) return;
                     setSelectedBar((prev) => (prev === idx ? null : idx));
                   }}
                 >
@@ -2449,14 +2502,14 @@ function DividendSummaryTab({
                     y={barY}
                     width={barW}
                     height={barH}
-                    fill="url(#barGrad)"
-                    opacity={item.total === 0 ? 0.25 : isSelected ? 1 : 0.85}
+                    fill={barFill}
+                    opacity={barOpacity}
                   />
                   <text
                     x={cx}
                     y={162}
                     textAnchor="middle"
-                    fill={isSelected ? '#c9e0ff' : '#6a88aa'}
+                    fill={item.isEstimated ? '#7de87d' : (isSelected ? '#c9e0ff' : '#6a88aa')}
                     fontSize="15"
                     fontWeight={isSelected ? '700' : '400'}
                     style={{ pointerEvents: 'none' }}
@@ -2464,7 +2517,7 @@ function DividendSummaryTab({
                     {item.label}
                   </text>
                   {/* 팝업 */}
-                  {isSelected && item.total > 0 && (
+                  {showPopup && (
                     <g style={{ pointerEvents: 'none' }}>
                       <rect
                         x={popupX}
@@ -2473,14 +2526,14 @@ function DividendSummaryTab({
                         height={popupH}
                         rx={6}
                         fill="#0a1830"
-                        stroke="rgba(124,77,255,0.7)"
+                        stroke={popupStroke}
                         strokeWidth="1"
                       />
                       {/* 말풍선 꼬리 */}
                       <polygon
                         points={`${cx - 7},${popupY + popupH} ${cx + 7},${popupY + popupH} ${cx},${popupY + popupH + 9}`}
                         fill="#0a1830"
-                        stroke="rgba(124,77,255,0.7)"
+                        stroke={popupStroke}
                         strokeWidth="1"
                         strokeLinejoin="round"
                       />
@@ -2493,16 +2546,41 @@ function DividendSummaryTab({
                         stroke="#0a1830"
                         strokeWidth="2"
                       />
-                      <text
-                        x={popupX + popupW / 2}
-                        y={popupY + popupH / 2 + 7}
-                        textAnchor="middle"
-                        fill="#ffffff"
-                        fontSize="17"
-                        fontWeight="700"
-                      >
-                        {c(item.total)}
-                      </text>
+                      {item.isEstimated ? (
+                        <>
+                          <text
+                            x={popupX + popupW / 2}
+                            y={popupY + 22}
+                            textAnchor="middle"
+                            fill="#a8e6a3"
+                            fontSize="12"
+                            fontWeight="600"
+                          >
+                            {estimatedLoading ? '계산 중...' : '예상'}
+                          </text>
+                          <text
+                            x={popupX + popupW / 2}
+                            y={popupY + 46}
+                            textAnchor="middle"
+                            fill="#ffffff"
+                            fontSize="17"
+                            fontWeight="700"
+                          >
+                            {estimatedLoading ? '...' : c(item.total)}
+                          </text>
+                        </>
+                      ) : (
+                        <text
+                          x={popupX + popupW / 2}
+                          y={popupY + popupH / 2 + 7}
+                          textAnchor="middle"
+                          fill="#ffffff"
+                          fontSize="17"
+                          fontWeight="700"
+                        >
+                          {c(item.total)}
+                        </text>
+                      )}
                     </g>
                   )}
                 </g>

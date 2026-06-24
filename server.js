@@ -3,6 +3,7 @@ import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
+import dividendInfoHandler from './api/dividend-info.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 18440);
@@ -259,6 +260,14 @@ app.get('/api/quote', async (req, res) => {
     res.status(502).json({
       message: error instanceof Error ? error.message : '시세 조회에 실패했습니다.',
     });
+  }
+});
+
+app.get('/api/dividend-info', async (req, res) => {
+  try {
+    await dividendInfoHandler(req, res);
+  } catch (e) {
+    res.status(502).json({ message: e instanceof Error ? e.message : '배당 정보 조회 실패' });
   }
 });
 

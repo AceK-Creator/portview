@@ -45,6 +45,26 @@ export async function fetchOverseasIndex(): Promise<OverseasIndexResult> {
   return { nasdaq, sp500, usdKrw };
 }
 
+export interface DividendInfoResult {
+  dps: number | null;
+  paymentMonths: number[];
+  source: string;
+}
+
+export async function fetchDividendInfo(
+  code: string,
+  market: AccountMode
+): Promise<DividendInfoResult> {
+  try {
+    const params = new URLSearchParams({ code, market });
+    const res = await fetch(`${API_BASE}/api/dividend-info?${params}`);
+    if (!res.ok) return { dps: null, paymentMonths: [], source: 'error' };
+    return res.json() as Promise<DividendInfoResult>;
+  } catch {
+    return { dps: null, paymentMonths: [], source: 'error' };
+  }
+}
+
 export async function logClientError(payload: unknown): Promise<void> {
   try {
     await fetch(`${API_BASE}/api/client-error`, {
