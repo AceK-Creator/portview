@@ -621,11 +621,13 @@ function MarketIndexBar({
   onUsdKrwRate,
   onRateLoading,
   hidden,
+  refreshKey,
 }: {
   mode: AccountMode;
   onUsdKrwRate?: (rate: number) => void;
   onRateLoading?: (loading: boolean) => void;
   hidden?: boolean;
+  refreshKey?: number;
 }) {
   const [kospi, setKospi] = useState<MarketIndexItem | null>(null);
   const [kosdaq, setKosdaq] = useState<MarketIndexItem | null>(null);
@@ -658,7 +660,7 @@ function MarketIndexBar({
         })
         .finally(() => { setLoading(false); onRateLoading?.(false); });
     }
-  }, [mode]);
+  }, [mode, refreshKey]);
 
   const fmt = (n: number) => Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtRate = (n: number) => `${Math.abs(n).toFixed(2)}%`;
@@ -900,10 +902,12 @@ function LiveView({
   data,
   rows,
   onDataChange,
+  onRefreshMarket,
 }: {
   data: AppData;
   rows: HoldingRow[];
   onDataChange: (data: AppData) => void;
+  onRefreshMarket?: () => void;
 }) {
   const [draft, setDraft] = useState<HoldingDraft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -1026,6 +1030,7 @@ function LiveView({
     );
     saveHoldings(refreshed);
     setRefreshing(false);
+    onRefreshMarket?.();
     startCooldown();
   };
 
@@ -1121,11 +1126,13 @@ function AccountView({
   summary,
   onDataChange,
   rateLoading,
+  onRefreshMarket,
 }: {
   data: AppData;
   summary: ReturnType<typeof calculateAccountSummary>;
   onDataChange: (data: AppData) => void;
   rateLoading?: boolean;
+  onRefreshMarket?: () => void;
 }) {
   const { isOverseas, usdKrwRate } = useCurrency();
   const [totalContribution, setTotalContribution] = useState(formatNumberWithCommas(data.account.totalContribution || ''));
@@ -1159,6 +1166,7 @@ function AccountView({
       }),
     );
     onDataChange({ ...data, holdings: refreshed });
+    onRefreshMarket?.();
     setRefreshing(false);
   };
 
@@ -3358,6 +3366,7 @@ export default function App() {
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('usd');
   const [usdKrwRate, setUsdKrwRate] = useState<number | null>(null);
   const [rateLoading, setRateLoading] = useState(false);
+  const [marketRefreshKey, setMarketRefreshKey] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
@@ -3478,10 +3487,10 @@ export default function App() {
         }}
       />
       {activeMenu === 'live' && (
-        <LiveView data={data} rows={rows} onDataChange={persist} />
+        <LiveView data={data} rows={rows} onDataChange={persist} onRefreshMarket={() => setMarketRefreshKey((k) => k + 1)} />
       )}
       {activeMenu === 'account' && (
-        <AccountView data={data} summary={summary} onDataChange={persist} rateLoading={rateLoading} />
+        <AccountView data={data} summary={summary} onDataChange={persist} rateLoading={rateLoading} onRefreshMarket={() => setMarketRefreshKey((k) => k + 1)} />
       )}
       {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
@@ -3500,6 +3509,7 @@ export default function App() {
           onUsdKrwRate={setUsdKrwRate}
           onRateLoading={setRateLoading}
           hidden={activeMenu !== 'live'}
+          refreshKey={marketRefreshKey}
         />
       )}
     </CurrencyCtx.Provider>
