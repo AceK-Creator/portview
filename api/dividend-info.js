@@ -79,15 +79,37 @@ async function fetchNaverDividend(code) {
   return { dps, paymentMonths: [], source: 'naver-fallback' };
 }
 
+// Reuters/Naver 코드 → Yahoo Finance 티커 변환
+// 예: AAPL.O → AAPL, AAPL.OQ → AAPL, BRK/B → BRK-B
+function toYahooTicker(code) {
+  return code
+    .replace(/\.(O|OQ|N|A|P|PK)$/i, '')
+    .replace(/\//g, '-')
+    .toUpperCase();
+}
+
 // Yahoo Finance (해외)
 async function fetchYahooDividend(ticker) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker.toUpperCase())}?events=dividends&range=2y&interval=1d`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': NAVER_HEADERS['User-Agent'] },
-    signal: AbortSignal.timeout(8000)
-  });
-  if (!res.ok) throw new Error(`yahoo ${res.status}`);
-  const data = await res.json();
+  const yahooTicker = toYahooTicker(ticker);
+  const YAHOO_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36',
+    'Accept': 'application/json',
+    'Accept-Language': 'en-US,en;q=0.9',
+  };
+
+  // query1 → query2 순서로 시도
+  let data = null;
+  for (const host of ['query1', 'query2']) {
+    try {
+      const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooTicker)}?events=dividends&range=2y&interval=1d`;
+      const res = await fetch(url, { headers: YAHOO_HEADERS, signal: AbortSignal.timeout(10000) });
+      if (!res.ok) continue;
+      data = await res.json();
+      if (data?.chart?.result?.[0]) break;
+    } catch { continue; }
+  }
+
+  if (!data) throw new Error('yahoo: 응답 없음');
   const dividends = data?.chart?.result?.[0]?.events?.dividends;
   if (!dividends) throw new Error('yahoo: 배당 데이터 없음');
 

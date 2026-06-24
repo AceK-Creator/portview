@@ -2168,6 +2168,10 @@ function DividendView({
   );
 }
 
+// 세션 동안 예상 배당금 캐시 (컴포넌트 언마운트 후에도 유지, 페이지 새로고침 시 초기화)
+let _estCache: number | null = null;
+let _estCacheKey = '';
+
 // ─── Dividend Summary Tab ─────────────────────────────────────────────────────
 
 function DividendSummaryTab({
@@ -2184,17 +2188,26 @@ function DividendSummaryTab({
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
 
-  // 다음달 예상 배당금
-  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
-  const [estimatedLoading, setEstimatedLoading] = useState(false);
+  // 다음달 예상 배당금 (세션 캐시 활용)
+  const cacheKey = `${isOverseas ? 'o' : 'd'}_${holdings.map(h => `${h.code}:${h.shares}`).join(',')}`;
+  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(
+    _estCacheKey === cacheKey ? _estCache : null
+  );
+  const [estimatedLoading, setEstimatedLoading] = useState(
+    _estCacheKey !== cacheKey && holdings.length > 0
+  );
 
   useEffect(() => {
     if (!holdings || holdings.length === 0) return;
+    // 캐시 히트: 동일한 보유종목·모드면 재계산 생략
+    if (_estCacheKey === cacheKey && _estCache !== null) {
+      setEstimatedNextMonthTotal(_estCache);
+      setEstimatedLoading(false);
+      return;
+    }
     setEstimatedLoading(true);
-    setEstimatedNextMonthTotal(null);
     const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
-    const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-    const nextMonthNum = nextMonthDate.getMonth() + 1;
+    const nextMonthNum = new Date(today.getFullYear(), today.getMonth() + 1, 1).getMonth() + 1;
 
     Promise.all(
       holdings.map(async (holding) => {
@@ -2207,13 +2220,16 @@ function DividendSummaryTab({
         }
       })
     ).then((amounts) => {
-      setEstimatedNextMonthTotal(amounts.reduce((s, v) => s + v, 0));
+      const total = amounts.reduce((s, v) => s + v, 0);
+      _estCache = total;
+      _estCacheKey = cacheKey;
+      setEstimatedNextMonthTotal(total);
       setEstimatedLoading(false);
     }).catch(() => {
       setEstimatedLoading(false);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [holdings, isOverseas]);
+  }, [cacheKey]);
 
   // 누적 배당금
   const totalAll = dividends.reduce((sum, d) => sum + d.amount, 0);
@@ -2509,7 +2525,7 @@ function DividendSummaryTab({
                     x={cx}
                     y={162}
                     textAnchor="middle"
-                    fill={item.isEstimated ? '#7de87d' : (isSelected ? '#c9e0ff' : '#6a88aa')}
+                    fill={item.isEstimated ? '#7aaa7a' : (isSelected ? '#c9e0ff' : '#6a88aa')}
                     fontSize="15"
                     fontWeight={isSelected ? '700' : '400'}
                     style={{ pointerEvents: 'none' }}
