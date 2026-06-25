@@ -237,6 +237,7 @@ export default async function handler(req, res) {
       result = await fetchNaverPage(code);
     }
 
+    res.setHeader('Cache-Control', 's-maxage=3, stale-while-revalidate=3');
     res.json(result);
   } catch (error) {
     res.status(502).json({
