@@ -2195,7 +2195,9 @@ function DividendSummaryTab({
   const currentMonth = today.getMonth() + 1;
 
   // 다음달 예상 배당금 (세션 캐시 활용)
-  const cacheKey = `${isOverseas ? 'o' : 'd'}_${holdings.map(h => `${h.code}:${h.shares}`).join(',')}`;
+  // cacheKey에 배당기록 수를 포함하여, 기록 추가 시 재계산
+  const divHash = dividends.reduce((s, d) => s + d.amount, 0);
+  const cacheKey = `${isOverseas ? 'o' : 'd'}_${holdings.map(h => `${h.code}:${h.shares}`).join(',')}_${divHash}`;
   const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
   const [estimatedLoading, setEstimatedLoading] = useState(holdings.length > 0);
 
@@ -2205,7 +2207,7 @@ function DividendSummaryTab({
       setEstimatedLoading(false);
       return;
     }
-    // 캐시 히트: 동일한 보유종목·모드면 재계산 생략
+    // 캐시 히트: 동일한 보유종목·모드·배당기록이면 재계산 생략
     if (_estCacheKey === cacheKey && _estCache !== null) {
       setEstimatedNextMonthTotal(_estCache);
       setEstimatedLoading(false);
@@ -2215,12 +2217,33 @@ function DividendSummaryTab({
     const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
     const nextMonthDate = new Date();
     nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
-    const nextMonthNum = nextMonthDate.getMonth() + 1;
+    const nextMonthNum = nextMonthDate.getMonth() + 1; // 1~12
+
+    // 전년 동월까지 12개월 기간
+    const yearAgo = new Date();
+    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
     let cancelled = false;
     Promise.all(
       holdings.map(async (holding) => {
         try {
+          // 1단계: 보유 종목의 최근 12개월 배당 기록으로 배당월 유추
+          const stockHistory = dividends.filter(d =>
+            d.stockCode === holding.code && new Date(d.paidAt) >= yearAgo
+          );
+          const historyMonths = stockHistory.map(d => new Date(d.paidAt).getMonth() + 1);
+
+          if (stockHistory.length > 0) {
+            // 기록이 있지만 다음달이 배당월이 아님 → 0
+            if (!historyMonths.includes(nextMonthNum)) return 0;
+
+            // 다음달이 배당월임 → Yahoo Finance dps × 현재 보유수량으로 금액 계산
+            // (Yahoo 실패 시 주식수 기준이 달라 역산 불가 → 0)
+            const info = await fetchDividendInfo(holding.code, market);
+            return info.dps ? info.dps * holding.shares : 0;
+          }
+
+          // 2단계: 기록 없는 종목 → 기존 Yahoo Finance 방식 fallback
           const info = await fetchDividendInfo(holding.code, market);
           if (!info.dps || !info.paymentMonths.includes(nextMonthNum)) return 0;
           return info.dps * holding.shares;
