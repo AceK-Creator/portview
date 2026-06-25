@@ -2227,25 +2227,18 @@ function DividendSummaryTab({
     Promise.all(
       holdings.map(async (holding) => {
         try {
-          // 1단계: 보유 종목의 최근 12개월 배당 기록으로 배당월 유추
-          const stockHistory = dividends.filter(d =>
-            d.stockCode === holding.code && new Date(d.paidAt) >= yearAgo
-          );
-          const historyMonths = stockHistory.map(d => new Date(d.paidAt).getMonth() + 1);
+          // 최근 12개월 배당 기록에서 배당월 추출
+          const historyMonths = dividends
+            .filter(d => d.stockCode === holding.code && new Date(d.paidAt) >= yearAgo)
+            .map(d => new Date(d.paidAt).getMonth() + 1);
 
-          if (stockHistory.length > 0) {
-            // 기록이 있지만 다음달이 배당월이 아님 → 0
-            if (!historyMonths.includes(nextMonthNum)) return 0;
-
-            // 다음달이 배당월임 → Yahoo Finance dps × 현재 보유수량으로 금액 계산
-            // (Yahoo 실패 시 주식수 기준이 달라 역산 불가 → 0)
-            const info = await fetchDividendInfo(holding.code, market);
-            return info.dps ? info.dps * holding.shares : 0;
-          }
-
-          // 2단계: 기록 없는 종목 → 기존 Yahoo Finance 방식 fallback
+          // 외부 API로 dps + paymentMonths 조회 (국내: etfshopping, 해외: Yahoo)
           const info = await fetchDividendInfo(holding.code, market);
-          if (!info.dps || !info.paymentMonths.includes(nextMonthNum)) return 0;
+
+          // 배당월 판단: 기록 OR 외부API 어느 쪽이든 해당되면 인정
+          const isDividendMonth =
+            historyMonths.includes(nextMonthNum) || info.paymentMonths.includes(nextMonthNum);
+          if (!isDividendMonth || !info.dps) return 0;
           return info.dps * holding.shares;
         } catch {
           return 0;
