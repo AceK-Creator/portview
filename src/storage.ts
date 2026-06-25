@@ -1,7 +1,35 @@
+import CryptoJS from 'crypto-js';
 import type { AppData, RootData } from './types';
 
 const STORAGE_KEY_V1 = 'dad-portfolio-pwa:v1';
 const STORAGE_KEY_V2 = 'dad-portfolio-pwa:v2';
+const STORAGE_KEY_ENC = 'dad-portfolio-pwa:v3:enc';
+const SENTINEL = 'PORTVIEW::';
+
+export function hasEncryptedData(): boolean {
+  return !!localStorage.getItem(STORAGE_KEY_ENC);
+}
+
+export function saveEncrypted(data: RootData, pin: string): void {
+  const json = SENTINEL + JSON.stringify(data);
+  const encrypted = CryptoJS.AES.encrypt(json, pin).toString();
+  localStorage.setItem(STORAGE_KEY_ENC, encrypted);
+  localStorage.removeItem(STORAGE_KEY_V2);
+  localStorage.removeItem(STORAGE_KEY_V1);
+}
+
+export function loadEncrypted(pin: string): RootData | null {
+  const encrypted = localStorage.getItem(STORAGE_KEY_ENC);
+  if (!encrypted) return null;
+  try {
+    const bytes = CryptoJS.AES.decrypt(encrypted, pin);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    if (!decrypted.startsWith(SENTINEL)) return null;
+    return JSON.parse(decrypted.slice(SENTINEL.length)) as RootData;
+  } catch {
+    return null;
+  }
+}
 
 export const defaultData: AppData = {
   version: 1,

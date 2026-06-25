@@ -26,6 +26,9 @@ import {
   defaultData,
   loadRootData,
   saveRootData,
+  hasEncryptedData,
+  saveEncrypted,
+  loadEncrypted,
   validateBackup,
 } from './storage';
 import type { AccountMode, AppData, CurrencyMode, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData } from './types';
@@ -337,10 +340,12 @@ function LoginScreen({
   password,
   onSuccess,
   onSetPin,
+  onVerify,
 }: {
   password: string;
-  onSuccess: () => void;
+  onSuccess: (pin: string) => void;
   onSetPin?: (pin: string) => void;
+  onVerify?: (pin: string) => boolean;
 }) {
   const isSetup = password === '';
   const [pin, setPin] = useState('');
@@ -399,7 +404,7 @@ function LoginScreen({
         if (val.length === 4) {
           if (val === pin) {
             onSetPin?.(pin);
-            onSuccess();
+            onSuccess(pin);
           } else {
             triggerShake(() => {
               setStep('first');
@@ -412,8 +417,9 @@ function LoginScreen({
     } else {
       setPin(val);
       if (val.length === 4) {
-        if (val === password) {
-          onSuccess();
+        const ok = onVerify ? onVerify(val) : val === password;
+        if (ok) {
+          onSuccess(val);
         } else {
           triggerShake(() => setPin(''));
         }
@@ -3460,7 +3466,8 @@ function InstallBanner() {
 }
 
 export default function App() {
-  const [rootData, setRootData] = useState<RootData>(() => loadRootData());
+  const [rootData, setRootData] = useState<RootData>(() => hasEncryptedData() ? loadRootData() : loadRootData());
+  const [activePin, setActivePin] = useState('');
   const [accountMode, setAccountMode] = useState<AccountMode>('domestic');
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('usd');
   const [usdKrwRate, setUsdKrwRate] = useState<number | null>(null);
@@ -3478,21 +3485,31 @@ export default function App() {
   const rows = useMemo(() => calculateHoldingRows(data.holdings), [data.holdings]);
   const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);
 
+  const saveData = (next: RootData, pin = activePin) => {
+    if (pin) {
+      saveEncrypted(next, pin);
+    } else {
+      saveRootData(next);
+    }
+  };
+
   const persist = (nextAccountData: AppData) => {
     const next: RootData = { ...rootData, [accountMode]: nextAccountData };
     setRootData(next);
-    saveRootData(next);
+    saveData(next);
   };
 
   const persistPassword = (nextAccountData: AppData) => {
-    // 비밀번호는 두 계좌 모두 동기화
+    // 비밀번호는 두 계좌 모두 동기화, PIN 변경 시 재암호화
+    const newPin = nextAccountData.password;
     const next: RootData = {
       ...rootData,
-      domestic: { ...rootData.domestic, password: nextAccountData.password },
-      overseas: { ...rootData.overseas, password: nextAccountData.password },
+      domestic: { ...rootData.domestic, password: newPin },
+      overseas: { ...rootData.overseas, password: newPin },
     };
     setRootData(next);
-    saveRootData(next);
+    setActivePin(newPin);
+    saveData(next, newPin);
   };
 
   const exportBackup = () => {
@@ -3513,7 +3530,7 @@ export default function App() {
         const restored = validateBackup(parsed);
         if (!await customConfirm('백업 파일의 데이터로 현재 내용을 교체할까요?')) return;
         setRootData(restored);
-        saveRootData(restored);
+        saveData(restored);
       } catch (error) {
         alert(error instanceof Error ? error.message : '백업 파일을 읽지 못했습니다.');
       }
@@ -3546,8 +3563,18 @@ export default function App() {
       <ParticleBackground />
       {!unlocked ? (
         <LoginScreen
-          password={rootData.domestic.password}
-          onSuccess={() => setUnlocked(true)}
+          password={hasEncryptedData() ? 'SET' : rootData.domestic.password}
+          onVerify={hasEncryptedData() ? (pin) => {
+            const decrypted = loadEncrypted(pin);
+            if (!decrypted) return false;
+            setRootData(decrypted);
+            setActivePin(pin);
+            return true;
+          } : undefined}
+          onSuccess={(pin) => {
+            if (!hasEncryptedData()) setActivePin(pin);
+            setUnlocked(true);
+          }}
           onSetPin={(pin) => {
             const next: RootData = {
               ...rootData,
@@ -3555,7 +3582,8 @@ export default function App() {
               overseas: { ...rootData.overseas, password: pin },
             };
             setRootData(next);
-            saveRootData(next);
+            setActivePin(pin);
+            saveEncrypted(next, pin);
           }}
         />
       ) : (
