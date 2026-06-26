@@ -961,7 +961,8 @@ function LiveView({
       const text = ev.target?.result as string;
       const lines = text.split(/\r?\n/).filter((l) => l.trim());
       if (lines.length === 0) return;
-      const startIdx = /^\d/.test(lines[0].split(',')[0].trim()) ? 0 : 1;
+      // 헤더 감지: 2열(주식수)이 숫자면 데이터, 아니면 헤더
+      const startIdx = /^\d+$/.test(lines[0].split(',')[1]?.trim() ?? '') ? 0 : 1;
       const parsed: LiveCsvRow[] = [];
       for (let i = startIdx; i < lines.length; i++) {
         const cols = lines[i].split(',');
@@ -1659,7 +1660,9 @@ function RealizedGainsView({
       const text = ev.target?.result as string;
       const lines = text.split(/\r?\n/).filter((l) => l.trim());
       if (lines.length === 0) return;
-      const startIdx = /^\d/.test(lines[0].split(',')[0].trim()) ? 0 : 1;
+      // 헤더 감지: 2열(날짜)이 YYYY-MM-DD 형식이면 데이터, 아니면 헤더
+      const rgFirstCols = lines[0].split(',');
+      const startIdx = /^\d{4}-\d{2}-\d{2}$/.test((rgFirstCols[1] ?? '').trim()) ? 0 : 1;
       const parsed: RgCsvRow[] = [];
       for (let i = startIdx; i < lines.length; i++) {
         const cols = lines[i].split(',');
