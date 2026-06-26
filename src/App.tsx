@@ -375,7 +375,7 @@ function LoginScreen({
       // pin 상태와 동일 배치로 업데이트 → 깜빡임 없음
       if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
       setExitingBars(new Set([deletedIdx]));
-      exitTimerRef.current = setTimeout(() => setExitingBars(new Set()), 240);
+      exitTimerRef.current = setTimeout(() => setExitingBars(new Set()), 300);
       if (isSetup) { step === 'first' ? setPin(next) : setConfirmPin(next); }
       else { setPin(next); }
       return;
