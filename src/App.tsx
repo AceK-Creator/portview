@@ -352,134 +352,92 @@ function LoginScreen({
   const [confirmPin, setConfirmPin] = useState('');
   const [step, setStep] = useState<'first' | 'confirm'>('first');
   const [shake, setShake] = useState(false);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
-  const [canTransition, setCanTransition] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setKeyboardOffset(kb > 50 ? kb : 0);
-    };
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-    };
-  }, []);
-
-  // 초기 로드 시 visualViewport jitter로 인한 덜컹 방지:
-  // 마운트 후 600ms간 transition 비활성화
-  useEffect(() => {
-    const t = setTimeout(() => setCanTransition(true), 600);
-    return () => clearTimeout(t);
-  }, []);
 
   const triggerShake = (onDone: () => void) => {
     setShake(true);
     setTimeout(() => {
       setShake(false);
       onDone();
-      inputRef.current?.focus();
     }, 650);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleKeyPress = (key: string) => {
     if (shake) return;
-    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+    const current = isSetup ? (step === 'first' ? pin : confirmPin) : pin;
+
+    if (key === 'del') {
+      const next = current.slice(0, -1);
+      if (isSetup) { step === 'first' ? setPin(next) : setConfirmPin(next); }
+      else { setPin(next); }
+      return;
+    }
+
+    if (current.length >= 4) return;
+    const next = current + key;
 
     if (isSetup) {
       if (step === 'first') {
-        setPin(val);
-        if (val.length === 4) {
-          setStep('confirm');
-          setConfirmPin('');
-          setTimeout(() => inputRef.current?.focus(), 50);
+        setPin(next);
+        if (next.length === 4) {
+          setTimeout(() => { setStep('confirm'); setConfirmPin(''); }, 200);
         }
       } else {
-        setConfirmPin(val);
-        if (val.length === 4) {
-          if (val === pin) {
-            onSetPin?.(pin);
-            onSuccess(pin);
+        setConfirmPin(next);
+        if (next.length === 4) {
+          if (next === pin) {
+            setTimeout(() => { onSetPin?.(pin); onSuccess(pin); }, 200);
           } else {
-            triggerShake(() => {
-              setStep('first');
-              setPin('');
-              setConfirmPin('');
-            });
+            setTimeout(() => triggerShake(() => { setStep('first'); setPin(''); setConfirmPin(''); }), 200);
           }
         }
       }
     } else {
-      setPin(val);
-      if (val.length === 4) {
-        const ok = onVerify ? onVerify(val) : val === password;
-        if (ok) {
-          onSuccess(val);
-        } else {
-          triggerShake(() => setPin(''));
-        }
+      setPin(next);
+      if (next.length === 4) {
+        const ok = onVerify ? onVerify(next) : next === password;
+        if (ok) { setTimeout(() => onSuccess(next), 200); }
+        else { setTimeout(() => triggerShake(() => setPin('')), 200); }
       }
     }
   };
 
   const displayPin = isSetup ? (step === 'first' ? pin : confirmPin) : pin;
-
   const guideText = isSetup
-    ? step === 'first'
-      ? '사용할 PIN 4자리를 입력하세요.'
-      : '한 번 더 입력해 주세요.'
+    ? step === 'first' ? '사용할 PIN 4자리를 입력하세요.' : '한 번 더 입력해 주세요.'
     : '4자리 PIN을 입력하세요.';
 
-  // 키보드가 올라왔을 때 패널을 상단 3px 위치로 정확히 이동
-  // login-screen은 inset:0 + place-items:center → 패널 중심이 window.innerHeight/2 위치
-  const panelHeight = panelRef.current?.offsetHeight ?? 420;
-  const moveUp = keyboardOffset > 0
-    ? Math.max(0, window.innerHeight / 2 - panelHeight / 2 - 3)
-    : 0;
-
   return (
-    <main className="login-screen" onClick={() => inputRef.current?.focus()}>
-      <div
-        ref={panelRef}
-        className="login-panel"
-        style={{ transform: moveUp > 0 ? `translateY(-${moveUp}px)` : undefined, transition: canTransition ? 'transform 300ms ease' : 'none' }}
-      >
-        <div className="login-mark">
-          <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
-        </div>
-        <h1>PortView</h1>
-        <p className="app-version-badge">Beta v0.8</p>
-        <p>{guideText}</p>
-        <div
-          className={`pin-dots${shake ? ' shake' : ''}`}
-          onClick={() => inputRef.current?.focus()}
-        >
+    <main className="login-screen">
+      <div className="login-top">
+        <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
+        <h1 className="login-title">PortView</h1>
+        <p className="login-version">Beta v0.8</p>
+      </div>
+
+      <div className="login-mid">
+        <p className="login-guide">{guideText}</p>
+        <div className={`pin-bars${shake ? ' shake' : ''}`}>
           {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={`pin-dot${displayPin.length > i ? ' filled' : ''}${shake ? ' error' : ''}`}
-            />
+            <div key={i} className={`pin-bar${displayPin.length > i ? ' filled' : ''}${shake ? ' error' : ''}`}>
+              {displayPin.length > i && (
+                <div className="pin-bar-inner">
+                  <span className="pb1" />
+                  <span className="pb2" />
+                  <span className="pb3" />
+                </div>
+              )}
+            </div>
           ))}
         </div>
-        <input
-          ref={inputRef}
-          aria-label={isSetup ? 'PIN 설정' : '비밀번호'}
-          autoComplete={isSetup ? 'new-password' : 'current-password'}
-          autoFocus
-          inputMode="numeric"
-          maxLength={4}
-          pattern="[0-9]*"
-          type="password"
-          value={displayPin}
-          onChange={handleChange}
-          className="pin-hidden-input"
-        />
+      </div>
+
+      <div className="pin-keypad">
+        {[1,2,3,4,5,6,7,8,9].map(n => (
+          <button key={n} className="pin-key" onClick={() => handleKeyPress(String(n))}>{n}</button>
+        ))}
+        <div />
+        <button className="pin-key" onClick={() => handleKeyPress('0')}>0</button>
+        <button className="pin-key pin-key-del" onClick={() => handleKeyPress('del')}>⌫</button>
       </div>
     </main>
   );
