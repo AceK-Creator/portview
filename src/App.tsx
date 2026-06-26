@@ -1800,7 +1800,7 @@ function RealizedGainsView({
         <div className="dividend-stat-sub">총 {records.length}건</div>
       </div>
       <div className="dividend-section">
-        <div style={{ display: 'flex', padding: '20px 0' }}>
+        <div style={{ display: 'flex', padding: '16px 0' }}>
           <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
             <div className="dividend-stat-label">{prevYear}년 실현손익</div>
             <div className={`dividend-stat-value ${tone(totalPrevYear)}`}>
@@ -2406,7 +2406,7 @@ function DividendSummaryTab({
 
       {/* 2. 전년도 / 올해 카드 */}
       <div className="dividend-section">
-        <div style={{ display: 'flex', padding: '20px 0' }}>
+        <div style={{ display: 'flex', padding: '16px 0' }}>
           {/* 왼쪽 */}
           <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid rgba(145,181,220,0.15)', paddingRight: 8 }}>
             <div className="dividend-stat-label">{prevYear}년(실제)</div>
