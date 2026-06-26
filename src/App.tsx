@@ -2094,7 +2094,10 @@ function DividendAddModal({
             inputMode="decimal"
             placeholder={isOverseas ? '예: 150.00' : '예: 150,000'}
             value={amountStr}
-            onChange={(e) => setAmountStr(formatNumberWithCommas(e.target.value))}
+            onChange={(e) => isOverseas
+              ? setAmountStr(e.target.value.replace(/[^0-9.]/g, ''))
+              : setAmountStr(formatNumberWithCommas(e.target.value))
+            }
           />
         </label>
 
@@ -3166,7 +3169,7 @@ function DividendRecordsTab({
   onDelete: (id: string) => void;
   onBulkAdd: (records: DividendRecord[]) => void;
 }) {
-  const { c } = useCurrency();
+  const { c, isOverseas } = useCurrency();
   // 종목 필터
   const allCodes = Array.from(new Set(dividends.map((d) => d.stockCode)));
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(() => new Set(allCodes));
@@ -3226,8 +3229,9 @@ function DividendRecordsTab({
       const lines = text.split(/\r?\n/).filter((l) => l.trim());
       if (lines.length === 0) return;
 
-      // 첫 줄 헤더 감지: 첫 컬럼이 숫자가 아니면 헤더로 간주
-      const startIdx = /^\d/.test(lines[0].split(',')[0].trim()) ? 0 : 1;
+      // 첫 줄 헤더 감지: 두 번째 컬럼이 날짜 형식(YYYY-MM-DD)이 아니면 헤더로 간주
+      const firstCols = lines[0].split(',');
+      const startIdx = /^\d{4}-\d{2}-\d{2}$/.test((firstCols[1] ?? '').trim()) ? 0 : 1;
       const parsed: CsvRow[] = [];
       for (let i = startIdx; i < lines.length; i++) {
         const cols = lines[i].split(',');
@@ -3418,11 +3422,13 @@ function DividendRecordsTab({
       {showDivCsvGuide && (
         <CsvGuideModal
           columns={[
-            { name: '종목코드', desc: '6자리 숫자' },
+            { name: '종목코드', desc: isOverseas ? '티커 심볼 (예: AAPL, GOOGL)' : '6자리 숫자 (예: 005930)' },
             { name: '지급일', desc: 'YYYY-MM-DD' },
-            { name: '배당금액', desc: '숫자 (원 단위, 양수)' },
+            { name: '배당금액', desc: isOverseas ? '숫자 (달러 단위, 양수)' : '숫자 (원 단위, 양수)' },
           ]}
-          sample={'005930,2024-01-15,50000\n000660,2024-03-20,30000'}
+          sample={isOverseas
+            ? 'AAPL,2024-02-15,150.00\nGOOGL,2024-03-20,80.00'
+            : '005930,2024-01-15,50000\n000660,2024-03-20,30000'}
           note={<>헤더 행은 있어도 없어도 됩니다.<br /><span style={{ color: '#ffe082' }}>엑셀 사용 시 A열/B열/C열에 값 입력 후 반드시 CSV 형식(.csv)으로 저장하세요.</span></>}
           onClose={() => setShowDivCsvGuide(false)}
           onSelectFile={() => csvInputRef.current?.click()}
