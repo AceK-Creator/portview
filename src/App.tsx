@@ -437,10 +437,10 @@ function LoginScreen({
     : '4자리 PIN을 입력하세요.';
 
   // 키보드가 올라왔을 때 패널을 상단 3px 위치로 정확히 이동
-  const availableHeight = keyboardOffset > 0 ? window.innerHeight - keyboardOffset : window.innerHeight;
-  const panelHeight = panelRef.current?.offsetHeight ?? 0;
+  // login-screen은 inset:0 + place-items:center → 패널 중심이 window.innerHeight/2 위치
+  const panelHeight = panelRef.current?.offsetHeight ?? 420;
   const moveUp = keyboardOffset > 0
-    ? Math.max(0, availableHeight / 2 - panelHeight / 2 - 3)
+    ? Math.max(0, window.innerHeight / 2 - panelHeight / 2 - 3)
     : 0;
 
   return (
