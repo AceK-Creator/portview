@@ -51,27 +51,6 @@
       z-index: 0;
     }
 
-    /* 별 레이어 */
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        radial-gradient(1px 1px at  8% 12%, rgba(255,255,255,0.45) 0%, transparent 100%),
-        radial-gradient(1px 1px at 22% 68%, rgba(255,255,255,0.30) 0%, transparent 100%),
-        radial-gradient(1px 1px at 38% 28%, rgba(255,255,255,0.25) 0%, transparent 100%),
-        radial-gradient(1px 1px at 54% 82%, rgba(255,255,255,0.35) 0%, transparent 100%),
-        radial-gradient(1px 1px at 67% 42%, rgba(255,255,255,0.20) 0%, transparent 100%),
-        radial-gradient(1px 1px at 80% 18%, rgba(255,255,255,0.40) 0%, transparent 100%),
-        radial-gradient(1px 1px at 91% 72%, rgba(255,255,255,0.25) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 12% 88%, rgba(99,102,241,0.65)  0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 74%  8%, rgba(34,211,238,0.55)  0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 48% 52%, rgba(168,85,247,0.45) 0%, transparent 100%),
-        radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.20) 0%, transparent 100%),
-        radial-gradient(1px 1px at 60% 15%, rgba(255,255,255,0.30) 0%, transparent 100%);
-      pointer-events: none;
-      z-index: 0;
-    }
 
     .wrap {
       position: relative;
@@ -127,6 +106,42 @@
       font-size: 0.92rem;
       line-height: 1.85;
       font-weight: 300;
+    }
+
+    .hero-tagline {
+      font-size: 1rem;
+      color: #cbd5e1;
+      line-height: 1.75;
+      font-weight: 400;
+      margin-bottom: 20px;
+    }
+
+.hero-features {
+      list-style: none;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+
+    .hero-features li {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 300;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-features li::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--cyan);
+      flex-shrink: 0;
     }
 
     .hero-line {
@@ -248,10 +263,14 @@
     <img class="hero-icon" src="../PortView_ICON(NOBG).png" alt="PortView 아이콘" />
     <h1 class="hero-title">PortView</h1>
     <span class="version-badge">Beta v0.8</span>
-    <p class="hero-sub">
-      국내·해외 주식 자산, 배당, 실현손익을<br>
-      하나의 앱으로 관리하세요
+    <p class="hero-tagline">
+      국내·해외 주식 자산, 배당, 실현손익을<br>하나의 앱으로 관리
     </p>
+    <ul class="hero-features">
+      <li>직접 기록 기반</li>
+      <li>증권사 연동 없이 로컬 데이터로만 작동</li>
+      <li>자산 변동 추적 · 배당 관리에 특화</li>
+    </ul>
     <div class="hero-line"></div>
   </section>
 
@@ -316,7 +335,8 @@
         <h2>배당금도 꼼꼼하게</h2>
         <p>
           누적 배당금 합계와 월별 추이를 차트로 확인하고<br>
-          연도별로 얼마나 받았는지 비교할 수 있습니다.
+          연도별로 얼마나 받았는지 비교할 수 있습니다.<br>
+          다음달 예상 배당금도 확인 가능합니다.
         </p>
       </div>
     </div>

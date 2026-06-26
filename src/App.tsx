@@ -415,19 +415,17 @@ function LoginScreen({
       </div>
 
       <div className="login-mid">
+        <div className="login-divider" />
         <p className="login-guide">{guideText}</p>
-        <div className={`pin-bars${shake ? ' shake' : ''}`}>
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className={`pin-bar${displayPin.length > i ? ' filled' : ''}${shake ? ' error' : ''}`}>
-              {displayPin.length > i && (
-                <div className="pin-bar-inner">
-                  <span className="pb1" />
-                  <span className="pb2" />
-                  <span className="pb3" />
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="pin-bars-container">
+          <div className={`pin-bars${shake ? ' shake' : ''}`}>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={`pin-bar pin-bar-${i + 1}${displayPin.length > i ? ' filled' : ''}${shake ? ' error' : ''}`}>
+                {displayPin.length > i && <div className="pin-bar-fill" />}
+              </div>
+            ))}
+          </div>
+          <div className="pin-glow-line" />
         </div>
       </div>
 

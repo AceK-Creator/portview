@@ -281,6 +281,7 @@ app.post('/api/client-error', (req, res) => {
   res.status(204).end();
 });
 
+app.use(express.static(DIST_DIR));
 app.use('/portview', express.static(DIST_DIR, { extensions: ['html'] }));
 app.get('/portview/*', (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'index.html'));
