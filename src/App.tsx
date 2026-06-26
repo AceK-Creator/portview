@@ -1091,11 +1091,13 @@ function LiveView({
       {showLiveCsvGuide && (
         <CsvGuideModal
           columns={[
-            { name: '종목코드', desc: '6자리 숫자' },
+            { name: '종목코드', desc: isOverseas ? '티커 심볼 (예: AAPL, GOOGL)' : '6자리 숫자 (예: 005930)' },
             { name: '주식수', desc: '보유 수량 (정수)' },
-            { name: '매입가', desc: '평균 매입 단가 (원)' },
+            { name: '매입가', desc: isOverseas ? '평균 매입 단가 (USD)' : '평균 매입 단가 (원)' },
           ]}
-          sample={'005930,10,75000\n000660,5,120000'}
+          sample={isOverseas
+            ? 'AAPL,10,185.50\nGOOGL,5,172.00'
+            : '005930,10,75000\n000660,5,120000'}
           note={<>헤더 행은 있어도 없어도 됩니다. 기존 종목에 추가로 업로드됩니다.<br /><span style={{ color: '#ffe082' }}>엑셀 사용 시 A열/B열/C열에 값 입력 후 반드시 CSV 형식(.csv)으로 저장하세요.</span></>}
           onClose={() => setShowLiveCsvGuide(false)}
           onSelectFile={() => liveCsvInputRef.current?.click()}
