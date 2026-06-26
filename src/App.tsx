@@ -2355,7 +2355,7 @@ function DividendSummaryTab({
   const [chartMonths, setChartMonths] = useState<6 | 12>(6);
   const [selectedBar, setSelectedBar] = useState<number | null>(null);
   const chartData: { label: string; year: number; month: number; total: number; isEstimated?: boolean }[] = [];
-  for (let i = chartMonths - 2; i >= 0; i--) {
+  for (let i = chartMonths - 1; i >= 0; i--) {
     const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     const y = d.getFullYear();
     const m = d.getMonth() + 1;
