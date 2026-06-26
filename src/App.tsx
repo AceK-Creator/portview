@@ -1567,7 +1567,7 @@ function RealizedGainsView({
   data: AppData;
   onDataChange: (data: AppData) => void;
 }) {
-  const { c, sc } = useCurrency();
+  const { c, sc, isOverseas } = useCurrency();
   const [showAddModal, setShowAddModal] = useState(false);
   const [top5Type, setTop5Type] = useState<'gain' | 'loss'>('gain');
   const [rgCsvRows, setRgCsvRows] = useState<RgCsvRow[] | null>(null);
@@ -1926,11 +1926,13 @@ function RealizedGainsView({
       {showRgCsvGuide && (
         <CsvGuideModal
           columns={[
-            { name: '종목코드', desc: '6자리 숫자' },
+            { name: '종목코드', desc: isOverseas ? '티커 심볼 (예: AAPL, GOOGL)' : '6자리 숫자 (예: 005930)' },
             { name: '날짜', desc: 'YYYY-MM-DD' },
-            { name: '금액', desc: '양수=수익  /  음수(-)=손실' },
+            { name: '금액', desc: isOverseas ? '양수=수익 / 음수(-)=손실 (USD)' : '양수=수익 / 음수(-)=손실 (원)' },
           ]}
-          sample={'005930,2024-01-15,150000\n000660,2024-02-20,-50000'}
+          sample={isOverseas
+            ? 'AAPL,2024-01-15,1500.00\nGOOGL,2024-02-20,-500.00'
+            : '005930,2024-01-15,150000\n000660,2024-02-20,-50000'}
           note={<>헤더 행은 있어도 없어도 됩니다. 금액이 양수면 수익, 음수(-)이면 손실로 처리됩니다.<br /><span style={{ color: '#ffe082' }}>엑셀 사용 시 A열/B열/C열에 값 입력 후 반드시 CSV 형식(.csv)으로 저장하세요.</span></>}
           onClose={() => setShowRgCsvGuide(false)}
           onSelectFile={() => rgCsvInputRef.current?.click()}
