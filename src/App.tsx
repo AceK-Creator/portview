@@ -355,6 +355,7 @@ function LoginScreen({
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [canTransition, setCanTransition] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const vv = window.visualViewport;
@@ -435,11 +436,19 @@ function LoginScreen({
       : '한 번 더 입력해 주세요.'
     : '4자리 PIN을 입력하세요.';
 
+  // 키보드가 올라왔을 때 패널을 상단 3px 위치로 정확히 이동
+  const availableHeight = keyboardOffset > 0 ? window.innerHeight - keyboardOffset : window.innerHeight;
+  const panelHeight = panelRef.current?.offsetHeight ?? 0;
+  const moveUp = keyboardOffset > 0
+    ? Math.max(0, availableHeight / 2 - panelHeight / 2 - 3)
+    : 0;
+
   return (
     <main className="login-screen" onClick={() => inputRef.current?.focus()}>
       <div
+        ref={panelRef}
         className="login-panel"
-        style={{ transform: keyboardOffset > 0 ? `translateY(-${Math.min(keyboardOffset * 0.5, 120)}px)` : undefined, transition: canTransition ? 'transform 300ms ease' : 'none' }}
+        style={{ transform: moveUp > 0 ? `translateY(-${moveUp}px)` : undefined, transition: canTransition ? 'transform 300ms ease' : 'none' }}
       >
         <div className="login-mark">
           <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
