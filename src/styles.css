@@ -72,8 +72,8 @@ button:disabled {
   justify-content: flex-start;
   padding: 44px 32px 36px;
   background:
-    radial-gradient(circle at 10% 20%, rgba(124, 77, 255, 0.15) 0%, transparent 45%),
-    radial-gradient(circle at 90% 80%, rgba(0, 180, 216, 0.12) 0%, transparent 45%);
+    radial-gradient(circle at 10% 20%, rgba(124, 77, 255, 0.06) 0%, transparent 45%),
+    radial-gradient(circle at 90% 80%, rgba(0, 180, 216, 0.05) 0%, transparent 45%);
   z-index: 2;
   overflow: hidden;
 }
@@ -92,12 +92,12 @@ button:disabled {
 .login-screen::before {
   top: 15%;
   left: 15%;
-  background: rgba(124, 77, 255, 0.5);
+  background: rgba(124, 77, 255, 0.18);
 }
 .login-screen::after {
   bottom: 15%;
   right: 15%;
-  background: rgba(0, 180, 216, 0.4);
+  background: rgba(0, 180, 216, 0.13);
 }
 
 /* ── Login top (logo + title + version) ─────────────── */
@@ -234,6 +234,16 @@ button:disabled {
   to   { transform: scaleY(1); }
 }
 
+@keyframes fill-fall {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0); }
+}
+
+.pin-bar-fill.exiting {
+  animation: fill-fall 220ms ease-in forwards;
+  transform-origin: bottom;
+}
+
 .pin-glow-line {
   width: 340px;
   height: 8px;
@@ -284,7 +294,7 @@ button:disabled {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.32);
   background: transparent;
   color: #ffffff;
   font-size: 17px;

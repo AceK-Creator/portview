@@ -352,8 +352,11 @@ function LoginScreen({
   const [confirmPin, setConfirmPin] = useState('');
   const [step, setStep] = useState<'first' | 'confirm'>('first');
   const [shake, setShake] = useState(false);
+  const [exitingBars, setExitingBars] = useState<Set<number>>(new Set());
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerShake = (onDone: () => void) => {
+    setExitingBars(new Set());
     setShake(true);
     setTimeout(() => {
       setShake(false);
@@ -366,7 +369,13 @@ function LoginScreen({
     const current = isSetup ? (step === 'first' ? pin : confirmPin) : pin;
 
     if (key === 'del') {
+      if (current.length === 0) return;
+      const deletedIdx = current.length - 1;
       const next = current.slice(0, -1);
+      // pin 상태와 동일 배치로 업데이트 → 깜빡임 없음
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+      setExitingBars(new Set([deletedIdx]));
+      exitTimerRef.current = setTimeout(() => setExitingBars(new Set()), 240);
       if (isSetup) { step === 'first' ? setPin(next) : setConfirmPin(next); }
       else { setPin(next); }
       return;
@@ -406,6 +415,12 @@ function LoginScreen({
     ? step === 'first' ? '사용할 PIN 4자리를 입력하세요.' : '한 번 더 입력해 주세요.'
     : '4자리 PIN을 입력하세요.';
 
+  // step 전환 시 exiting 초기화
+  useEffect(() => {
+    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    setExitingBars(new Set());
+  }, [step]);
+
   return (
     <main className="login-screen">
       <div className="login-top">
@@ -421,7 +436,9 @@ function LoginScreen({
           <div className={`pin-bars${shake ? ' shake' : ''}`}>
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className={`pin-bar pin-bar-${i + 1}${displayPin.length > i ? ' filled' : ''}${shake ? ' error' : ''}`}>
-                {displayPin.length > i && <div className="pin-bar-fill" />}
+                {(displayPin.length > i || exitingBars.has(i)) && (
+                  <div className={`pin-bar-fill${exitingBars.has(i) ? ' exiting' : ''}`} />
+                )}
               </div>
             ))}
           </div>
