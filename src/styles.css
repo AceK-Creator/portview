@@ -283,7 +283,7 @@ button:disabled {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, 46px);
+  grid-template-columns: repeat(3, 51px);
   gap: 18px;
   justify-content: center;
   width: 100%;
@@ -291,13 +291,13 @@ button:disabled {
 }
 
 .pin-key {
-  width: 46px;
-  height: 46px;
+  width: 51px;
+  height: 51px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.32);
   background: transparent;
   color: #ffffff;
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 400;
   cursor: pointer;
   display: flex;
