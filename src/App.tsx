@@ -2511,16 +2511,8 @@ function DividendSummaryTab({
               const barY = 140 - barH;
               const isSelected = selectedBar === idx;
 
-              // 팝업 위치 계산
-              const popupW = 140;
-              const popupH = item.isEstimated ? 62 : 46;
-              const popupX = Math.min(Math.max(2, cx - popupW / 2), 520 - popupW - 2);
-              const popupY = Math.max(2, barY - popupH - 18);
-
-              const popupStroke = item.isEstimated ? 'rgba(100,200,100,0.8)' : 'rgba(124,77,255,0.7)';
               const barFill = item.isEstimated ? '#a8e6a3' : 'url(#barGrad)';
               const barOpacity = item.isEstimated ? 0.9 : (item.total === 0 ? 0.25 : isSelected ? 1 : 0.85);
-              const showPopup = isSelected && (item.total > 0 || item.isEstimated);
 
               return (
                 <g
@@ -2551,77 +2543,96 @@ function DividendSummaryTab({
                   >
                     {item.label}
                   </text>
-                  {/* 팝업 */}
-                  {showPopup && (
-                    <g style={{ pointerEvents: 'none' }}>
-                      <rect
-                        x={popupX}
-                        y={popupY}
-                        width={popupW}
-                        height={popupH}
-                        rx={6}
-                        fill="#0a1830"
-                        stroke={popupStroke}
-                        strokeWidth="1"
-                      />
-                      {/* 말풍선 꼬리 */}
-                      <polygon
-                        points={`${cx - 7},${popupY + popupH} ${cx + 7},${popupY + popupH} ${cx},${popupY + popupH + 9}`}
-                        fill="#0a1830"
-                        stroke={popupStroke}
-                        strokeWidth="1"
-                        strokeLinejoin="round"
-                      />
-                      {/* 꼬리 위 선으로 border 가리기 */}
-                      <line
-                        x1={cx - 7}
-                        y1={popupY + popupH}
-                        x2={cx + 7}
-                        y2={popupY + popupH}
-                        stroke="#0a1830"
-                        strokeWidth="2"
-                      />
-                      {item.isEstimated ? (
-                        <>
-                          <text
-                            x={popupX + popupW / 2}
-                            y={popupY + 22}
-                            textAnchor="middle"
-                            fill="#a8e6a3"
-                            fontSize="12"
-                            fontWeight="600"
-                          >
-                            {estimatedLoading ? '계산 중...' : '예상'}
-                          </text>
-                          <text
-                            x={popupX + popupW / 2}
-                            y={popupY + 46}
-                            textAnchor="middle"
-                            fill="#ffffff"
-                            fontSize="17"
-                            fontWeight="700"
-                          >
-                            {estimatedLoading ? '...' : c(item.total)}
-                          </text>
-                        </>
-                      ) : (
-                        <text
-                          x={popupX + popupW / 2}
-                          y={popupY + popupH / 2 + 7}
-                          textAnchor="middle"
-                          fill="#ffffff"
-                          fontSize="17"
-                          fontWeight="700"
-                        >
-                          {c(item.total)}
-                        </text>
-                      )}
-                    </g>
-                  )}
                 </g>
               );
             })}
             <line x1="0" y1="140" x2="520" y2="140" stroke="rgba(145,181,220,0.12)" strokeWidth="1" />
+            {/* 말풍선: 모든 막대 위에 그려지도록 루프 밖 SVG 맨 끝에 렌더링 */}
+            {(() => {
+              if (selectedBar === null) return null;
+              const item = chartData[selectedBar];
+              if (!item || (!item.total && !item.isEstimated)) return null;
+              const idx = selectedBar;
+              const chartH = 100;
+              const totalBars = chartData.length;
+              const barW = chartMonths === 6 ? Math.floor(520 / (totalBars + 1) - 4) : Math.floor(520 / (totalBars + 1) - 2);
+              const gap = (520 - totalBars * barW) / (totalBars + 1);
+              const x = gap + idx * (barW + gap);
+              const cx = x + barW / 2;
+              const barH = item.total > 0 ? Math.max(4, (item.total / chartMax) * chartH) : 2;
+              const barY = 140 - barH;
+              const popupW = 140;
+              const popupH = item.isEstimated ? 62 : 46;
+              const popupX = Math.min(Math.max(2, cx - popupW / 2), 520 - popupW - 2);
+              const popupY = Math.max(2, barY - popupH - 18);
+              const popupStroke = item.isEstimated ? 'rgba(100,200,100,0.8)' : 'rgba(124,77,255,0.7)';
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  <rect
+                    x={popupX}
+                    y={popupY}
+                    width={popupW}
+                    height={popupH}
+                    rx={6}
+                    fill="#0a1830"
+                    stroke={popupStroke}
+                    strokeWidth="1"
+                  />
+                  {/* 말풍선 꼬리 */}
+                  <polygon
+                    points={`${cx - 7},${popupY + popupH} ${cx + 7},${popupY + popupH} ${cx},${popupY + popupH + 9}`}
+                    fill="#0a1830"
+                    stroke={popupStroke}
+                    strokeWidth="1"
+                    strokeLinejoin="round"
+                  />
+                  {/* 꼬리 위 선으로 border 가리기 */}
+                  <line
+                    x1={cx - 7}
+                    y1={popupY + popupH}
+                    x2={cx + 7}
+                    y2={popupY + popupH}
+                    stroke="#0a1830"
+                    strokeWidth="2"
+                  />
+                  {item.isEstimated ? (
+                    <>
+                      <text
+                        x={popupX + popupW / 2}
+                        y={popupY + 22}
+                        textAnchor="middle"
+                        fill="#a8e6a3"
+                        fontSize="12"
+                        fontWeight="600"
+                      >
+                        {estimatedLoading ? '계산 중...' : '예상'}
+                      </text>
+                      <text
+                        x={popupX + popupW / 2}
+                        y={popupY + 46}
+                        textAnchor="middle"
+                        fill="#ffffff"
+                        fontSize="17"
+                        fontWeight="700"
+                      >
+                        {estimatedLoading ? '...' : c(item.total)}
+                      </text>
+                    </>
+                  ) : (
+                    <text
+                      x={popupX + popupW / 2}
+                      y={popupY + popupH / 2 + 7}
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="17"
+                      fontWeight="700"
+                    >
+                      {c(item.total)}
+                    </text>
+                  )}
+                </g>
+              );
+            })()}
           </svg>
         </div>
       </div>
