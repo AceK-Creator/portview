@@ -1051,6 +1051,34 @@ input:focus {
   font-variant-numeric: tabular-nums;
 }
 
+.sort-header {
+  cursor: pointer;
+  user-select: none;
+  gap: 3px;
+  transition: color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sort-header:hover {
+  color: #c8dff5;
+  background: rgba(145, 181, 220, 0.08);
+}
+
+.sort-header:active {
+  background: rgba(145, 181, 220, 0.16);
+}
+
+.sort-header.sort-active {
+  color: #7dd3fc;
+  font-weight: 600;
+}
+
+.sort-arrow {
+  font-size: 9px;
+  margin-right: 2px;
+  opacity: 0.9;
+}
+
 .holding-row {
   height: 62px;
   box-shadow: inset 0 1px 0 rgba(145, 181, 220, 0.22);

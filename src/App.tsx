@@ -752,6 +752,9 @@ function LiveSummary({ rows }: { rows: HoldingRow[] }) {
   );
 }
 
+type SortKey = 'shares' | 'averagePrice' | 'profitLoss' | 'investedAmount' | 'change' | 'weight' | 'currentPrice' | 'returnRate' | 'marketValue' | 'changeRate';
+type SortDir = 'desc' | 'asc' | null;
+
 function HoldingTable({
   rows,
   onEdit,
@@ -762,6 +765,45 @@ function HoldingTable({
   onDelete: (row: HoldingRow) => void;
 }) {
   const { c, sc } = useCurrency();
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>(null);
+
+  function handleSort(key: SortKey) {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir('desc');
+    } else if (sortDir === 'desc') {
+      setSortDir('asc');
+    } else if (sortDir === 'asc') {
+      setSortKey(null);
+      setSortDir(null);
+    }
+  }
+
+  const sortedRows = useMemo(() => {
+    if (!sortKey || !sortDir) return rows;
+    return [...rows].sort((a, b) => {
+      const av = a[sortKey] ?? -Infinity;
+      const bv = b[sortKey] ?? -Infinity;
+      return sortDir === 'desc' ? (bv as number) - (av as number) : (av as number) - (bv as number);
+    });
+  }, [rows, sortKey, sortDir]);
+
+  function SortHeader({ label, colKey }: { label: string; colKey: SortKey }) {
+    const active = sortKey === colKey;
+    const arrow = active && sortDir === 'desc' ? '▼' : active && sortDir === 'asc' ? '▲' : null;
+    return (
+      <div
+        className={`sort-header${active ? ' sort-active' : ''}`}
+        onClick={() => handleSort(colKey)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && handleSort(colKey)}
+      >
+        {arrow && <span className="sort-arrow">{arrow}</span>}{label}
+      </div>
+    );
+  }
 
   if (rows.length === 0) {
     return (
@@ -779,20 +821,20 @@ function HoldingTable({
         <div className="table-header">
           <div className="name-heading">종목명</div>
           <div className="metrics-grid">
-            <div>잔고수량</div>
-            <div>매입가</div>
-            <div>평가손익</div>
-            <div>매입금액</div>
-            <div>대비</div>
-            <div>보유비중</div>
-            <div>현재가</div>
-            <div>수익률</div>
-            <div>평가금액</div>
-            <div>등락률</div>
+            <SortHeader label="잔고수량" colKey="shares" />
+            <SortHeader label="매입가" colKey="averagePrice" />
+            <SortHeader label="평가손익" colKey="profitLoss" />
+            <SortHeader label="매입금액" colKey="investedAmount" />
+            <SortHeader label="대비" colKey="change" />
+            <SortHeader label="보유비중" colKey="weight" />
+            <SortHeader label="현재가" colKey="currentPrice" />
+            <SortHeader label="수익률" colKey="returnRate" />
+            <SortHeader label="평가금액" colKey="marketValue" />
+            <SortHeader label="등락률" colKey="changeRate" />
           </div>
           <div className="action-heading">관리</div>
         </div>
-        {rows.map((row) => (
+        {sortedRows.map((row) => (
           <article className="holding-row" key={row.id}>
             <div className="holding-name">
               <strong>{row.name}</strong>
