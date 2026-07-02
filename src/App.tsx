@@ -623,13 +623,34 @@ function MarketIndexBar({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  const domesticLoaded = useRef(false);
+  const overseasLoaded = useRef(false);
+  const lastRefreshKey = useRef<number | undefined>(undefined);
+
   useEffect(() => {
+    // 새로고침(refreshKey 변경) 시 캐시 초기화
+    if (refreshKey !== lastRefreshKey.current) {
+      domesticLoaded.current = false;
+      overseasLoaded.current = false;
+      lastRefreshKey.current = refreshKey;
+    }
+
+    // 이미 로딩된 데이터가 있으면 재fetch 생략
+    if (mode === 'domestic' && domesticLoaded.current) {
+      setLoading(false);
+      return;
+    }
+    if (mode === 'overseas' && overseasLoaded.current) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(false);
 
     if (mode === 'domestic') {
       fetchMarketIndex()
-        .then(({ kospi, kosdaq }) => { setKospi(kospi); setKosdaq(kosdaq); })
+        .then(({ kospi, kosdaq }) => { setKospi(kospi); setKosdaq(kosdaq); domesticLoaded.current = true; })
         .catch((err) => {
           setError(true);
           logClientError({ context: 'MarketIndexBar/domestic', message: err instanceof Error ? err.message : String(err) });
@@ -640,6 +661,7 @@ function MarketIndexBar({
       fetchOverseasIndex()
         .then((result) => {
           setOverseas(result);
+          overseasLoaded.current = true;
           if (onUsdKrwRate && result.usdKrw?.price) onUsdKrwRate(result.usdKrw.price);
         })
         .catch((err) => {
