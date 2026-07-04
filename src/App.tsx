@@ -31,7 +31,7 @@ import {
   loadEncrypted,
   validateBackup,
 } from './storage';
-import type { AccountMode, AccountSummary, AppData, CurrencyMode, DailySnapshot, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData, YearRecord } from './types';
+import type { AccountMode, AccountSummary, AppData, CurrencyMode, DailySnapshot, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData, WeeklySnapshot, YearRecord } from './types';
 
 // ─── 통화 컨텍스트 ─────────────────────────────────────────────────────────────
 
@@ -2136,6 +2136,144 @@ function GoalInputPopup({
   );
 }
 
+// ─── Asset Graph ─────────────────────────────────────────────────────────────
+
+function formatAssetLabel(val: number): string {
+  if (val === 0) return '0';
+  const abs = Math.abs(val);
+  if (abs >= 100_000_000) return `${(val / 100_000_000).toFixed(abs >= 1_000_000_000 ? 0 : 1)}억`;
+  if (abs >= 10_000) return `${Math.round(val / 10_000)}만`;
+  return val.toLocaleString('ko-KR');
+}
+
+function niceStep(rough: number): number {
+  if (rough <= 0) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  const n = rough / mag;
+  if (n <= 1) return mag;
+  if (n <= 2) return 2 * mag;
+  if (n <= 5) return 5 * mag;
+  return 10 * mag;
+}
+
+type GraphFilter = '6m' | '12m' | 'all';
+
+function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) {
+  const [filter, setFilter] = useState<GraphFilter>('6m');
+
+  const now = new Date();
+  const filtered = (() => {
+    const sorted = [...weeklySnapshots].sort((a, b) => a.weekDate.localeCompare(b.weekDate));
+    if (filter === 'all') return sorted;
+    const months = filter === '6m' ? 6 : 12;
+    const cutoff = new Date(now);
+    cutoff.setMonth(cutoff.getMonth() - months);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return sorted.filter((s) => s.weekDate >= cutoffStr);
+  })();
+
+  const W = 320, H = 140;
+  const padL = 52, padR = 10, padT = 10, padB = 26;
+  const gW = W - padL - padR;
+  const gH = H - padT - padB;
+
+  const filterTabs = (
+    <div className="growth-graph-filter-row">
+      {(['6m', '12m', 'all'] as GraphFilter[]).map((f) => (
+        <button
+          key={f}
+          type="button"
+          className={`growth-graph-filter-btn${filter === f ? ' active' : ''}`}
+          onClick={() => setFilter(f)}
+        >
+          {f === '6m' ? '6개월' : f === '12m' ? '12개월' : '전체'}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (filtered.length < 2) {
+    return (
+      <div className="growth-graph-card">
+        {filterTabs}
+        <div className="growth-graph-empty">아직 데이터가 부족합니다<br /><span>앱을 매주 열면 자동으로 쌓여요</span></div>
+      </div>
+    );
+  }
+
+  const values = filtered.map((s) => s.totalAssets);
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const rawRange = rawMax - rawMin;
+  const step = rawRange === 0
+    ? niceStep((rawMax || 1_000_000) * 0.25)
+    : niceStep(rawRange / 3.5);
+  const yMin = Math.floor(rawMin / step) * step;
+  const yMax = yMin + step * 4;
+
+  const xScale = (i: number) =>
+    filtered.length === 1 ? padL + gW / 2 : padL + (i / (filtered.length - 1)) * gW;
+  const yScale = (v: number) =>
+    yMax === yMin ? padT + gH / 2 : padT + (1 - (v - yMin) / (yMax - yMin)) * gH;
+
+  const pts = filtered.map((s, i) => ({ x: xScale(i), y: yScale(s.totalAssets) }));
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L${pts[pts.length - 1].x.toFixed(1)},${(padT + gH).toFixed(1)} L${pts[0].x.toFixed(1)},${(padT + gH).toFixed(1)} Z`;
+
+  const yLevels = [0, 1, 2, 3, 4].map((i) => yMin + step * i);
+
+  // X축 레이블: 월 경계, 최소 40px 간격
+  const xLabels: { x: number; label: string }[] = [];
+  let lastYM = '';
+  filtered.forEach((s, i) => {
+    const ym = s.weekDate.slice(0, 7);
+    if (ym !== lastYM) {
+      const x = xScale(i);
+      if (xLabels.length === 0 || x - xLabels[xLabels.length - 1].x > 38) {
+        const [y, m] = ym.split('-');
+        xLabels.push({ x, label: `${y.slice(2)}.${m}` });
+        lastYM = ym;
+      }
+    }
+  });
+
+  return (
+    <div className="growth-graph-card">
+      {filterTabs}
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="assetAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c4dff" stopOpacity="0.32" />
+            <stop offset="100%" stopColor="#7c4dff" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {/* 그리드 라인 + Y 레이블 */}
+        {yLevels.map((val, i) => {
+          const y = yScale(val).toFixed(1);
+          return (
+            <g key={i}>
+              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="rgba(145,181,220,0.09)" strokeWidth="1" />
+              <text x={padL - 5} y={parseFloat(y) + 3.5} textAnchor="end" fontSize="9" fill="rgba(145,181,220,0.55)">
+                {formatAssetLabel(val)}
+              </text>
+            </g>
+          );
+        })}
+        {/* 면적 채우기 */}
+        <path d={areaPath} fill="url(#assetAreaGrad)" />
+        {/* 선 */}
+        <path d={linePath} fill="none" stroke="#7c4dff" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+        {/* X 레이블 */}
+        {xLabels.map((l, i) => (
+          <text key={i} x={l.x.toFixed(1)} y={H - 5} textAnchor="middle" fontSize="9" fill="rgba(145,181,220,0.5)">
+            {l.label}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 // ─── Growth Summary Tab ───────────────────────────────────────────────────────
 
 function GrowthSummaryTab({
@@ -2206,7 +2344,7 @@ function GrowthSummaryTab({
         </div>
       </div>
 
-      {/* ── 5가지 핵심 지표 ── */}
+      {/* ── 핵심 지표 (상단) ── */}
       <div className="growth-metrics-grid">
 
         <div className="growth-metric-card">
@@ -2225,6 +2363,14 @@ function GrowthSummaryTab({
             {returnSign}{returnRate.toFixed(2)}%
           </strong>
         </div>
+
+      </div>
+
+      {/* ── 자산 추이 그래프 ── */}
+      <AssetGraph weeklySnapshots={data.weeklySnapshots ?? []} />
+
+      {/* ── 배당금 지표 (하단) ── */}
+      <div className="growth-metrics-grid">
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">누적 배당금</span>
@@ -4207,9 +4353,19 @@ export default function App() {
     }
     if (addedAny) yearRecords.sort((a, b) => b.year - a.year);
 
+    // 주간 스냅샷 저장 (이번 주 일요일 날짜로 upsert)
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekDate = weekStart.toISOString().slice(0, 10);
+    const weeklySnapshots: WeeklySnapshot[] = [...(data.weeklySnapshots ?? [])];
+    const wIdx = weeklySnapshots.findIndex((s) => s.weekDate === weekDate);
+    const weekSnap: WeeklySnapshot = { weekDate, totalAssets: metrics.totalAssets };
+    if (wIdx >= 0) weeklySnapshots[wIdx] = weekSnap; else weeklySnapshots.push(weekSnap);
+    weeklySnapshots.sort((a, b) => a.weekDate.localeCompare(b.weekDate));
+
     snapshotSavedRef.current = { date: today, mode: accountMode };
     // persist를 직접 호출하면 data 변경으로 루프되므로 RootData 직접 저장
-    const nextData: AppData = { ...data, dailySnapshots: trimmed, yearRecords };
+    const nextData: AppData = { ...data, dailySnapshots: trimmed, yearRecords, weeklySnapshots };
     const next: RootData = { ...rootData, [accountMode]: nextData };
     setRootData(next);
     if (activePin) saveEncrypted(next, activePin); else saveRootData(next);

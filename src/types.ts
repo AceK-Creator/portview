@@ -75,6 +75,11 @@ export interface YearRecord {
   monthlyDividend: number;
 }
 
+export interface WeeklySnapshot {
+  weekDate: string; // YYYY-MM-DD (해당 주 일요일)
+  totalAssets: number; // KRW
+}
+
 export interface AppData {
   version: number;
   password: string;
@@ -86,6 +91,7 @@ export interface AppData {
   monthlyDividendGoal?: number;
   dailySnapshots?: DailySnapshot[];
   yearRecords?: YearRecord[];
+  weeklySnapshots?: WeeklySnapshot[];
 }
 
 export interface RootData {

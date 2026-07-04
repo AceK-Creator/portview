@@ -3279,6 +3279,19 @@ label {
   transition: border-color 200ms ease;
 }
 
+.yr-date-input {
+  padding-right: 36px;
+}
+
+.yr-date-input::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  opacity: 0.4;
+  cursor: pointer;
+  margin-right: 2px;
+  width: 16px;
+  height: 16px;
+}
+
 .yr-select {
   width: 100%;
   padding: 10px 36px 10px 12px;
@@ -3347,4 +3360,50 @@ label {
 
 .yr-delete-btn:hover {
   background: rgba(255, 107, 107, 0.2);
+}
+
+/* ─── Asset Graph ─────────────────────────────────────────────────────────── */
+
+.growth-graph-card {
+  background: rgba(8, 24, 45, 0.72);
+  border: 1px solid rgba(145, 181, 220, 0.13);
+  border-radius: 16px;
+  padding: 14px 14px 10px;
+}
+
+.growth-graph-filter-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.growth-graph-filter-btn {
+  padding: 4px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(145, 181, 220, 0.2);
+  background: transparent;
+  color: #6a8aaa;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.growth-graph-filter-btn.active {
+  border-color: rgba(124, 77, 255, 0.55);
+  background: rgba(124, 77, 255, 0.14);
+  color: #b39dff;
+}
+
+.growth-graph-empty {
+  text-align: center;
+  padding: 22px 0 14px;
+  color: #6a8aaa;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.growth-graph-empty span {
+  font-size: 11px;
+  color: #4a6a8a;
 }

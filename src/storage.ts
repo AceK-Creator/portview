@@ -61,6 +61,7 @@ function parseAppData(raw: unknown): AppData {
     monthlyDividendGoal: typeof parsed.monthlyDividendGoal === 'number' ? parsed.monthlyDividendGoal : undefined,
     dailySnapshots: Array.isArray(parsed.dailySnapshots) ? parsed.dailySnapshots : [],
     yearRecords: Array.isArray(parsed.yearRecords) ? parsed.yearRecords : [],
+    weeklySnapshots: Array.isArray(parsed.weeklySnapshots) ? parsed.weeklySnapshots : [],
   };
 }
 
