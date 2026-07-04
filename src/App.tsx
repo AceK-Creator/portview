@@ -31,7 +31,7 @@ import {
   loadEncrypted,
   validateBackup,
 } from './storage';
-import type { AccountMode, AppData, CurrencyMode, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData } from './types';
+import type { AccountMode, AccountSummary, AppData, CurrencyMode, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData } from './types';
 
 // ─── 통화 컨텍스트 ─────────────────────────────────────────────────────────────
 
@@ -179,13 +179,14 @@ type HoldingDraft = {
   averagePrice: string;
 };
 
-type TabKey = 'live' | 'account' | 'dividend' | 'realized-gains';
+type TabKey = 'live' | 'account' | 'dividend' | 'realized-gains' | 'growth';
 
 const TAB_ITEMS: { key: TabKey; label: string }[] = [
   { key: 'live', label: '잔고' },
   { key: 'account', label: '자산' },
   { key: 'dividend', label: '배당' },
   { key: 'realized-gains', label: '손익' },
+  { key: 'growth', label: '성장' },
 ];
 
 // ─── Particle Background ──────────────────────────────────────────────────────
@@ -2000,6 +2001,309 @@ function RealizedGainsView({
   );
 }
 
+// ─── Growth View ──────────────────────────────────────────────────────────────
+
+// ─── Growth 유틸리티 ───────────────────────────────────────────────────────────
+
+function calcInvestmentPeriod(startDateStr: string): string {
+  const start = new Date(startDateStr);
+  const now = new Date();
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (months < 0) months = 0;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  if (years === 0 && rem === 0) return '1개월 미만';
+  if (years === 0) return `${rem}개월`;
+  if (rem === 0) return `${years}년`;
+  return `${years}년 ${rem}개월`;
+}
+
+function getCurrentMonthYM(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// ─── 과녁 (Target) 컴포넌트 ──────────────────────────────────────────────────
+
+function TargetBullseye({ percent }: { percent: number }) {
+  const clamped = Math.min(percent, 100);
+  const r = 72;
+  const circ = 2 * Math.PI * r;
+  const dash = (clamped / 100) * circ;
+
+  const ringColor =
+    clamped >= 100 ? '#00e5a0' :
+    clamped >= 70  ? '#7c4dff' :
+    clamped >= 40  ? '#00b4d8' :
+                     '#3d6a9a';
+
+  return (
+    <svg className="growth-target-svg" viewBox="0 0 180 180" aria-hidden="true">
+      <defs>
+        <linearGradient id="tgt-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#7c4dff" />
+          <stop offset="100%" stopColor="#00b4d8" />
+        </linearGradient>
+        <filter id="tgt-glow">
+          <feGaussianBlur stdDeviation="2.5" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      {/* 배경 링 3개 (과녁 동심원) */}
+      <circle cx="90" cy="90" r="72" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="18" />
+      <circle cx="90" cy="90" r="50" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="14" />
+      <circle cx="90" cy="90" r="30" fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="10" />
+      <circle cx="90" cy="90" r="14" fill="rgba(255,255,255,0.07)" />
+
+      {/* 배경 트랙 */}
+      <circle
+        cx="90" cy="90" r={r}
+        fill="none"
+        stroke="rgba(255,255,255,0.08)"
+        strokeWidth="14"
+      />
+
+      {/* 진행 호 */}
+      {clamped > 0 && (
+        <circle
+          cx="90" cy="90" r={r}
+          fill="none"
+          stroke={clamped >= 100 ? '#00e5a0' : 'url(#tgt-grad)'}
+          strokeWidth="14"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ}`}
+          transform="rotate(-90 90 90)"
+          filter="url(#tgt-glow)"
+          style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(.4,0,.2,1)' }}
+        />
+      )}
+
+      {/* 중앙 텍스트 */}
+      <text x="90" y="84" textAnchor="middle" fill="#fff" fontSize="22" fontWeight="700">
+        {Math.round(clamped)}%
+      </text>
+      <text x="90" y="102" textAnchor="middle" fill={ringColor} fontSize="10" fontWeight="500">
+        {clamped >= 100 ? '목표 달성!' : '달성'}
+      </text>
+    </svg>
+  );
+}
+
+// ─── Growth Summary Tab ───────────────────────────────────────────────────────
+
+function GrowthSummaryTab({
+  data,
+  summary,
+  onDataChange,
+}: {
+  data: AppData;
+  summary: AccountSummary;
+  onDataChange: (data: AppData) => void;
+}) {
+  const { c } = useCurrency();
+
+  // 투자 시작일 편집 상태
+  const [editingDate, setEditingDate] = useState(false);
+  const [dateInput, setDateInput] = useState(data.investmentStartDate ?? '');
+
+  // 월 배당금 목표 편집 상태
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalInput, setGoalInput] = useState(
+    data.monthlyDividendGoal != null ? String(data.monthlyDividendGoal) : ''
+  );
+
+  // 5가지 핵심 지표 계산
+  const cumulativeDividend = (data.dividends ?? []).reduce((s, d) => s + d.amount, 0);
+
+  const currentYM = getCurrentMonthYM();
+  const monthlyDividend = (data.dividends ?? [])
+    .filter((d) => d.paidAt.startsWith(currentYM))
+    .reduce((s, d) => s + d.amount, 0);
+
+  const returnRate = summary.totalReturnRate;
+  const returnSign = returnRate > 0 ? '+' : '';
+
+  // 과녁 진행률
+  const goal = data.monthlyDividendGoal ?? 0;
+  const targetPercent = goal > 0 ? (monthlyDividend / goal) * 100 : 0;
+
+  const saveDate = () => {
+    if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+      onDataChange({ ...data, investmentStartDate: dateInput });
+    }
+    setEditingDate(false);
+  };
+
+  const saveGoal = () => {
+    const parsed = Number(goalInput.replace(/,/g, ''));
+    if (!Number.isNaN(parsed) && parsed >= 0) {
+      onDataChange({ ...data, monthlyDividendGoal: parsed });
+    }
+    setEditingGoal(false);
+  };
+
+  return (
+    <div className="growth-summary-content">
+
+      {/* ── 투자 기간 카드 ── */}
+      <div className="growth-period-card">
+        <div className="growth-period-row">
+          <span className="growth-period-label">투자 시작일</span>
+          {editingDate ? (
+            <span className="growth-period-edit-row">
+              <input
+                className="growth-date-input"
+                type="date"
+                value={dateInput}
+                onChange={(e) => setDateInput(e.target.value)}
+                onBlur={saveDate}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveDate(); if (e.key === 'Escape') setEditingDate(false); }}
+                autoFocus
+              />
+            </span>
+          ) : (
+            <button className="growth-period-value-btn" type="button" onClick={() => { setDateInput(data.investmentStartDate ?? ''); setEditingDate(true); }}>
+              {data.investmentStartDate
+                ? data.investmentStartDate.replace(/-/g, '.')
+                : '날짜 설정'}
+              <Pencil size={13} />
+            </button>
+          )}
+        </div>
+        <div className="growth-period-row">
+          <span className="growth-period-label">투자 기간</span>
+          <span className="growth-period-duration">
+            {data.investmentStartDate
+              ? `${calcInvestmentPeriod(data.investmentStartDate)} 운용 중`
+              : '—'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── 5가지 핵심 지표 ── */}
+      <div className="growth-metrics-grid">
+
+        <div className="growth-metric-card">
+          <span className="growth-metric-label">총 투입금</span>
+          <strong className="growth-metric-value">{c(data.account.totalContribution)}</strong>
+        </div>
+
+        <div className="growth-metric-card">
+          <span className="growth-metric-label">자산평가액</span>
+          <strong className="growth-metric-value">{c(summary.currentTotalAssets)}</strong>
+        </div>
+
+        <div className="growth-metric-card">
+          <span className="growth-metric-label">누적 배당금</span>
+          <strong className="growth-metric-value">{c(cumulativeDividend)}</strong>
+        </div>
+
+        <div className="growth-metric-card">
+          <span className="growth-metric-label">월 배당금</span>
+          <strong className="growth-metric-value growth-metric-accent">{c(monthlyDividend)}</strong>
+          <span className="growth-metric-sub">{currentYM.replace('-', '년 ')}월</span>
+        </div>
+
+        <div className="growth-metric-card growth-metric-full">
+          <span className="growth-metric-label">총 수익률</span>
+          <strong className={`growth-return-rate${returnRate > 0 ? ' positive' : returnRate < 0 ? ' negative' : ''}`}>
+            {returnSign}{returnRate.toFixed(2)}%
+          </strong>
+        </div>
+
+      </div>
+
+      {/* ── 월 배당금 목표 과녁 ── */}
+      <div className="growth-target-card">
+        <div className="growth-target-header">
+          <span className="growth-target-title">월 배당금 목표</span>
+          {editingGoal ? (
+            <span className="growth-goal-edit-row">
+              <input
+                className="growth-goal-input"
+                type="text"
+                inputMode="numeric"
+                value={goalInput}
+                placeholder="목표 금액"
+                onChange={(e) => setGoalInput(e.target.value.replace(/[^0-9]/g, ''))}
+                onBlur={saveGoal}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveGoal(); if (e.key === 'Escape') setEditingGoal(false); }}
+                autoFocus
+              />
+              <span className="growth-goal-unit">원</span>
+            </span>
+          ) : (
+            <button className="growth-goal-value-btn" type="button" onClick={() => { setGoalInput(data.monthlyDividendGoal != null ? String(data.monthlyDividendGoal) : ''); setEditingGoal(true); }}>
+              {data.monthlyDividendGoal != null
+                ? `${data.monthlyDividendGoal.toLocaleString('ko-KR')}원`
+                : '목표 설정'}
+              <Pencil size={13} />
+            </button>
+          )}
+        </div>
+
+        <div className="growth-target-body">
+          <TargetBullseye percent={targetPercent} />
+          <div className="growth-target-detail">
+            <span className="growth-target-current">{c(monthlyDividend)}</span>
+            <span className="growth-target-sep">/ {goal > 0 ? `${goal.toLocaleString('ko-KR')}원` : '—'}</span>
+            <span className="growth-target-pct-label">
+              {goal > 0 ? `${Math.min(Math.round(targetPercent), 100)}% 달성` : '목표를 설정해 주세요'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+function GrowthRecordsTab() {
+  return (
+    <section className="empty-state">
+      <strong>기록</strong>
+      <p>준비 중입니다.</p>
+    </section>
+  );
+}
+
+function GrowthView({
+  data,
+  summary,
+  onDataChange,
+}: {
+  data: AppData;
+  summary: AccountSummary;
+  onDataChange: (data: AppData) => void;
+}) {
+  const [tab, setTab] = useState<'summary' | 'records'>('summary');
+
+  return (
+    <div className="dividend-view">
+      <div className="dividend-tabs">
+        <button
+          className={`dividend-tab-btn${tab === 'summary' ? ' active' : ''}`}
+          type="button"
+          onClick={() => setTab('summary')}
+        >
+          요약
+        </button>
+        <button
+          className={`dividend-tab-btn${tab === 'records' ? ' active' : ''}`}
+          type="button"
+          onClick={() => setTab('records')}
+        >
+          기록
+        </button>
+      </div>
+
+      {tab === 'summary' && <GrowthSummaryTab data={data} summary={summary} onDataChange={onDataChange} />}
+      {tab === 'records' && <GrowthRecordsTab />}
+    </div>
+  );
+}
+
 // ─── Dividend Add Modal ───────────────────────────────────────────────────────
 
 function DividendAddModal({
@@ -3707,6 +4011,7 @@ export default function App() {
       )}
       {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
+      {activeMenu === 'growth' && <GrowthView data={data} summary={summary} onDataChange={persist} />}
       {activeMenu === 'password' && (
         <PasswordView data={rootData.domestic} onDataChange={persistPassword} />
       )}

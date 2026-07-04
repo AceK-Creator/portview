@@ -57,6 +57,8 @@ function parseAppData(raw: unknown): AppData {
       : [],
     dividends: Array.isArray(parsed.dividends) ? parsed.dividends : [],
     realizedGains: Array.isArray(parsed.realizedGains) ? parsed.realizedGains : [],
+    investmentStartDate: typeof parsed.investmentStartDate === 'string' ? parsed.investmentStartDate : undefined,
+    monthlyDividendGoal: typeof parsed.monthlyDividendGoal === 'number' ? parsed.monthlyDividendGoal : undefined,
   };
 }
 

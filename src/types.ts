@@ -1,4 +1,4 @@
-export type MenuKey = 'live' | 'account' | 'dividend' | 'realized-gains' | 'password';
+export type MenuKey = 'live' | 'account' | 'dividend' | 'realized-gains' | 'growth' | 'password';
 export type AccountMode = 'domestic' | 'overseas';
 export type CurrencyMode = 'usd' | 'krw';
 
@@ -62,6 +62,8 @@ export interface AppData {
   holdings: Holding[];
   dividends: DividendRecord[];
   realizedGains: RealizedGainRecord[];
+  investmentStartDate?: string;   // YYYY-MM-DD
+  monthlyDividendGoal?: number;
 }
 
 export interface RootData {

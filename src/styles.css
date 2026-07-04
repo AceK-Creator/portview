@@ -2679,3 +2679,265 @@ label {
   gap: 10px;
   justify-content: center;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   성장탭 — 요약
+   ═══════════════════════════════════════════════════════════ */
+
+.growth-summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── 투자 기간 카드 ── */
+.growth-period-card {
+  background: rgba(8, 24, 45, 0.72);
+  border: 1px solid rgba(145, 181, 220, 0.14);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.growth-period-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.growth-period-label {
+  font-size: 13px;
+  color: #7fa9db;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.growth-period-value-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #dceaff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 8px;
+  transition: background 150ms ease;
+}
+
+.growth-period-value-btn:hover {
+  background: rgba(124, 77, 255, 0.15);
+  color: #fff;
+}
+
+.growth-period-value-btn svg {
+  color: #7fa9db;
+  flex-shrink: 0;
+}
+
+.growth-period-edit-row {
+  display: flex;
+  align-items: center;
+}
+
+.growth-date-input {
+  background: rgba(11, 31, 56, 0.9);
+  border: 1px solid rgba(124, 77, 255, 0.5);
+  border-radius: 8px;
+  color: #dceaff;
+  font-size: 14px;
+  padding: 4px 8px;
+  outline: none;
+}
+
+.growth-date-input:focus {
+  border-color: #7c4dff;
+  box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.2);
+}
+
+.growth-period-duration {
+  font-size: 14px;
+  color: #a8c8e8;
+  font-weight: 500;
+}
+
+/* ── 5가지 핵심 지표 그리드 ── */
+.growth-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.growth-metric-card {
+  background: rgba(8, 24, 45, 0.72);
+  border: 1px solid rgba(145, 181, 220, 0.14);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.growth-metric-full {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.growth-metric-label {
+  font-size: 12px;
+  color: #7fa9db;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.growth-metric-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f1f7ff;
+  letter-spacing: -0.02em;
+}
+
+.growth-metric-accent {
+  color: #00b4d8;
+}
+
+.growth-metric-sub {
+  font-size: 11px;
+  color: #5a7a9c;
+  margin-top: -2px;
+}
+
+.growth-return-rate {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #f1f7ff;
+}
+
+.growth-return-rate.positive {
+  color: #00e5a0;
+}
+
+.growth-return-rate.negative {
+  color: #ff6b6b;
+}
+
+/* ── 월 배당금 목표 과녁 카드 ── */
+.growth-target-card {
+  background: rgba(8, 24, 45, 0.72);
+  border: 1px solid rgba(145, 181, 220, 0.14);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.growth-target-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.growth-target-title {
+  font-size: 13px;
+  color: #7fa9db;
+  font-weight: 400;
+}
+
+.growth-goal-value-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #dceaff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 8px;
+  transition: background 150ms ease;
+}
+
+.growth-goal-value-btn:hover {
+  background: rgba(124, 77, 255, 0.15);
+  color: #fff;
+}
+
+.growth-goal-value-btn svg {
+  color: #7fa9db;
+  flex-shrink: 0;
+}
+
+.growth-goal-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.growth-goal-input {
+  background: rgba(11, 31, 56, 0.9);
+  border: 1px solid rgba(124, 77, 255, 0.5);
+  border-radius: 8px;
+  color: #dceaff;
+  font-size: 14px;
+  padding: 4px 8px;
+  outline: none;
+  width: 120px;
+  text-align: right;
+}
+
+.growth-goal-input:focus {
+  border-color: #7c4dff;
+  box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.2);
+}
+
+.growth-goal-unit {
+  font-size: 13px;
+  color: #7fa9db;
+}
+
+.growth-target-body {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.growth-target-svg {
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+}
+
+.growth-target-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.growth-target-current {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f1f7ff;
+  letter-spacing: -0.02em;
+}
+
+.growth-target-sep {
+  font-size: 13px;
+  color: #7fa9db;
+}
+
+.growth-target-pct-label {
+  font-size: 12px;
+  color: #5a7a9c;
+  margin-top: 4px;
+}
