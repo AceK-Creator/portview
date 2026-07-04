@@ -2020,13 +2020,7 @@ function calcInvestmentPeriod(startDateStr: string): string {
 
 function getLatestDividendMonth(dividends: DividendRecord[]): { ym: string; label: string } | null {
   if (!dividends.length) return null;
-  const now = new Date();
-  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  // 현재 달은 미완성 데이터이므로 제외하고 가장 최근 달 반환
-  const months = [...new Set(dividends.map((d) => d.paidAt.slice(0, 7)))]
-    .filter((ym) => ym < currentYM)
-    .sort()
-    .reverse();
+  const months = [...new Set(dividends.map((d) => d.paidAt.slice(0, 7)))].sort().reverse();
   const ym = months[0];
   if (!ym) return null;
   const [year, month] = ym.split('-');
