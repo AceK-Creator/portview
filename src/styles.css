@@ -3435,3 +3435,50 @@ label {
   color: #6a8aaa;
   font-size: 13px;
 }
+
+.growth-graph-legend {
+  display: flex;
+  gap: 14px;
+  justify-content: flex-end;
+  padding: 0 4px 2px;
+  margin-top: -2px;
+}
+
+.growth-graph-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: rgba(145, 181, 220, 0.65);
+}
+
+.growth-graph-legend-dot {
+  display: inline-block;
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.growth-graph-legend-dot.asset {
+  background: #7c4dff;
+}
+
+.growth-graph-legend-dot.contrib {
+  background: repeating-linear-gradient(
+    to right,
+    #ff8c42 0px, #ff8c42 4px,
+    transparent 4px, transparent 7px
+  );
+  height: 1.5px;
+}
+
+.growth-graph-demo-note {
+  margin: 6px 0 0;
+  padding: 7px 10px;
+  background: rgba(145, 181, 220, 0.06);
+  border-left: 2px solid rgba(124, 77, 255, 0.35);
+  border-radius: 0 6px 6px 0;
+  font-size: 11px;
+  color: rgba(145, 181, 220, 0.6);
+  line-height: 1.5;
+}

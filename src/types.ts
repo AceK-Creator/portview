@@ -78,6 +78,7 @@ export interface YearRecord {
 export interface WeeklySnapshot {
   weekDate: string; // YYYY-MM-DD (해당 주 일요일)
   totalAssets: number; // KRW
+  totalContribution?: number; // KRW — 해당 주의 누적 투입금 (이후 저장분부터 기록)
 }
 
 export interface AppData {

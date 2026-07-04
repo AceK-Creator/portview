@@ -2163,6 +2163,7 @@ function buildDemoSnapshots(): WeeklySnapshot[] {
   const now = new Date();
   const result: WeeklySnapshot[] = [];
   const base = 30_000_000;
+  const contribBase = 29_000_000;
   for (let i = 51; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - d.getDay() - i * 7);
@@ -2170,12 +2171,15 @@ function buildDemoSnapshots(): WeeklySnapshot[] {
     const trend = progress * 420_000;
     const wave = Math.sin(progress * 0.52) * 1_800_000;
     const dip = progress === 14 || progress === 15 ? -3_000_000 : 0;
-    result.push({ weekDate: d.toISOString().slice(0, 10), totalAssets: base + trend + wave + dip });
+    const totalAssets = base + trend + wave + dip;
+    // 투입금은 완만하게 증가 (손실 구간에서 오렌지 면적이 보이도록 자산보다 약간 높게)
+    const totalContribution = contribBase + progress * 380_000;
+    result.push({ weekDate: d.toISOString().slice(0, 10), totalAssets, totalContribution });
   }
   return result;
 }
 
-function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) {
+function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots: WeeklySnapshot[]; currentContribution: number }) {
   const [filter, setFilter] = useState<GraphFilter>('6m');
 
   const isDemo = weeklySnapshots.length < 2;
@@ -2199,6 +2203,7 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
   const padL = 52, padR = 10, padT = 10, padB = 26;
   const gW = W - padL - padR;
   const gH = H - padT - padB;
+  const bottom = padT + gH;
 
   const header = (
     <div className="growth-graph-header">
@@ -2230,9 +2235,11 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
     );
   }
 
-  const values = filtered.map((s) => s.totalAssets);
-  const rawMin = Math.min(...values);
-  const rawMax = Math.max(...values);
+  // Y축 범위: 자산값과 투입금 모두 포함
+  const contribValues = filtered.map((s) => s.totalContribution ?? currentContribution);
+  const allValues = [...filtered.map((s) => s.totalAssets), ...contribValues];
+  const rawMin = Math.min(...allValues);
+  const rawMax = Math.max(...allValues);
   const rawRange = rawMax - rawMin;
   const step = rawRange === 0
     ? niceStep((rawMax || 1_000_000) * 0.25)
@@ -2245,9 +2252,14 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
   const yScale = (v: number) =>
     yMax === yMin ? padT + gH / 2 : padT + (1 - (v - yMin) / (yMax - yMin)) * gH;
 
-  const pts = filtered.map((s, i) => ({ x: xScale(i), y: yScale(s.totalAssets) }));
-  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const areaPath = `${linePath} L${pts[pts.length - 1].x.toFixed(1)},${(padT + gH).toFixed(1)} L${pts[0].x.toFixed(1)},${(padT + gH).toFixed(1)} Z`;
+  const assetPts = filtered.map((s, i) => ({ x: xScale(i), y: yScale(s.totalAssets) }));
+  const contribPts = filtered.map((s, i) => ({ x: xScale(i), y: yScale(s.totalContribution ?? currentContribution) }));
+
+  const assetLinePath = assetPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const assetAreaPath = `${assetLinePath} L${assetPts[assetPts.length - 1].x.toFixed(1)},${bottom.toFixed(1)} L${assetPts[0].x.toFixed(1)},${bottom.toFixed(1)} Z`;
+
+  const contribLinePath = contribPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const contribAreaPath = `${contribLinePath} L${contribPts[contribPts.length - 1].x.toFixed(1)},${bottom.toFixed(1)} L${contribPts[0].x.toFixed(1)},${bottom.toFixed(1)} Z`;
 
   const yLevels = [0, 1, 2, 3, 4].map((i) => yMin + step * i);
 
@@ -2272,8 +2284,12 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
         <defs>
           <linearGradient id="assetAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7c4dff" stopOpacity="0.32" />
-            <stop offset="100%" stopColor="#7c4dff" stopOpacity="0" />
+            <stop offset="0%" stopColor="#7c4dff" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#7c4dff" stopOpacity="0.04" />
+          </linearGradient>
+          <linearGradient id="contribAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ff8c42" stopOpacity="0.38" />
+            <stop offset="100%" stopColor="#ff8c42" stopOpacity="0.05" />
           </linearGradient>
         </defs>
         {yLevels.map((val, i) => {
@@ -2287,14 +2303,33 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
             </g>
           );
         })}
-        <path d={areaPath} fill="url(#assetAreaGrad)" />
-        <path d={linePath} fill="none" stroke="#7c4dff" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+        {/* 투입금 면적 먼저(오렌지) → 자산 면적이 위에 덮임 → 손실구간만 오렌지 노출 */}
+        <path d={contribAreaPath} fill="url(#contribAreaGrad)" />
+        <path d={assetAreaPath} fill="url(#assetAreaGrad)" />
+        {/* 투입금 점선 */}
+        <path d={contribLinePath} fill="none" stroke="#ff8c42" strokeWidth="1.4" strokeDasharray="4 3" strokeLinejoin="round" strokeLinecap="round" opacity="0.75" />
+        {/* 자산 실선 */}
+        <path d={assetLinePath} fill="none" stroke="#7c4dff" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
         {xLabels.map((l, i) => (
           <text key={i} x={l.x.toFixed(1)} y={H - 5} textAnchor="middle" fontSize="9" fill="rgba(145,181,220,0.5)">
             {l.label}
           </text>
         ))}
       </svg>
+      {/* 범례 */}
+      <div className="growth-graph-legend">
+        <span className="growth-graph-legend-item">
+          <span className="growth-graph-legend-dot asset" />자산평가액
+        </span>
+        <span className="growth-graph-legend-item">
+          <span className="growth-graph-legend-dot contrib" />총 투입금
+        </span>
+      </div>
+      {isDemo && (
+        <p className="growth-graph-demo-note">
+          자산 데이터가 2주 이상 쌓이면 실제 그래프로 자동 전환됩니다. 앱을 저장할 때마다 주간 스냅샷이 기록됩니다.
+        </p>
+      )}
     </div>
   );
 }
@@ -2392,7 +2427,7 @@ function GrowthSummaryTab({
       </div>
 
       {/* ── 자산 추이 그래프 ── */}
-      <AssetGraph weeklySnapshots={data.weeklySnapshots ?? []} />
+      <AssetGraph weeklySnapshots={data.weeklySnapshots ?? []} currentContribution={totalContribution} />
 
       {/* ── 배당금 지표 (하단) ── */}
       <div className="growth-metrics-grid">
@@ -4384,7 +4419,7 @@ export default function App() {
     const weekDate = weekStart.toISOString().slice(0, 10);
     const weeklySnapshots: WeeklySnapshot[] = [...(data.weeklySnapshots ?? [])];
     const wIdx = weeklySnapshots.findIndex((s) => s.weekDate === weekDate);
-    const weekSnap: WeeklySnapshot = { weekDate, totalAssets: metrics.totalAssets };
+    const weekSnap: WeeklySnapshot = { weekDate, totalAssets: metrics.totalAssets, totalContribution: metrics.totalContribution };
     if (wIdx >= 0) weeklySnapshots[wIdx] = weekSnap; else weeklySnapshots.push(weekSnap);
     weeklySnapshots.sort((a, b) => a.weekDate.localeCompare(b.weekDate));
 
