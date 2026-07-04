@@ -2320,8 +2320,8 @@ function YearRecordPopup({
   };
 
   return (
-    <div className="goal-popup-overlay" onClick={onClose}>
-      <div className="goal-popup-box year-record-popup" onClick={(e) => e.stopPropagation()}>
+    <div className="goal-popup-backdrop" onClick={onClose}>
+      <div className="goal-popup year-record-popup" onClick={(e) => e.stopPropagation()}>
         <div className="goal-popup-title">{isEdit ? `${initial!.year}년 기록 수정` : '연도 추가'}</div>
 
         <div className="yr-field-group">
@@ -2406,11 +2406,24 @@ function GrowthRecordsTab({
   const [showAdd, setShowAdd] = useState(false);
 
   const yearRecords = [...(data.yearRecords ?? [])].sort((a, b) => b.year - a.year);
+  const latestYear = yearRecords[0]?.year ?? null;
+  const [expandedYears, setExpandedYears] = useState<Set<number>>(() =>
+    latestYear != null ? new Set([latestYear]) : new Set()
+  );
+
   const krw = (v: number) => `${Math.round(v).toLocaleString('ko-KR')}원`;
 
   const dateLabel = (r: YearRecord) => {
     const [, m, d] = r.date.split('-');
     return `${parseInt(m)}/${parseInt(d)} 기준`;
+  };
+
+  const toggleYear = (year: number) => {
+    setExpandedYears((prev) => {
+      const next = new Set(prev);
+      if (next.has(year)) next.delete(year); else next.add(year);
+      return next;
+    });
   };
 
   const saveRecord = (record: YearRecord) => {
@@ -2437,42 +2450,60 @@ function GrowthRecordsTab({
         </div>
       ) : (
         <>
-          {yearRecords.map((record) => (
-            <div key={record.year} className="growth-year-card">
-              <div className="growth-year-header">
-                <div className="growth-year-title-row">
-                  <span className="growth-year-title">{record.year}년</span>
-                  <span className="growth-year-date">({dateLabel(record)})</span>
-                  {record.isManual && <span className="growth-year-manual-badge">수동</span>}
+          {yearRecords.map((record) => {
+            const isExpanded = expandedYears.has(record.year);
+            return (
+              <div key={record.year} className="growth-year-card">
+                {/* 헤더 — 항상 표시, 클릭으로 토글 */}
+                <div className="growth-year-header" onClick={() => toggleYear(record.year)} style={{ cursor: 'pointer' }}>
+                  <div className="growth-year-title-row">
+                    <span className="growth-year-title">{record.year}년</span>
+                    <span className="growth-year-date">({dateLabel(record)})</span>
+                    {record.isManual && <span className="growth-year-manual-badge">수동</span>}
+                  </div>
+                  <div className="growth-year-header-right">
+                    {!isExpanded && (
+                      <span className="growth-year-preview-value">{krw(record.totalAssets)}</span>
+                    )}
+                    <span className={`growth-year-chevron${isExpanded ? ' open' : ''}`}>›</span>
+                  </div>
                 </div>
-                <button className="growth-year-edit-btn" type="button" onClick={() => setEditTarget(record)}>수정</button>
+
+                {/* 상세 — 펼쳤을 때만 표시 */}
+                {isExpanded && (
+                  <>
+                    <div className="growth-year-metrics">
+                      <div className="growth-year-metric">
+                        <span className="growth-year-metric-label">총 투입금</span>
+                        <span className="growth-year-metric-value">{krw(record.totalContribution)}</span>
+                      </div>
+                      <div className="growth-year-metric">
+                        <span className="growth-year-metric-label">자산평가액</span>
+                        <span className="growth-year-metric-value">{krw(record.totalAssets)}</span>
+                      </div>
+                      <div className="growth-year-metric growth-year-metric-full">
+                        <span className="growth-year-metric-label">총 수익률</span>
+                        <span className={`growth-year-metric-value${record.returnRate > 0 ? ' gain' : record.returnRate < 0 ? ' loss' : ''}`}>
+                          {record.returnRate > 0 ? '+' : ''}{record.returnRate.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="growth-year-metric">
+                        <span className="growth-year-metric-label">누적 배당금</span>
+                        <span className="growth-year-metric-value">{krw(record.cumulativeDividend)}</span>
+                      </div>
+                      <div className="growth-year-metric">
+                        <span className="growth-year-metric-label">월 배당금</span>
+                        <span className="growth-year-metric-value">{krw(record.monthlyDividend)}</span>
+                      </div>
+                    </div>
+                    <div className="growth-year-edit-row">
+                      <button className="growth-year-edit-btn" type="button" onClick={(e) => { e.stopPropagation(); setEditTarget(record); }}>수정</button>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="growth-year-metrics">
-                <div className="growth-year-metric">
-                  <span className="growth-year-metric-label">총 투입금</span>
-                  <span className="growth-year-metric-value">{krw(record.totalContribution)}</span>
-                </div>
-                <div className="growth-year-metric">
-                  <span className="growth-year-metric-label">자산평가액</span>
-                  <span className="growth-year-metric-value">{krw(record.totalAssets)}</span>
-                </div>
-                <div className="growth-year-metric growth-year-metric-full">
-                  <span className="growth-year-metric-label">총 수익률</span>
-                  <span className={`growth-year-metric-value${record.returnRate > 0 ? ' gain' : record.returnRate < 0 ? ' loss' : ''}`}>
-                    {record.returnRate > 0 ? '+' : ''}{record.returnRate.toFixed(2)}%
-                  </span>
-                </div>
-                <div className="growth-year-metric">
-                  <span className="growth-year-metric-label">누적 배당금</span>
-                  <span className="growth-year-metric-value">{krw(record.cumulativeDividend)}</span>
-                </div>
-                <div className="growth-year-metric">
-                  <span className="growth-year-metric-label">월 배당금</span>
-                  <span className="growth-year-metric-value">{krw(record.monthlyDividend)}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <button className="growth-add-record-btn" type="button" onClick={() => setShowAdd(true)}>+ 연도 추가</button>
         </>
       )}

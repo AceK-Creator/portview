@@ -3065,7 +3065,7 @@ label {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px 16px 32px;
+  padding-bottom: 32px;
 }
 
 .growth-records-empty {
@@ -3122,7 +3122,42 @@ label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.growth-year-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.growth-year-preview-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c8dcf0;
+}
+
+.growth-year-chevron {
+  font-size: 20px;
+  color: #6a8aaa;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 200ms ease;
+  display: inline-block;
+}
+
+.growth-year-chevron.open {
+  transform: rotate(270deg);
+}
+
+.growth-year-edit-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(145, 181, 220, 0.08);
 }
 
 .growth-year-title-row {
@@ -3174,6 +3209,7 @@ label {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: 14px;
 }
 
 .growth-year-metric {
@@ -3203,11 +3239,11 @@ label {
 
 /* ── 연도 추가/수정 팝업 ─────────────────────────────────────────────────── */
 
-.year-record-popup {
+.goal-popup.year-record-popup {
   max-height: 85vh;
   overflow-y: auto;
-  width: 100%;
-  max-width: 360px;
+  width: min(360px, 92vw);
+  max-width: unset;
 }
 
 .yr-field-group {
@@ -3229,7 +3265,6 @@ label {
   font-weight: 500;
 }
 
-.yr-select,
 .yr-date-input,
 .yr-input {
   width: 100%;
@@ -3237,6 +3272,23 @@ label {
   border-radius: 10px;
   border: 1px solid rgba(145, 181, 220, 0.2);
   background: rgba(8, 24, 45, 0.6);
+  color: #e8f4ff;
+  font-size: 15px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 200ms ease;
+}
+
+.yr-select {
+  width: 100%;
+  padding: 10px 36px 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(145, 181, 220, 0.2);
+  background: rgba(8, 24, 45, 0.6)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237fa9db' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  -webkit-appearance: none;
+  appearance: none;
   color: #e8f4ff;
   font-size: 15px;
   box-sizing: border-box;
