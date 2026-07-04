@@ -2211,12 +2211,12 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
         주단위 자산 성장 추이
         {isDemo && <span className="growth-graph-demo-badge">예시</span>}
       </span>
-      <div className="growth-graph-toggle">
+      <div className="dividend-filter-chips" style={{ flex: 'none' }}>
         {(['6m', '12m', 'all'] as GraphFilter[]).map((f) => (
           <button
             key={f}
             type="button"
-            className={`growth-graph-toggle-btn${filter === f ? ' active' : ''}`}
+            className={`filter-chip${filter === f ? ' active' : ''}`}
             onClick={() => setFilter(f)}
           >
             {f === '6m' ? '6개월' : f === '12m' ? '12개월' : '전체'}
@@ -2261,6 +2261,24 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
   const contribLinePath = contribPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const contribAreaPath = `${contribLinePath} L${contribPts[contribPts.length - 1].x.toFixed(1)},${bottom.toFixed(1)} L${contribPts[0].x.toFixed(1)},${bottom.toFixed(1)} Z`;
 
+  // clipPath: contribution 선 위 영역 (수익 면적 마스크용)
+  const aboveContribClip = [
+    `M${padL},${padT}`,
+    `L${W - padR},${padT}`,
+    `L${contribPts[contribPts.length - 1].x.toFixed(1)},${contribPts[contribPts.length - 1].y.toFixed(1)}`,
+    ...[...contribPts].reverse().map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`),
+    'Z',
+  ].join(' ');
+
+  // clipPath: asset 선 위 영역 (손실 면적 마스크용)
+  const aboveAssetClip = [
+    `M${padL},${padT}`,
+    `L${W - padR},${padT}`,
+    `L${assetPts[assetPts.length - 1].x.toFixed(1)},${assetPts[assetPts.length - 1].y.toFixed(1)}`,
+    ...[...assetPts].reverse().map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`),
+    'Z',
+  ].join(' ');
+
   const yLevels = [0, 1, 2, 3, 4].map((i) => yMin + step * i);
 
   // X축 레이블: 월 경계, 최소 38px 간격
@@ -2283,14 +2301,22 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
       {header}
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
         <defs>
-          <linearGradient id="assetAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7c4dff" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#7c4dff" stopOpacity="0.04" />
+          {/* 수익 면적: 파란/보라 — asset 면적을 contribution 선 위쪽으로만 클리핑 */}
+          <linearGradient id="profitFillGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c4dff" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#7fa9db" stopOpacity="0.08" />
           </linearGradient>
-          <linearGradient id="contribAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ff8c42" stopOpacity="0.38" />
-            <stop offset="100%" stopColor="#ff8c42" stopOpacity="0.05" />
+          {/* 손실 면적: 오렌지 — contribution 면적을 asset 선 위쪽으로만 클리핑 */}
+          <linearGradient id="lossFillGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ff8c42" stopOpacity="0.45" />
+            <stop offset="100%" stopColor="#ff8c42" stopOpacity="0.10" />
           </linearGradient>
+          <clipPath id="aboveContribClip">
+            <path d={aboveContribClip} />
+          </clipPath>
+          <clipPath id="aboveAssetClip">
+            <path d={aboveAssetClip} />
+          </clipPath>
         </defs>
         {yLevels.map((val, i) => {
           const y = yScale(val).toFixed(1);
@@ -2303,11 +2329,12 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
             </g>
           );
         })}
-        {/* 투입금 면적 먼저(오렌지) → 자산 면적이 위에 덮임 → 손실구간만 오렌지 노출 */}
-        <path d={contribAreaPath} fill="url(#contribAreaGrad)" />
-        <path d={assetAreaPath} fill="url(#assetAreaGrad)" />
-        {/* 투입금 점선 */}
-        <path d={contribLinePath} fill="none" stroke="#ff8c42" strokeWidth="1.4" strokeDasharray="4 3" strokeLinejoin="round" strokeLinecap="round" opacity="0.75" />
+        {/* 수익 면적: asset 영역을 "contribution 선 위"로 클리핑 → 두 선 사이만 노출 */}
+        <path d={assetAreaPath} fill="url(#profitFillGrad)" clipPath="url(#aboveContribClip)" />
+        {/* 손실 면적: contribution 영역을 "asset 선 위"로 클리핑 → 두 선 사이만 노출 */}
+        <path d={contribAreaPath} fill="url(#lossFillGrad)" clipPath="url(#aboveAssetClip)" />
+        {/* 투입금 점선 (파란 계열) */}
+        <path d={contribLinePath} fill="none" stroke="#7fa9db" strokeWidth="1.4" strokeDasharray="4 3" strokeLinejoin="round" strokeLinecap="round" opacity="0.7" />
         {/* 자산 실선 */}
         <path d={assetLinePath} fill="none" stroke="#7c4dff" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
         {xLabels.map((l, i) => (

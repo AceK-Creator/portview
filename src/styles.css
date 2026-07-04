@@ -3466,7 +3466,7 @@ label {
 .growth-graph-legend-dot.contrib {
   background: repeating-linear-gradient(
     to right,
-    #ff8c42 0px, #ff8c42 4px,
+    #7fa9db 0px, #7fa9db 4px,
     transparent 4px, transparent 7px
   );
   height: 1.5px;
