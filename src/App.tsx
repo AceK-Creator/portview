@@ -2182,6 +2182,13 @@ function GrowthSummaryTab({
           <strong className="growth-metric-value">{c(summary.currentTotalAssets)}</strong>
         </div>
 
+        <div className="growth-metric-card growth-metric-full">
+          <span className="growth-metric-label">총 수익률</span>
+          <strong className={`growth-return-rate${returnRate > 0 ? ' gain' : returnRate < 0 ? ' loss' : ''}`}>
+            {returnSign}{returnRate.toFixed(2)}%
+          </strong>
+        </div>
+
         <div className="growth-metric-card">
           <span className="growth-metric-label">누적 배당금</span>
           <strong className="growth-metric-value">{c(cumulativeDividend)}</strong>
@@ -2190,13 +2197,6 @@ function GrowthSummaryTab({
         <div className="growth-metric-card">
           <span className="growth-metric-label">월 배당금{latestMonth && <span className="growth-metric-month">({latestMonth.label})</span>}</span>
           <strong className="growth-metric-value">{c(monthlyDividend)}</strong>
-        </div>
-
-        <div className="growth-metric-card growth-metric-full">
-          <span className="growth-metric-label">총 수익률</span>
-          <strong className={`growth-return-rate${returnRate > 0 ? ' gain' : returnRate < 0 ? ' loss' : ''}`}>
-            {returnSign}{returnRate.toFixed(2)}%
-          </strong>
         </div>
 
       </div>
