@@ -2037,13 +2037,7 @@ function TargetIcon({ onClick }: { onClick?: () => void }) {
       onClick={onClick}
       aria-label="월 배당금 목표 설정"
     >
-      {/* 동심원 2개 — 작게 해서 화살이 밖으로 튀어나오도록 */}
-      <svg className="growth-target-circles" viewBox="0 0 80 80" aria-hidden="true">
-        <circle cx="40" cy="40" r="24" fill="none" stroke="rgba(200,220,255,0.22)" strokeWidth="4" />
-        <circle cx="40" cy="40" r="13" fill="none" stroke="rgba(200,220,255,0.38)" strokeWidth="4" />
-      </svg>
-      {/* 화살 이미지 — overflow visible로 바깥까지 표시 */}
-      <img src="/arrow.png" className="growth-arrow-img" alt="" aria-hidden="true" />
+      <img src="/aim.png" className="growth-aim-img" alt="" aria-hidden="true" />
     </button>
   );
 }
