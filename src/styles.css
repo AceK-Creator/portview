@@ -1621,8 +1621,8 @@ label {
 }
 
 .dividend-section {
-  border: 1px solid rgba(145, 181, 220, 0.18);
-  background: rgba(11, 31, 56, 0.88);
+  border: 1px solid rgba(145, 181, 220, 0.14);
+  background: rgba(8, 24, 45, 0.72);
   border-radius: 16px;
   padding: 16px;
 }
@@ -2520,8 +2520,8 @@ label {
 }
 
 .rg-section {
-  border: 1px solid rgba(145, 181, 220, 0.18);
-  background: rgba(11, 31, 56, 0.88);
+  border: 1px solid rgba(145, 181, 220, 0.14);
+  background: rgba(8, 24, 45, 0.72);
   border-radius: 16px;
   padding: 16px;
 }
