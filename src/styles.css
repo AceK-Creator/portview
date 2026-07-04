@@ -2862,7 +2862,7 @@ label {
   height: 100%;
   object-fit: contain;
   display: block;
-  filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(215deg);
+  filter: brightness(0) invert(39%) sepia(97%) saturate(1700%) hue-rotate(234deg) brightness(101%);
 }
 
 /* 오른쪽 콘텐츠 */
