@@ -2159,24 +2159,62 @@ function niceStep(rough: number): number {
 type GraphFilter = '6m' | '12m' | 'all';
 
 // 예시 데이터 — 실데이터 없을 때 그래프 형태 미리보기용 (결정론적)
+// 패턴: 초반 손실 → 수익 전환 → 중간 손실 구간 → 회복
 function buildDemoSnapshots(): WeeklySnapshot[] {
   const now = new Date();
   const result: WeeklySnapshot[] = [];
-  const base = 30_000_000;
-  const contribBase = 29_000_000;
   for (let i = 51; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - d.getDay() - i * 7);
-    const progress = 51 - i;
-    const trend = progress * 420_000;
-    const wave = Math.sin(progress * 0.52) * 1_800_000;
-    const dip = progress === 14 || progress === 15 ? -3_000_000 : 0;
-    const totalAssets = base + trend + wave + dip;
-    // 투입금은 완만하게 증가 (손실 구간에서 오렌지 면적이 보이도록 자산보다 약간 높게)
-    const totalContribution = contribBase + progress * 380_000;
+    const p = 51 - i; // progress 0~51
+    const totalContribution = 30_000_000 + p * 230_000;
+    // 초반(p<10) 손실, p=10~28 수익, p=29~40 손실 구간, p>40 회복
+    const trend = p * 310_000;
+    const wave = Math.sin(p * 0.4) * 1_600_000;
+    const midDip = (p >= 28 && p <= 40) ? -3_800_000 : 0;
+    const totalAssets = 28_500_000 + trend + wave + midDip;
     result.push({ weekDate: d.toISOString().slice(0, 10), totalAssets, totalContribution });
   }
   return result;
+}
+
+// cubic bezier 곡선 path (부드러운 선)
+function smoothLinePath(pts: { x: number; y: number }[]): string {
+  if (pts.length === 0) return '';
+  if (pts.length === 1) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const curr = pts[i];
+    const cpx = ((prev.x + curr.x) / 2).toFixed(1);
+    d += ` C${cpx},${prev.y.toFixed(1)} ${cpx},${curr.y.toFixed(1)} ${curr.x.toFixed(1)},${curr.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+// 곡선 area path (선 + 하단 닫기)
+function smoothAreaPath(pts: { x: number; y: number }[], bottom: number): string {
+  const line = smoothLinePath(pts);
+  const last = pts[pts.length - 1];
+  const first = pts[0];
+  return `${line} L${last.x.toFixed(1)},${bottom.toFixed(1)} L${first.x.toFixed(1)},${bottom.toFixed(1)} Z`;
+}
+
+// 곡선 선 위쪽 클립 path (reversed bezier)
+function aboveLineClipPath(
+  pts: { x: number; y: number }[],
+  padL: number, padT: number, W: number, padR: number,
+): string {
+  const last = pts[pts.length - 1];
+  let d = `M${padL},${padT} L${(W - padR).toFixed(1)},${padT} L${last.x.toFixed(1)},${last.y.toFixed(1)}`;
+  const rev = [...pts].reverse();
+  for (let i = 1; i < rev.length; i++) {
+    const prev = rev[i - 1];
+    const curr = rev[i];
+    const cpx = ((prev.x + curr.x) / 2).toFixed(1);
+    d += ` C${cpx},${prev.y.toFixed(1)} ${cpx},${curr.y.toFixed(1)} ${curr.x.toFixed(1)},${curr.y.toFixed(1)}`;
+  }
+  return d + ' Z';
 }
 
 function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots: WeeklySnapshot[]; currentContribution: number }) {
@@ -2211,12 +2249,12 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
         주단위 자산 성장 추이
         {isDemo && <span className="growth-graph-demo-badge">예시</span>}
       </span>
-      <div className="dividend-filter-chips" style={{ flex: 'none' }}>
+      <div className="account-pills">
         {(['6m', '12m', 'all'] as GraphFilter[]).map((f) => (
           <button
             key={f}
             type="button"
-            className={`filter-chip${filter === f ? ' active' : ''}`}
+            className={`account-pill${filter === f ? ' active' : ''}`}
             onClick={() => setFilter(f)}
           >
             {f === '6m' ? '6개월' : f === '12m' ? '12개월' : '전체'}
@@ -2255,29 +2293,15 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
   const assetPts = filtered.map((s, i) => ({ x: xScale(i), y: yScale(s.totalAssets) }));
   const contribPts = filtered.map((s, i) => ({ x: xScale(i), y: yScale(s.totalContribution ?? currentContribution) }));
 
-  const assetLinePath = assetPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const assetAreaPath = `${assetLinePath} L${assetPts[assetPts.length - 1].x.toFixed(1)},${bottom.toFixed(1)} L${assetPts[0].x.toFixed(1)},${bottom.toFixed(1)} Z`;
-
-  const contribLinePath = contribPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const contribAreaPath = `${contribLinePath} L${contribPts[contribPts.length - 1].x.toFixed(1)},${bottom.toFixed(1)} L${contribPts[0].x.toFixed(1)},${bottom.toFixed(1)} Z`;
+  const assetLinePath = smoothLinePath(assetPts);
+  const assetAreaPath = smoothAreaPath(assetPts, bottom);
+  const contribLinePath = smoothLinePath(contribPts);
+  const contribAreaPath = smoothAreaPath(contribPts, bottom);
 
   // clipPath: contribution 선 위 영역 (수익 면적 마스크용)
-  const aboveContribClip = [
-    `M${padL},${padT}`,
-    `L${W - padR},${padT}`,
-    `L${contribPts[contribPts.length - 1].x.toFixed(1)},${contribPts[contribPts.length - 1].y.toFixed(1)}`,
-    ...[...contribPts].reverse().map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`),
-    'Z',
-  ].join(' ');
-
+  const aboveContribClip = aboveLineClipPath(contribPts, padL, padT, W, padR);
   // clipPath: asset 선 위 영역 (손실 면적 마스크용)
-  const aboveAssetClip = [
-    `M${padL},${padT}`,
-    `L${W - padR},${padT}`,
-    `L${assetPts[assetPts.length - 1].x.toFixed(1)},${assetPts[assetPts.length - 1].y.toFixed(1)}`,
-    ...[...assetPts].reverse().map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`),
-    'Z',
-  ].join(' ');
+  const aboveAssetClip = aboveLineClipPath(assetPts, padL, padT, W, padR);
 
   const yLevels = [0, 1, 2, 3, 4].map((i) => yMin + step * i);
 
@@ -2333,8 +2357,8 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
         <path d={assetAreaPath} fill="url(#profitFillGrad)" clipPath="url(#aboveContribClip)" />
         {/* 손실 면적: contribution 영역을 "asset 선 위"로 클리핑 → 두 선 사이만 노출 */}
         <path d={contribAreaPath} fill="url(#lossFillGrad)" clipPath="url(#aboveAssetClip)" />
-        {/* 투입금 점선 (파란 계열) */}
-        <path d={contribLinePath} fill="none" stroke="#7fa9db" strokeWidth="1.4" strokeDasharray="4 3" strokeLinejoin="round" strokeLinecap="round" opacity="0.7" />
+        {/* 투입금 점선 (밝은 하늘색) */}
+        <path d={contribLinePath} fill="none" stroke="#38c8f0" strokeWidth="1.4" strokeDasharray="4 3" strokeLinejoin="round" strokeLinecap="round" opacity="0.85" />
         {/* 자산 실선 */}
         <path d={assetLinePath} fill="none" stroke="#7c4dff" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
         {xLabels.map((l, i) => (
