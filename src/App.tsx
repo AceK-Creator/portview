@@ -2005,6 +2005,20 @@ function RealizedGainsView({
 
 // ─── Growth 유틸리티 ───────────────────────────────────────────────────────────
 
+// Android 뒤로가기 버튼으로 팝업이 닫히도록 history 스택 관리
+function useBackButtonClose(onClose: () => void) {
+  useEffect(() => {
+    history.pushState({ popup: true }, '');
+    const handler = () => onClose();
+    window.addEventListener('popstate', handler);
+    return () => {
+      window.removeEventListener('popstate', handler);
+      // 뒤로가기가 아닌 정상 닫기일 때 → 쌓인 history를 제거
+      if (history.state?.popup) history.back();
+    };
+  }, []);
+}
+
 function calcInvestmentPeriod(startDateStr: string): string {
   const start = new Date(startDateStr);
   const now = new Date();
@@ -2076,6 +2090,7 @@ function GoalInputPopup({
   onSave: (val: number) => void;
   onClose: () => void;
 }) {
+  useBackButtonClose(onClose);
   const [raw, setRaw] = useState(current != null ? current.toLocaleString('ko-KR') : '');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2293,6 +2308,7 @@ function YearRecordPopup({
   onDelete?: () => void;
   onClose: () => void;
 }) {
+  useBackButtonClose(onClose);
   const isEdit = !!initial;
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(initial?.year ?? currentYear - 1);
