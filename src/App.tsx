@@ -2251,7 +2251,11 @@ function GrowthSummaryTab({
             {/* 제목 + 목표 금액 */}
             <div className="growth-target-title-row">
               <span className="growth-target-title">월 배당금 목표</span>
-              <span className="growth-target-goal-amount">
+              <span
+                className="growth-target-goal-amount"
+                onClick={() => setShowGoalPopup(true)}
+                style={{ cursor: 'pointer' }}
+              >
                 {goal > 0 ? `${goal.toLocaleString('ko-KR')}원` : '목표 설정'}
               </span>
             </div>
