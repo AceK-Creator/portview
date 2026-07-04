@@ -3053,3 +3053,246 @@ label {
 .goal-popup-confirm:hover {
   opacity: 0.88;
 }
+
+.goal-popup-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── 기록탭 ──────────────────────────────────────────────────────────────── */
+
+.growth-records-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 16px 32px;
+}
+
+.growth-records-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.growth-records-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #c8dcf0;
+  margin: 0;
+}
+
+.growth-records-empty-sub {
+  font-size: 13px;
+  color: #6a8aaa;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.growth-add-record-btn {
+  align-self: center;
+  margin-top: 4px;
+  padding: 10px 22px;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 77, 255, 0.5);
+  background: rgba(124, 77, 255, 0.12);
+  color: #b39dff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.growth-add-record-btn:hover {
+  background: rgba(124, 77, 255, 0.22);
+  border-color: rgba(124, 77, 255, 0.8);
+}
+
+/* 연도 카드 */
+.growth-year-card {
+  background: rgba(8, 24, 45, 0.72);
+  border: 1px solid rgba(145, 181, 220, 0.14);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.growth-year-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.growth-year-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.growth-year-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e8f4ff;
+}
+
+.growth-year-date {
+  font-size: 12px;
+  color: #6a8aaa;
+}
+
+.growth-year-manual-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7c4dff;
+  background: rgba(124, 77, 255, 0.15);
+  border: 1px solid rgba(124, 77, 255, 0.3);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.growth-year-edit-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(145, 181, 220, 0.2);
+  background: transparent;
+  color: #7fa9db;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease;
+  white-space: nowrap;
+}
+
+.growth-year-edit-btn:hover {
+  background: rgba(145, 181, 220, 0.1);
+}
+
+.growth-year-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.growth-year-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.growth-year-metric-full {
+  grid-column: 1 / -1;
+}
+
+.growth-year-metric-label {
+  font-size: 11px;
+  color: #6a8aaa;
+  font-weight: 500;
+}
+
+.growth-year-metric-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8f4ff;
+}
+
+.growth-year-metric-value.gain { color: #ff6b6b; }
+.growth-year-metric-value.loss { color: #5eaeff; }
+
+/* ── 연도 추가/수정 팝업 ─────────────────────────────────────────────────── */
+
+.year-record-popup {
+  max-height: 85vh;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 360px;
+}
+
+.yr-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.yr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.yr-label {
+  font-size: 12px;
+  color: #7fa9db;
+  font-weight: 500;
+}
+
+.yr-select,
+.yr-date-input,
+.yr-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(145, 181, 220, 0.2);
+  background: rgba(8, 24, 45, 0.6);
+  color: #e8f4ff;
+  font-size: 15px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 200ms ease;
+}
+
+.yr-select:focus,
+.yr-date-input:focus,
+.yr-input:focus {
+  border-color: rgba(124, 77, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.15);
+}
+
+.yr-readonly {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(8, 24, 45, 0.35);
+  color: #e8f4ff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.yr-readonly.gain { color: #ff6b6b; }
+.yr-readonly.loss { color: #5eaeff; }
+
+.yr-conflict {
+  font-size: 12px;
+  color: #ff6b6b;
+}
+
+.yr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yr-actions-right {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.yr-delete-btn {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease;
+  white-space: nowrap;
+}
+
+.yr-delete-btn:hover {
+  background: rgba(255, 107, 107, 0.2);
+}

@@ -55,6 +55,26 @@ export interface RealizedGainRecord {
   amount: number;      // positive = gain, negative = loss
 }
 
+export interface DailySnapshot {
+  date: string; // YYYY-MM-DD
+  totalContribution: number;
+  totalAssets: number;
+  returnRate: number;
+  cumulativeDividend: number;
+  monthlyDividend: number;
+}
+
+export interface YearRecord {
+  year: number;
+  date: string; // YYYY-MM-DD — 실제 스냅샷 날짜
+  isManual: boolean;
+  totalContribution: number;
+  totalAssets: number;
+  returnRate: number;
+  cumulativeDividend: number;
+  monthlyDividend: number;
+}
+
 export interface AppData {
   version: number;
   password: string;
@@ -64,6 +84,8 @@ export interface AppData {
   realizedGains: RealizedGainRecord[];
   investmentStartDate?: string;   // YYYY-MM-DD
   monthlyDividendGoal?: number;
+  dailySnapshots?: DailySnapshot[];
+  yearRecords?: YearRecord[];
 }
 
 export interface RootData {

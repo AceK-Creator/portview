@@ -31,7 +31,7 @@ import {
   loadEncrypted,
   validateBackup,
 } from './storage';
-import type { AccountMode, AccountSummary, AppData, CurrencyMode, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData } from './types';
+import type { AccountMode, AccountSummary, AppData, CurrencyMode, DailySnapshot, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData, YearRecord } from './types';
 
 // ─── 통화 컨텍스트 ─────────────────────────────────────────────────────────────
 
@@ -2027,6 +2027,29 @@ function getLatestDividendMonth(dividends: DividendRecord[]): { ym: string; labe
   return { ym, label: `${year}년 ${Number(month)}월` };
 }
 
+function computeGrowthMetrics(
+  data: AppData,
+  summary: AccountSummary,
+  isOverseas: boolean,
+  usdKrwRate: number | null,
+): { totalContribution: number; totalAssets: number; returnRate: number; cumulativeDividend: number; monthlyDividend: number } {
+  const rate = isOverseas && usdKrwRate != null ? usdKrwRate : 1;
+  const dividends = data.dividends ?? [];
+  const cumulativeDividend = dividends.reduce((s, d) => s + d.amount, 0) * rate;
+  const latestMonth = getLatestDividendMonth(dividends);
+  const monthlyDividend = latestMonth
+    ? dividends.filter((d) => d.paidAt.startsWith(latestMonth.ym)).reduce((s, d) => s + d.amount, 0) * rate
+    : 0;
+  const totalAssets =
+    isOverseas && usdKrwRate != null
+      ? summary.totalMarketValue * usdKrwRate + data.account.cashBalance
+      : summary.currentTotalAssets;
+  const profitLoss = totalAssets - data.account.totalContribution;
+  const returnRate =
+    data.account.totalContribution > 0 ? (profitLoss / data.account.totalContribution) * 100 : 0;
+  return { totalContribution: data.account.totalContribution, totalAssets, returnRate, cumulativeDividend, monthlyDividend };
+}
+
 // ─── 과녁 아이콘 (동심원 2개 + arrow.png) ────────────────────────────────────
 
 function TargetIcon({ onClick }: { onClick?: () => void }) {
@@ -2117,25 +2140,9 @@ function GrowthSummaryTab({
 
   const [showGoalPopup, setShowGoalPopup] = useState(false);
 
-  const dividends = data.dividends ?? [];
-  const rate = (isOverseas && usdKrwRate != null) ? usdKrwRate : 1;
-
-  const cumulativeDividend = dividends.reduce((s, d) => s + d.amount, 0) * rate;
-
-  const latestMonth = getLatestDividendMonth(dividends);
-  const monthlyDividend = latestMonth
-    ? dividends.filter((d) => d.paidAt.startsWith(latestMonth.ym)).reduce((s, d) => s + d.amount, 0) * rate
-    : 0;
-
-  // 해외 계좌: USD 평가액 × 환율 + KRW 예수금으로 원화 환산
-  const totalAssets = isOverseas && usdKrwRate != null
-    ? summary.totalMarketValue * usdKrwRate + data.account.cashBalance
-    : summary.currentTotalAssets;
-
-  const profitLoss = totalAssets - data.account.totalContribution;
-  const returnRate = data.account.totalContribution > 0
-    ? (profitLoss / data.account.totalContribution) * 100
-    : 0;
+  const { totalContribution, totalAssets, returnRate, cumulativeDividend, monthlyDividend } =
+    computeGrowthMetrics(data, summary, isOverseas, usdKrwRate);
+  const latestMonth = getLatestDividendMonth(data.dividends ?? []);
   const returnSign = returnRate > 0 ? '+' : '';
 
   const goal = data.monthlyDividendGoal ?? 0;
@@ -2187,7 +2194,7 @@ function GrowthSummaryTab({
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">총 투입금</span>
-          <strong className="growth-metric-value">{krw(data.account.totalContribution)}</strong>
+          <strong className="growth-metric-value">{krw(totalContribution)}</strong>
         </div>
 
         <div className="growth-metric-card">
@@ -2271,12 +2278,222 @@ function GrowthSummaryTab({
   );
 }
 
-function GrowthRecordsTab() {
+// ─── Year Record Popup (add/edit) ─────────────────────────────────────────────
+
+function YearRecordPopup({
+  initial,
+  existingYears,
+  onSave,
+  onDelete,
+  onClose,
+}: {
+  initial?: YearRecord;
+  existingYears: number[];
+  onSave: (r: YearRecord) => void;
+  onDelete?: () => void;
+  onClose: () => void;
+}) {
+  const isEdit = !!initial;
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(initial?.year ?? currentYear - 1);
+  const [date, setDate] = useState(initial?.date ?? `${initial?.year ?? currentYear - 1}-12-31`);
+  const [contrib, setContrib] = useState(initial ? Math.round(initial.totalContribution).toLocaleString('ko-KR') : '');
+  const [assets, setAssets] = useState(initial ? Math.round(initial.totalAssets).toLocaleString('ko-KR') : '');
+  const [cumDiv, setCumDiv] = useState(initial ? Math.round(initial.cumulativeDividend).toLocaleString('ko-KR') : '');
+  const [monDiv, setMonDiv] = useState(initial ? Math.round(initial.monthlyDividend).toLocaleString('ko-KR') : '');
+
+  const parseKrw = (v: string) => parseFloat(v.replace(/,/g, '')) || 0;
+  const commaInput = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    setter(raw ? parseInt(raw, 10).toLocaleString('ko-KR') : '');
+  };
+
+  const tc = parseKrw(contrib);
+  const ta = parseKrw(assets);
+  const returnRate = tc > 0 ? ((ta - tc) / tc) * 100 : 0;
+
+  const yearConflict = !isEdit && existingYears.includes(year);
+
+  const handleSave = () => {
+    if (!tc || !ta) return;
+    onSave({ year, date, isManual: true, totalContribution: tc, totalAssets: ta, returnRate, cumulativeDividend: parseKrw(cumDiv), monthlyDividend: parseKrw(monDiv) });
+  };
+
   return (
-    <section className="empty-state">
-      <strong>기록</strong>
-      <p>준비 중입니다.</p>
-    </section>
+    <div className="goal-popup-overlay" onClick={onClose}>
+      <div className="goal-popup-box year-record-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="goal-popup-title">{isEdit ? `${initial!.year}년 기록 수정` : '연도 추가'}</div>
+
+        <div className="yr-field-group">
+          {!isEdit && (
+            <div className="yr-field">
+              <label className="yr-label">연도</label>
+              <select
+                className="yr-select"
+                value={year}
+                onChange={(e) => {
+                  const y = parseInt(e.target.value, 10);
+                  setYear(y);
+                  setDate(`${y}-12-31`);
+                }}
+              >
+                {Array.from({ length: 20 }, (_, i) => currentYear - 1 - i).map((y) => (
+                  <option key={y} value={y}>{y}년</option>
+                ))}
+              </select>
+              {yearConflict && <span className="yr-conflict">이미 해당 연도 기록이 있습니다.</span>}
+            </div>
+          )}
+          <div className="yr-field">
+            <label className="yr-label">기준 날짜</label>
+            <input className="yr-date-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div className="yr-field">
+            <label className="yr-label">총 투입금 (원)</label>
+            <input className="yr-input" type="text" inputMode="numeric" value={contrib} onChange={commaInput(setContrib)} placeholder="0" />
+          </div>
+          <div className="yr-field">
+            <label className="yr-label">자산평가액 (원)</label>
+            <input className="yr-input" type="text" inputMode="numeric" value={assets} onChange={commaInput(setAssets)} placeholder="0" />
+          </div>
+          <div className="yr-field">
+            <label className="yr-label">총 수익률 (자동계산)</label>
+            <div className={`yr-readonly${returnRate > 0 ? ' gain' : returnRate < 0 ? ' loss' : ''}`}>
+              {tc > 0 ? `${returnRate > 0 ? '+' : ''}${returnRate.toFixed(2)}%` : '—'}
+            </div>
+          </div>
+          <div className="yr-field">
+            <label className="yr-label">누적 배당금 (원)</label>
+            <input className="yr-input" type="text" inputMode="numeric" value={cumDiv} onChange={commaInput(setCumDiv)} placeholder="0" />
+          </div>
+          <div className="yr-field">
+            <label className="yr-label">월 배당금 (원)</label>
+            <input className="yr-input" type="text" inputMode="numeric" value={monDiv} onChange={commaInput(setMonDiv)} placeholder="0" />
+          </div>
+        </div>
+
+        <div className="goal-popup-actions yr-actions">
+          {onDelete && (
+            <button className="yr-delete-btn" type="button" onClick={onDelete}>삭제</button>
+          )}
+          <div className="yr-actions-right">
+            <button className="goal-popup-cancel" type="button" onClick={onClose}>취소</button>
+            <button
+              className="goal-popup-confirm"
+              type="button"
+              onClick={handleSave}
+              disabled={!tc || !ta || yearConflict}
+            >
+              저장
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Growth Records Tab ───────────────────────────────────────────────────────
+
+function GrowthRecordsTab({
+  data,
+  onDataChange,
+}: {
+  data: AppData;
+  onDataChange: (d: AppData) => void;
+}) {
+  const [editTarget, setEditTarget] = useState<YearRecord | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+
+  const yearRecords = [...(data.yearRecords ?? [])].sort((a, b) => b.year - a.year);
+  const krw = (v: number) => `${Math.round(v).toLocaleString('ko-KR')}원`;
+
+  const dateLabel = (r: YearRecord) => {
+    const [, m, d] = r.date.split('-');
+    return `${parseInt(m)}/${parseInt(d)} 기준`;
+  };
+
+  const saveRecord = (record: YearRecord) => {
+    const list = data.yearRecords ?? [];
+    const idx = list.findIndex((r) => r.year === record.year);
+    const updated = idx >= 0 ? list.map((r, i) => (i === idx ? record : r)) : [...list, record];
+    onDataChange({ ...data, yearRecords: updated.sort((a, b) => b.year - a.year) });
+    setEditTarget(null);
+    setShowAdd(false);
+  };
+
+  const deleteRecord = (year: number) => {
+    onDataChange({ ...data, yearRecords: (data.yearRecords ?? []).filter((r) => r.year !== year) });
+    setEditTarget(null);
+  };
+
+  return (
+    <div className="growth-records-content">
+      {yearRecords.length === 0 ? (
+        <div className="growth-records-empty">
+          <p className="growth-records-empty-title">아직 연간 기록이 없습니다</p>
+          <p className="growth-records-empty-sub">앱을 사용할수록 자동으로 쌓입니다.<br />지금 직접 추가할 수도 있어요.</p>
+          <button className="growth-add-record-btn" type="button" onClick={() => setShowAdd(true)}>+ 직접 추가</button>
+        </div>
+      ) : (
+        <>
+          {yearRecords.map((record) => (
+            <div key={record.year} className="growth-year-card">
+              <div className="growth-year-header">
+                <div className="growth-year-title-row">
+                  <span className="growth-year-title">{record.year}년</span>
+                  <span className="growth-year-date">({dateLabel(record)})</span>
+                  {record.isManual && <span className="growth-year-manual-badge">수동</span>}
+                </div>
+                <button className="growth-year-edit-btn" type="button" onClick={() => setEditTarget(record)}>수정</button>
+              </div>
+              <div className="growth-year-metrics">
+                <div className="growth-year-metric">
+                  <span className="growth-year-metric-label">총 투입금</span>
+                  <span className="growth-year-metric-value">{krw(record.totalContribution)}</span>
+                </div>
+                <div className="growth-year-metric">
+                  <span className="growth-year-metric-label">자산평가액</span>
+                  <span className="growth-year-metric-value">{krw(record.totalAssets)}</span>
+                </div>
+                <div className="growth-year-metric growth-year-metric-full">
+                  <span className="growth-year-metric-label">총 수익률</span>
+                  <span className={`growth-year-metric-value${record.returnRate > 0 ? ' gain' : record.returnRate < 0 ? ' loss' : ''}`}>
+                    {record.returnRate > 0 ? '+' : ''}{record.returnRate.toFixed(2)}%
+                  </span>
+                </div>
+                <div className="growth-year-metric">
+                  <span className="growth-year-metric-label">누적 배당금</span>
+                  <span className="growth-year-metric-value">{krw(record.cumulativeDividend)}</span>
+                </div>
+                <div className="growth-year-metric">
+                  <span className="growth-year-metric-label">월 배당금</span>
+                  <span className="growth-year-metric-value">{krw(record.monthlyDividend)}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+          <button className="growth-add-record-btn" type="button" onClick={() => setShowAdd(true)}>+ 연도 추가</button>
+        </>
+      )}
+
+      {editTarget && (
+        <YearRecordPopup
+          initial={editTarget}
+          existingYears={(data.yearRecords ?? []).map((r) => r.year)}
+          onSave={saveRecord}
+          onDelete={() => deleteRecord(editTarget.year)}
+          onClose={() => setEditTarget(null)}
+        />
+      )}
+      {showAdd && (
+        <YearRecordPopup
+          existingYears={(data.yearRecords ?? []).map((r) => r.year)}
+          onSave={saveRecord}
+          onClose={() => setShowAdd(false)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -2311,7 +2528,7 @@ function GrowthView({
       </div>
 
       {tab === 'summary' && <GrowthSummaryTab data={data} summary={summary} onDataChange={onDataChange} />}
-      {tab === 'records' && <GrowthRecordsTab />}
+      {tab === 'records' && <GrowthRecordsTab data={data} onDataChange={onDataChange} />}
     </div>
   );
 }
@@ -3886,6 +4103,52 @@ export default function App() {
 
   const rows = useMemo(() => calculateHoldingRows(data.holdings), [data.holdings]);
   const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);
+
+  // ─── 일별 스냅샷 자동저장 ──────────────────────────────────────────────────
+  const snapshotSavedRef = useRef<{ date: string; mode: AccountMode } | null>(null);
+  const isOverseas = accountMode === 'overseas';
+
+  useEffect(() => {
+    if (!unlocked) return;
+    if (isOverseas && usdKrwRate == null) return; // 환율 로드 대기
+    const today = new Date().toISOString().slice(0, 10);
+    if (snapshotSavedRef.current?.date === today && snapshotSavedRef.current?.mode === accountMode) return;
+
+    const metrics = computeGrowthMetrics(data, summary, isOverseas, usdKrwRate);
+    const snapshots: DailySnapshot[] = [...(data.dailySnapshots ?? [])];
+    const idx = snapshots.findIndex((s) => s.date === today);
+    const snap: DailySnapshot = { date: today, ...metrics };
+    if (idx >= 0) snapshots[idx] = snap; else snapshots.push(snap);
+    snapshots.sort((a, b) => a.date.localeCompare(b.date));
+    const trimmed = snapshots.slice(-180);
+
+    // 전년도 yearRecord 자동 생성
+    const yearRecords: YearRecord[] = [...(data.yearRecords ?? [])];
+    const currentYear = new Date().getFullYear();
+    const years = [...new Set(trimmed.map((s) => parseInt(s.date.slice(0, 4), 10)))];
+    let addedAny = false;
+    for (const year of years) {
+      if (year >= currentYear) continue;
+      if (yearRecords.some((r) => r.year === year)) continue;
+      const decSnaps = trimmed.filter((s) => s.date.startsWith(`${year}-12`));
+      if (!decSnaps.length) continue;
+      const targetMs = new Date(`${year}-12-31`).getTime();
+      const closest = decSnaps.reduce((best, s) =>
+        Math.abs(new Date(s.date).getTime() - targetMs) < Math.abs(new Date(best.date).getTime() - targetMs) ? s : best
+      );
+      yearRecords.push({ ...closest, year, isManual: false });
+      addedAny = true;
+    }
+    if (addedAny) yearRecords.sort((a, b) => b.year - a.year);
+
+    snapshotSavedRef.current = { date: today, mode: accountMode };
+    // persist를 직접 호출하면 data 변경으로 루프되므로 RootData 직접 저장
+    const nextData: AppData = { ...data, dailySnapshots: trimmed, yearRecords };
+    const next: RootData = { ...rootData, [accountMode]: nextData };
+    setRootData(next);
+    if (activePin) saveEncrypted(next, activePin); else saveRootData(next);
+  }, [unlocked, accountMode, usdKrwRate, summary]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   const saveData = (next: RootData, pin = activePin) => {
     if (pin) {

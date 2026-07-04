@@ -59,6 +59,8 @@ function parseAppData(raw: unknown): AppData {
     realizedGains: Array.isArray(parsed.realizedGains) ? parsed.realizedGains : [],
     investmentStartDate: typeof parsed.investmentStartDate === 'string' ? parsed.investmentStartDate : undefined,
     monthlyDividendGoal: typeof parsed.monthlyDividendGoal === 'number' ? parsed.monthlyDividendGoal : undefined,
+    dailySnapshots: Array.isArray(parsed.dailySnapshots) ? parsed.dailySnapshots : [],
+    yearRecords: Array.isArray(parsed.yearRecords) ? parsed.yearRecords : [],
   };
 }
 
