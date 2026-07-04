@@ -879,6 +879,7 @@ function HoldingModal({
   onClose: () => void;
   onSubmit: (draft: HoldingDraft) => Promise<void>;
 }) {
+  useBackButtonClose(onClose);
   const { isOverseas } = useCurrency();
   const [form, setForm] = useState<HoldingDraft>(
     draft ?? { query: '', shares: '', averagePrice: '' },
@@ -1427,6 +1428,7 @@ function RealizedGainAddModal({
   onClose: () => void;
   onSave: (record: RealizedGainRecord) => void;
 }) {
+  useBackButtonClose(onClose);
   const { isOverseas } = useCurrency();
   const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
   const today = new Date().toISOString().slice(0, 10);
@@ -2390,7 +2392,15 @@ function YearRecordPopup({
 
         <div className="goal-popup-actions yr-actions">
           {onDelete && (
-            <button className="yr-delete-btn" type="button" onClick={onDelete}>삭제</button>
+            <button
+              className="yr-delete-btn"
+              type="button"
+              onClick={async () => {
+                if (await customConfirm(`${initial!.year}년 기록을 삭제할까요?`)) onDelete();
+              }}
+            >
+              삭제
+            </button>
           )}
           <div className="yr-actions-right">
             <button className="goal-popup-cancel" type="button" onClick={onClose}>취소</button>
@@ -2591,6 +2601,7 @@ function DividendAddModal({
   onClose: () => void;
   onSave: (record: DividendRecord) => void;
 }) {
+  useBackButtonClose(onClose);
   const { isOverseas } = useCurrency();
   const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
   const today = new Date().toISOString().slice(0, 10);
@@ -3377,6 +3388,7 @@ function CsvGuideModal({
   onClose: () => void;
   onSelectFile: () => void;
 }) {
+  useBackButtonClose(onClose);
   return (
     <div
       className="modal-overlay"
@@ -3440,6 +3452,7 @@ function CsvPreviewModal({
   onConfirm: (records: DividendRecord[]) => void;
   onClose: () => void;
 }) {
+  useBackButtonClose(onClose);
   // 종목코드 → 종목명 매핑 상태
   const [nameMap, setNameMap] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
@@ -3564,6 +3577,7 @@ function LiveHoldingCsvPreviewModal({
   onConfirm: (holdings: Holding[]) => void;
   onClose: () => void;
 }) {
+  useBackButtonClose(onClose);
   const [results, setResults] = useState<(QuoteResult | null)[]>(() => rows.map(() => null));
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<(string | null)[]>(() => rows.map(() => null));
@@ -3682,6 +3696,7 @@ function RgCsvPreviewModal({
   onConfirm: (records: RealizedGainRecord[]) => void;
   onClose: () => void;
 }) {
+  useBackButtonClose(onClose);
   const [nameMap, setNameMap] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
 
