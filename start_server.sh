@@ -27,6 +27,9 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# /appinfo 경로는 서비스워커가 가로채지 않도록 SW에 denylist 패치
+sed -i 's|e\.registerRoute(new e\.NavigationRoute(e\.createHandlerBoundToURL("index\.html")))|e.registerRoute(new e.NavigationRoute(e.createHandlerBoundToURL("index.html"),{denylist:[/^\\/appinfo/]}))|g' dist/sw.js
+
 setsid env SSL_CERT="$CERT" SSL_KEY="$KEY" PORT="$PORT" node server.js > server.log 2>&1 &
 echo $! > server.pid
 sleep 3

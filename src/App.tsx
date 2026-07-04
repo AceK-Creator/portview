@@ -2107,7 +2107,10 @@ function GrowthSummaryTab({
   summary: AccountSummary;
   onDataChange: (data: AppData) => void;
 }) {
-  const { c } = useCurrency();
+  const { isOverseas, usdKrwRate } = useCurrency();
+
+  // 성장탭은 항상 원화(KRW) 기준으로 표시
+  const krw = (v: number) => `${Math.round(v).toLocaleString('ko-KR')}원`;
 
   const [editingDate, setEditingDate] = useState(false);
   const [dateInput, setDateInput] = useState(data.investmentStartDate ?? '');
@@ -2122,7 +2125,15 @@ function GrowthSummaryTab({
     ? dividends.filter((d) => d.paidAt.startsWith(latestMonth.ym)).reduce((s, d) => s + d.amount, 0)
     : 0;
 
-  const returnRate = summary.totalReturnRate;
+  // 해외 계좌: USD 평가액 × 환율 + KRW 예수금으로 원화 환산
+  const totalAssets = isOverseas && usdKrwRate != null
+    ? summary.totalMarketValue * usdKrwRate + data.account.cashBalance
+    : summary.currentTotalAssets;
+
+  const profitLoss = totalAssets - data.account.totalContribution;
+  const returnRate = data.account.totalContribution > 0
+    ? (profitLoss / data.account.totalContribution) * 100
+    : 0;
   const returnSign = returnRate > 0 ? '+' : '';
 
   const goal = data.monthlyDividendGoal ?? 0;
@@ -2174,12 +2185,12 @@ function GrowthSummaryTab({
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">총 투입금</span>
-          <strong className="growth-metric-value">{c(data.account.totalContribution)}</strong>
+          <strong className="growth-metric-value">{krw(data.account.totalContribution)}</strong>
         </div>
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">자산평가액</span>
-          <strong className="growth-metric-value">{c(summary.currentTotalAssets)}</strong>
+          <strong className="growth-metric-value">{krw(totalAssets)}</strong>
         </div>
 
         <div className="growth-metric-card growth-metric-full">
@@ -2191,12 +2202,12 @@ function GrowthSummaryTab({
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">누적 배당금</span>
-          <strong className="growth-metric-value">{c(cumulativeDividend)}</strong>
+          <strong className="growth-metric-value">{krw(cumulativeDividend)}</strong>
         </div>
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">월 배당금{latestMonth && <span className="growth-metric-month">({latestMonth.label})</span>}</span>
-          <strong className="growth-metric-value">{c(monthlyDividend)}</strong>
+          <strong className="growth-metric-value">{krw(monthlyDividend)}</strong>
         </div>
 
       </div>

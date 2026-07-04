@@ -6,3 +6,4 @@ browser_errors.log
 *.tsbuildinfo
 vite.config.d.ts
 token.txt
+token.txt.txt

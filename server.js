@@ -281,6 +281,9 @@ app.post('/api/client-error', (req, res) => {
   res.status(204).end();
 });
 
+const APP_INFO_DIR = path.join(__dirname, '앱설명페이지');
+app.use('/appinfo', express.static(APP_INFO_DIR));
+
 app.use(express.static(DIST_DIR));
 app.use('/portview', express.static(DIST_DIR, { extensions: ['html'] }));
 app.get('/portview/*', (_req, res) => {
