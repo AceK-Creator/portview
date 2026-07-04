@@ -2249,12 +2249,22 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
         주단위 자산 성장 추이
         {isDemo && <span className="growth-graph-demo-badge">예시</span>}
       </span>
-      <div className="account-pills">
+      <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(145,181,220,0.22)' }}>
         {(['6m', '12m', 'all'] as GraphFilter[]).map((f) => (
           <button
             key={f}
             type="button"
-            className={`account-pill${filter === f ? ' active' : ''}`}
+            style={{
+              width: 46,
+              padding: '4px 0',
+              textAlign: 'center',
+              border: 'none',
+              fontSize: 12,
+              fontWeight: 700,
+              background: filter === f ? 'linear-gradient(135deg,#7c4dff,#00b4d8)' : 'transparent',
+              color: filter === f ? '#fff' : '#7fa9db',
+              cursor: 'pointer',
+            }}
             onClick={() => setFilter(f)}
           >
             {f === '6m' ? '6개월' : f === '12m' ? '12개월' : '전체'}
