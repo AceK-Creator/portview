@@ -2018,16 +2018,13 @@ function calcInvestmentPeriod(startDateStr: string): string {
   return `${years}년 ${rem}개월`;
 }
 
-function getPrevMonthYM(): string {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function getPrevMonthLabel(): string {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+function getLatestDividendMonth(dividends: DividendRecord[]): { ym: string; label: string } | null {
+  if (!dividends.length) return null;
+  const months = [...new Set(dividends.map((d) => d.paidAt.slice(0, 7)))].sort().reverse();
+  const ym = months[0];
+  if (!ym) return null;
+  const [year, month] = ym.split('-');
+  return { ym, label: `${year}년 ${Number(month)}월` };
 }
 
 // ─── 과녁 아이콘 (동심원 2개 + arrow.png) ────────────────────────────────────
@@ -2040,12 +2037,12 @@ function TargetIcon({ onClick }: { onClick?: () => void }) {
       onClick={onClick}
       aria-label="월 배당금 목표 설정"
     >
-      {/* 동심원 2개 (SVG) */}
+      {/* 동심원 2개 — 작게 해서 화살이 밖으로 튀어나오도록 */}
       <svg className="growth-target-circles" viewBox="0 0 80 80" aria-hidden="true">
-        <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(200,220,255,0.18)" strokeWidth="2" />
-        <circle cx="40" cy="40" r="22" fill="none" stroke="rgba(200,220,255,0.30)" strokeWidth="2" />
+        <circle cx="40" cy="40" r="24" fill="none" stroke="rgba(200,220,255,0.22)" strokeWidth="4" />
+        <circle cx="40" cy="40" r="13" fill="none" stroke="rgba(200,220,255,0.38)" strokeWidth="4" />
       </svg>
-      {/* 화살 이미지 */}
+      {/* 화살 이미지 — overflow visible로 바깥까지 표시 */}
       <img src="/arrow.png" className="growth-arrow-img" alt="" aria-hidden="true" />
     </button>
   );
@@ -2080,19 +2077,22 @@ function GoalInputPopup({
     <div className="goal-popup-backdrop" onClick={onClose}>
       <div className="goal-popup" onClick={(e) => e.stopPropagation()}>
         <p className="goal-popup-title">월 배당금 목표 설정</p>
-        <div className="goal-popup-input-row">
-          <input
-            className="goal-popup-input"
-            type="text"
-            inputMode="numeric"
-            value={raw}
-            placeholder="0"
-            onChange={handleChange}
-            autoFocus
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose(); }}
-          />
-          <span className="goal-popup-unit">원</span>
-        </div>
+        <label className="goal-popup-label">
+          목표 금액
+          <div className="goal-popup-input-wrap">
+            <input
+              className="goal-popup-input"
+              type="text"
+              inputMode="numeric"
+              value={raw}
+              placeholder="0"
+              onChange={handleChange}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose(); }}
+            />
+            <span className="goal-popup-unit">원</span>
+          </div>
+        </label>
         <div className="goal-popup-actions">
           <button className="goal-popup-cancel" type="button" onClick={onClose}>취소</button>
           <button className="goal-popup-confirm" type="button" onClick={handleSave}>확인</button>
@@ -2120,13 +2120,13 @@ function GrowthSummaryTab({
 
   const [showGoalPopup, setShowGoalPopup] = useState(false);
 
-  const cumulativeDividend = (data.dividends ?? []).reduce((s, d) => s + d.amount, 0);
+  const dividends = data.dividends ?? [];
+  const cumulativeDividend = dividends.reduce((s, d) => s + d.amount, 0);
 
-  const prevYM = getPrevMonthYM();
-  const prevMonthLabel = getPrevMonthLabel();
-  const monthlyDividend = (data.dividends ?? [])
-    .filter((d) => d.paidAt.startsWith(prevYM))
-    .reduce((s, d) => s + d.amount, 0);
+  const latestMonth = getLatestDividendMonth(dividends);
+  const monthlyDividend = latestMonth
+    ? dividends.filter((d) => d.paidAt.startsWith(latestMonth.ym)).reduce((s, d) => s + d.amount, 0)
+    : 0;
 
   const returnRate = summary.totalReturnRate;
   const returnSign = returnRate > 0 ? '+' : '';
@@ -2194,7 +2194,7 @@ function GrowthSummaryTab({
         </div>
 
         <div className="growth-metric-card">
-          <span className="growth-metric-label">월 배당금<span className="growth-metric-month">({prevMonthLabel})</span></span>
+          <span className="growth-metric-label">월 배당금{latestMonth && <span className="growth-metric-month">({latestMonth.label})</span>}</span>
           <strong className="growth-metric-value">{c(monthlyDividend)}</strong>
         </div>
 
