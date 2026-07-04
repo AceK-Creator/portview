@@ -2030,20 +2030,75 @@ function getPrevMonthLabel(): string {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
 }
 
-// ─── 과녁 아이콘 (장식용 SVG) ────────────────────────────────────────────────
+// ─── 과녁 아이콘 (동심원 2개 + arrow.png) ────────────────────────────────────
 
-function TargetIcon() {
+function TargetIcon({ onClick }: { onClick?: () => void }) {
   return (
-    <svg className="growth-target-icon" viewBox="0 0 48 48" aria-hidden="true">
-      {/* 동심원 3개 */}
-      <circle cx="22" cy="26" r="18" fill="none" stroke="rgba(145,181,220,0.18)" strokeWidth="2.5" />
-      <circle cx="22" cy="26" r="11" fill="none" stroke="rgba(145,181,220,0.28)" strokeWidth="2.5" />
-      <circle cx="22" cy="26" r="5"  fill="rgba(124,77,255,0.55)" stroke="rgba(124,77,255,0.8)" strokeWidth="1.5" />
-      {/* 화살 (우상단 → 중앙) */}
-      <line x1="36" y1="10" x2="22" y2="26" stroke="#7c4dff" strokeWidth="2.2" strokeLinecap="round" />
-      {/* 화살촉 */}
-      <polyline points="29,9 36,10 35,17" fill="none" stroke="#7c4dff" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
+    <button
+      className="growth-target-icon-btn"
+      type="button"
+      onClick={onClick}
+      aria-label="월 배당금 목표 설정"
+    >
+      {/* 동심원 2개 (SVG) */}
+      <svg className="growth-target-circles" viewBox="0 0 80 80" aria-hidden="true">
+        <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(200,220,255,0.18)" strokeWidth="2" />
+        <circle cx="40" cy="40" r="22" fill="none" stroke="rgba(200,220,255,0.30)" strokeWidth="2" />
+      </svg>
+      {/* 화살 이미지 */}
+      <img src="/arrow.png" className="growth-arrow-img" alt="" aria-hidden="true" />
+    </button>
+  );
+}
+
+// ─── 목표 금액 입력 팝업 ──────────────────────────────────────────────────────
+
+function GoalInputPopup({
+  current,
+  onSave,
+  onClose,
+}: {
+  current: number | undefined;
+  onSave: (val: number) => void;
+  onClose: () => void;
+}) {
+  const [raw, setRaw] = useState(current != null ? current.toLocaleString('ko-KR') : '');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/[^0-9]/g, '');
+    if (digits === '') { setRaw(''); return; }
+    setRaw(Number(digits).toLocaleString('ko-KR'));
+  };
+
+  const handleSave = () => {
+    const val = Number(raw.replace(/,/g, ''));
+    if (!Number.isNaN(val) && val >= 0) onSave(val);
+    onClose();
+  };
+
+  return (
+    <div className="goal-popup-backdrop" onClick={onClose}>
+      <div className="goal-popup" onClick={(e) => e.stopPropagation()}>
+        <p className="goal-popup-title">월 배당금 목표 설정</p>
+        <div className="goal-popup-input-row">
+          <input
+            className="goal-popup-input"
+            type="text"
+            inputMode="numeric"
+            value={raw}
+            placeholder="0"
+            onChange={handleChange}
+            autoFocus
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onClose(); }}
+          />
+          <span className="goal-popup-unit">원</span>
+        </div>
+        <div className="goal-popup-actions">
+          <button className="goal-popup-cancel" type="button" onClick={onClose}>취소</button>
+          <button className="goal-popup-confirm" type="button" onClick={handleSave}>확인</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2063,10 +2118,7 @@ function GrowthSummaryTab({
   const [editingDate, setEditingDate] = useState(false);
   const [dateInput, setDateInput] = useState(data.investmentStartDate ?? '');
 
-  const [editingGoal, setEditingGoal] = useState(false);
-  const [goalInput, setGoalInput] = useState(
-    data.monthlyDividendGoal != null ? String(data.monthlyDividendGoal) : ''
-  );
+  const [showGoalPopup, setShowGoalPopup] = useState(false);
 
   const cumulativeDividend = (data.dividends ?? []).reduce((s, d) => s + d.amount, 0);
 
@@ -2081,20 +2133,14 @@ function GrowthSummaryTab({
 
   const goal = data.monthlyDividendGoal ?? 0;
   const targetPercent = goal > 0 ? Math.min((monthlyDividend / goal) * 100, 100) : 0;
+  const remaining = goal > 0 ? Math.max(goal - monthlyDividend, 0) : 0;
+  const achieved = goal > 0 && monthlyDividend >= goal;
 
   const saveDate = () => {
     if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
       onDataChange({ ...data, investmentStartDate: dateInput });
     }
     setEditingDate(false);
-  };
-
-  const saveGoal = () => {
-    const parsed = Number(goalInput.replace(/,/g, ''));
-    if (!Number.isNaN(parsed) && parsed >= 0) {
-      onDataChange({ ...data, monthlyDividendGoal: parsed });
-    }
-    setEditingGoal(false);
   };
 
   return (
@@ -2163,54 +2209,56 @@ function GrowthSummaryTab({
 
       {/* ── 월 배당금 목표 ── */}
       <div className="growth-target-card">
+        <div className="growth-target-body">
 
-        {/* 헤더: 과녁 아이콘 + 제목 + 목표 금액 편집 */}
-        <div className="growth-target-header">
-          <div className="growth-target-title-row">
-            <TargetIcon />
-            <span className="growth-target-title">월 배당금 목표 달성률</span>
+          {/* 과녁 (클릭 → 팝업) */}
+          <TargetIcon onClick={() => setShowGoalPopup(true)} />
+
+          {/* 오른쪽 콘텐츠 */}
+          <div className="growth-target-right">
+
+            {/* 제목 + 목표 금액 */}
+            <div className="growth-target-title-row">
+              <span className="growth-target-title">월 배당금 목표</span>
+              <span className="growth-target-goal-amount">
+                {goal > 0 ? `${goal.toLocaleString('ko-KR')}원` : '목표 설정'}
+              </span>
+            </div>
+
+            {/* 가로 바 게이지 */}
+            <div className="growth-bar-wrap">
+              <div className="growth-bar-track">
+                <div className="growth-bar-fill" style={{ width: `${targetPercent}%` }} />
+              </div>
+              <span className="growth-bar-pct">{Math.round(targetPercent)}%</span>
+            </div>
+
+            {/* 달성까지 */}
+            <div className="growth-remaining">
+              {achieved ? (
+                <span className="growth-remaining-done">목표 달성!</span>
+              ) : (
+                <>
+                  <span className="growth-remaining-label">달성까지</span>
+                  <span className="growth-remaining-amount">
+                    +{goal > 0 ? remaining.toLocaleString('ko-KR') : '—'}원
+                  </span>
+                </>
+              )}
+            </div>
+
           </div>
-          {editingGoal ? (
-            <span className="growth-goal-edit-row">
-              <input
-                className="growth-goal-input"
-                type="text"
-                inputMode="numeric"
-                value={goalInput}
-                placeholder="목표 금액"
-                onChange={(e) => setGoalInput(e.target.value.replace(/[^0-9]/g, ''))}
-                onBlur={saveGoal}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveGoal(); if (e.key === 'Escape') setEditingGoal(false); }}
-                autoFocus
-              />
-              <span className="growth-goal-unit">원</span>
-            </span>
-          ) : (
-            <button className="growth-goal-value-btn" type="button" onClick={() => { setGoalInput(data.monthlyDividendGoal != null ? String(data.monthlyDividendGoal) : ''); setEditingGoal(true); }}>
-              {data.monthlyDividendGoal != null ? `${data.monthlyDividendGoal.toLocaleString('ko-KR')}원` : '목표 설정'}
-              <Pencil size={13} />
-            </button>
-          )}
         </div>
-
-        {/* 가로 바 게이지 */}
-        <div className="growth-bar-wrap">
-          <div className="growth-bar-track">
-            <div
-              className="growth-bar-fill"
-              style={{ width: `${targetPercent}%` }}
-            />
-          </div>
-          <span className="growth-bar-pct">{Math.round(targetPercent)}%</span>
-        </div>
-
-        {/* 금액 표기 */}
-        <div className="growth-bar-amounts">
-          <span className="growth-bar-current">{c(monthlyDividend)}</span>
-          <span className="growth-bar-goal">/ {goal > 0 ? `${goal.toLocaleString('ko-KR')}원` : '—'}</span>
-        </div>
-
       </div>
+
+      {/* 목표 금액 입력 팝업 */}
+      {showGoalPopup && (
+        <GoalInputPopup
+          current={data.monthlyDividendGoal}
+          onSave={(val) => onDataChange({ ...data, monthlyDividendGoal: val })}
+          onClose={() => setShowGoalPopup(false)}
+        />
+      )}
 
     </div>
   );

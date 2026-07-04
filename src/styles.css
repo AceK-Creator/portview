@@ -2826,88 +2826,81 @@ label {
   border: 1px solid rgba(145, 181, 220, 0.14);
   border-radius: 16px;
   padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
 }
 
-.growth-target-header {
+.growth-target-body {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 16px;
+}
+
+/* 과녁 버튼 */
+.growth-target-icon-btn {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 150ms ease;
+}
+
+.growth-target-icon-btn:hover {
+  transform: scale(1.06);
+}
+
+.growth-target-icon-btn:active {
+  transform: scale(0.96);
+}
+
+.growth-target-circles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.growth-arrow-img {
+  position: absolute;
+  width: 62%;
+  height: 62%;
+  top: 8%;
+  left: 28%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* 오른쪽 콘텐츠 */
+.growth-target-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
 }
 
 .growth-target-title-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
-}
-
-.growth-target-icon {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .growth-target-title {
   font-size: 13px;
   color: #7fa9db;
   font-weight: 400;
-}
-
-.growth-goal-value-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: none;
-  border: none;
-  color: #dceaff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 8px;
-  transition: background 150ms ease;
   white-space: nowrap;
 }
 
-.growth-goal-value-btn:hover {
-  background: rgba(124, 77, 255, 0.15);
-  color: #fff;
-}
-
-.growth-goal-value-btn svg {
-  color: #7fa9db;
-  flex-shrink: 0;
-}
-
-.growth-goal-edit-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.growth-goal-input {
-  background: rgba(11, 31, 56, 0.9);
-  border: 1px solid rgba(124, 77, 255, 0.5);
-  border-radius: 8px;
-  color: #dceaff;
-  font-size: 14px;
-  padding: 4px 8px;
-  outline: none;
-  width: 110px;
-  text-align: right;
-}
-
-.growth-goal-input:focus {
-  border-color: #7c4dff;
-  box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.2);
-}
-
-.growth-goal-unit {
-  font-size: 13px;
-  color: #7fa9db;
+.growth-target-goal-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: #a78bfa;
+  letter-spacing: -0.01em;
 }
 
 /* 가로 바 게이지 */
@@ -2919,7 +2912,7 @@ label {
 
 .growth-bar-track {
   flex: 1;
-  height: 10px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   overflow: hidden;
@@ -2935,28 +2928,138 @@ label {
 }
 
 .growth-bar-pct {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  color: #dceaff;
-  min-width: 36px;
+  color: #a8c8e8;
+  min-width: 32px;
   text-align: right;
 }
 
-/* 금액 표기 */
-.growth-bar-amounts {
+/* 달성까지 */
+.growth-remaining {
   display: flex;
   align-items: baseline;
   gap: 6px;
 }
 
-.growth-bar-current {
-  font-size: 18px;
-  font-weight: 700;
-  color: #f1f7ff;
-  letter-spacing: -0.02em;
+.growth-remaining-label {
+  font-size: 12px;
+  color: #7fa9db;
 }
 
-.growth-bar-goal {
-  font-size: 13px;
+.growth-remaining-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1f7ff;
+  letter-spacing: -0.01em;
+}
+
+.growth-remaining-done {
+  font-size: 14px;
+  font-weight: 700;
+  color: #00e5a0;
+}
+
+/* 목표 금액 입력 팝업 */
+.goal-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.goal-popup {
+  background: rgba(10, 28, 54, 0.97);
+  border: 1px solid rgba(145, 181, 220, 0.22);
+  border-radius: 20px;
+  padding: 24px 22px 20px;
+  width: min(300px, 88vw);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.goal-popup-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #dceaff;
+  text-align: center;
+}
+
+.goal-popup-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(124, 77, 255, 0.4);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.goal-popup-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #f1f7ff;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: right;
+  letter-spacing: -0.02em;
+  min-width: 0;
+}
+
+.goal-popup-input::placeholder {
+  color: rgba(145, 181, 220, 0.4);
+}
+
+.goal-popup-unit {
+  font-size: 14px;
   color: #7fa9db;
+  white-space: nowrap;
+}
+
+.goal-popup-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.goal-popup-cancel {
+  flex: 1;
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(145, 181, 220, 0.2);
+  background: transparent;
+  color: #7fa9db;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.goal-popup-cancel:hover {
+  background: rgba(145, 181, 220, 0.08);
+}
+
+.goal-popup-confirm {
+  flex: 1;
+  padding: 11px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #7c4dff, #00b4d8);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.goal-popup-confirm:hover {
+  opacity: 0.88;
 }
