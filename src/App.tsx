@@ -2158,12 +2158,35 @@ function niceStep(rough: number): number {
 
 type GraphFilter = '6m' | '12m' | 'all';
 
+// 예시 데이터 — 실데이터 없을 때 그래프 형태 미리보기용 (결정론적)
+function buildDemoSnapshots(): WeeklySnapshot[] {
+  const now = new Date();
+  const result: WeeklySnapshot[] = [];
+  const base = 30_000_000;
+  for (let i = 51; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - d.getDay() - i * 7);
+    const progress = 51 - i;
+    const trend = progress * 420_000;
+    const wave = Math.sin(progress * 0.52) * 1_800_000;
+    const dip = progress === 14 || progress === 15 ? -3_000_000 : 0;
+    result.push({ weekDate: d.toISOString().slice(0, 10), totalAssets: base + trend + wave + dip });
+  }
+  return result;
+}
+
 function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) {
   const [filter, setFilter] = useState<GraphFilter>('6m');
 
+  const isDemo = weeklySnapshots.length < 2;
+  const sourceSnapshots = useMemo(
+    () => isDemo ? buildDemoSnapshots() : weeklySnapshots,
+    [isDemo, weeklySnapshots],
+  );
+
   const now = new Date();
   const filtered = (() => {
-    const sorted = [...weeklySnapshots].sort((a, b) => a.weekDate.localeCompare(b.weekDate));
+    const sorted = [...sourceSnapshots].sort((a, b) => a.weekDate.localeCompare(b.weekDate));
     if (filter === 'all') return sorted;
     const months = filter === '6m' ? 6 : 12;
     const cutoff = new Date(now);
@@ -2177,26 +2200,32 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
   const gW = W - padL - padR;
   const gH = H - padT - padB;
 
-  const filterTabs = (
-    <div className="growth-graph-filter-row">
-      {(['6m', '12m', 'all'] as GraphFilter[]).map((f) => (
-        <button
-          key={f}
-          type="button"
-          className={`growth-graph-filter-btn${filter === f ? ' active' : ''}`}
-          onClick={() => setFilter(f)}
-        >
-          {f === '6m' ? '6개월' : f === '12m' ? '12개월' : '전체'}
-        </button>
-      ))}
+  const header = (
+    <div className="growth-graph-header">
+      <span className="growth-graph-title">
+        주단위 자산 성장 추이
+        {isDemo && <span className="growth-graph-demo-badge">예시</span>}
+      </span>
+      <div className="growth-graph-toggle">
+        {(['6m', '12m', 'all'] as GraphFilter[]).map((f) => (
+          <button
+            key={f}
+            type="button"
+            className={`growth-graph-toggle-btn${filter === f ? ' active' : ''}`}
+            onClick={() => setFilter(f)}
+          >
+            {f === '6m' ? '6개월' : f === '12m' ? '12개월' : '전체'}
+          </button>
+        ))}
+      </div>
     </div>
   );
 
   if (filtered.length < 2) {
     return (
       <div className="growth-graph-card">
-        {filterTabs}
-        <div className="growth-graph-empty">아직 데이터가 부족합니다<br /><span>앱을 매주 열면 자동으로 쌓여요</span></div>
+        {header}
+        <div className="growth-graph-empty">표시할 데이터가 없습니다</div>
       </div>
     );
   }
@@ -2222,7 +2251,7 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
 
   const yLevels = [0, 1, 2, 3, 4].map((i) => yMin + step * i);
 
-  // X축 레이블: 월 경계, 최소 40px 간격
+  // X축 레이블: 월 경계, 최소 38px 간격
   const xLabels: { x: number; label: string }[] = [];
   let lastYM = '';
   filtered.forEach((s, i) => {
@@ -2239,7 +2268,7 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
 
   return (
     <div className="growth-graph-card">
-      {filterTabs}
+      {header}
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
         <defs>
           <linearGradient id="assetAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -2247,7 +2276,6 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
             <stop offset="100%" stopColor="#7c4dff" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {/* 그리드 라인 + Y 레이블 */}
         {yLevels.map((val, i) => {
           const y = yScale(val).toFixed(1);
           return (
@@ -2259,11 +2287,8 @@ function AssetGraph({ weeklySnapshots }: { weeklySnapshots: WeeklySnapshot[] }) 
             </g>
           );
         })}
-        {/* 면적 채우기 */}
         <path d={areaPath} fill="url(#assetAreaGrad)" />
-        {/* 선 */}
         <path d={linePath} fill="none" stroke="#7c4dff" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
-        {/* X 레이블 */}
         {xLabels.map((l, i) => (
           <text key={i} x={l.x.toFixed(1)} y={H - 5} textAnchor="middle" fontSize="9" fill="rgba(145,181,220,0.5)">
             {l.label}

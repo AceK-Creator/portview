@@ -3371,28 +3371,62 @@ label {
   padding: 14px 14px 10px;
 }
 
-.growth-graph-filter-row {
+.growth-graph-header {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 10px;
 }
 
-.growth-graph-filter-btn {
-  padding: 4px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(145, 181, 220, 0.2);
-  background: transparent;
-  color: #6a8aaa;
+.growth-graph-title {
   font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 160ms ease;
+  font-weight: 600;
+  color: #91b5dc;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.growth-graph-filter-btn.active {
-  border-color: rgba(124, 77, 255, 0.55);
-  background: rgba(124, 77, 255, 0.14);
-  color: #b39dff;
+.growth-graph-demo-badge {
+  font-size: 10px;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(124, 77, 255, 0.4);
+  border-radius: 4px;
+  padding: 1px 5px;
+  letter-spacing: 0.01em;
+}
+
+.growth-graph-toggle {
+  display: flex;
+  gap: 3px;
+  background: rgba(11, 31, 56, 0.6);
+  border: 1px solid rgba(145, 181, 220, 0.14);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.growth-graph-toggle-btn {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 7px;
+  color: #7fa9db;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.growth-graph-toggle-btn:hover {
+  color: #c9e0ff;
+  background: rgba(124, 77, 255, 0.1);
+}
+
+.growth-graph-toggle-btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(124, 77, 255, 0.5), rgba(0, 180, 216, 0.4));
+  box-shadow: 0 1px 6px rgba(124, 77, 255, 0.25);
 }
 
 .growth-graph-empty {
@@ -3400,10 +3434,4 @@ label {
   padding: 22px 0 14px;
   color: #6a8aaa;
   font-size: 13px;
-  line-height: 1.6;
-}
-
-.growth-graph-empty span {
-  font-size: 11px;
-  color: #4a6a8a;
 }
