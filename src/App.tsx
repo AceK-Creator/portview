@@ -2118,11 +2118,13 @@ function GrowthSummaryTab({
   const [showGoalPopup, setShowGoalPopup] = useState(false);
 
   const dividends = data.dividends ?? [];
-  const cumulativeDividend = dividends.reduce((s, d) => s + d.amount, 0);
+  const rate = (isOverseas && usdKrwRate != null) ? usdKrwRate : 1;
+
+  const cumulativeDividend = dividends.reduce((s, d) => s + d.amount, 0) * rate;
 
   const latestMonth = getLatestDividendMonth(dividends);
   const monthlyDividend = latestMonth
-    ? dividends.filter((d) => d.paidAt.startsWith(latestMonth.ym)).reduce((s, d) => s + d.amount, 0)
+    ? dividends.filter((d) => d.paidAt.startsWith(latestMonth.ym)).reduce((s, d) => s + d.amount, 0) * rate
     : 0;
 
   // 해외 계좌: USD 평가액 × 환율 + KRW 예수금으로 원화 환산
