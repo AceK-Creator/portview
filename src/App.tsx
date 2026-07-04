@@ -2018,74 +2018,31 @@ function calcInvestmentPeriod(startDateStr: string): string {
   return `${years}년 ${rem}개월`;
 }
 
-function getCurrentMonthYM(): string {
+function getPrevMonthYM(): string {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-// ─── 과녁 (Target) 컴포넌트 ──────────────────────────────────────────────────
+function getPrevMonthLabel(): string {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+}
 
-function TargetBullseye({ percent }: { percent: number }) {
-  const clamped = Math.min(percent, 100);
-  const r = 72;
-  const circ = 2 * Math.PI * r;
-  const dash = (clamped / 100) * circ;
+// ─── 과녁 아이콘 (장식용 SVG) ────────────────────────────────────────────────
 
-  const ringColor =
-    clamped >= 100 ? '#00e5a0' :
-    clamped >= 70  ? '#7c4dff' :
-    clamped >= 40  ? '#00b4d8' :
-                     '#3d6a9a';
-
+function TargetIcon() {
   return (
-    <svg className="growth-target-svg" viewBox="0 0 180 180" aria-hidden="true">
-      <defs>
-        <linearGradient id="tgt-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#7c4dff" />
-          <stop offset="100%" stopColor="#00b4d8" />
-        </linearGradient>
-        <filter id="tgt-glow">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-
-      {/* 배경 링 3개 (과녁 동심원) */}
-      <circle cx="90" cy="90" r="72" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="18" />
-      <circle cx="90" cy="90" r="50" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="14" />
-      <circle cx="90" cy="90" r="30" fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="10" />
-      <circle cx="90" cy="90" r="14" fill="rgba(255,255,255,0.07)" />
-
-      {/* 배경 트랙 */}
-      <circle
-        cx="90" cy="90" r={r}
-        fill="none"
-        stroke="rgba(255,255,255,0.08)"
-        strokeWidth="14"
-      />
-
-      {/* 진행 호 */}
-      {clamped > 0 && (
-        <circle
-          cx="90" cy="90" r={r}
-          fill="none"
-          stroke={clamped >= 100 ? '#00e5a0' : 'url(#tgt-grad)'}
-          strokeWidth="14"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ}`}
-          transform="rotate(-90 90 90)"
-          filter="url(#tgt-glow)"
-          style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(.4,0,.2,1)' }}
-        />
-      )}
-
-      {/* 중앙 텍스트 */}
-      <text x="90" y="84" textAnchor="middle" fill="#fff" fontSize="22" fontWeight="700">
-        {Math.round(clamped)}%
-      </text>
-      <text x="90" y="102" textAnchor="middle" fill={ringColor} fontSize="10" fontWeight="500">
-        {clamped >= 100 ? '목표 달성!' : '달성'}
-      </text>
+    <svg className="growth-target-icon" viewBox="0 0 48 48" aria-hidden="true">
+      {/* 동심원 3개 */}
+      <circle cx="22" cy="26" r="18" fill="none" stroke="rgba(145,181,220,0.18)" strokeWidth="2.5" />
+      <circle cx="22" cy="26" r="11" fill="none" stroke="rgba(145,181,220,0.28)" strokeWidth="2.5" />
+      <circle cx="22" cy="26" r="5"  fill="rgba(124,77,255,0.55)" stroke="rgba(124,77,255,0.8)" strokeWidth="1.5" />
+      {/* 화살 (우상단 → 중앙) */}
+      <line x1="36" y1="10" x2="22" y2="26" stroke="#7c4dff" strokeWidth="2.2" strokeLinecap="round" />
+      {/* 화살촉 */}
+      <polyline points="29,9 36,10 35,17" fill="none" stroke="#7c4dff" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
 }
@@ -2103,30 +2060,27 @@ function GrowthSummaryTab({
 }) {
   const { c } = useCurrency();
 
-  // 투자 시작일 편집 상태
   const [editingDate, setEditingDate] = useState(false);
   const [dateInput, setDateInput] = useState(data.investmentStartDate ?? '');
 
-  // 월 배당금 목표 편집 상태
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState(
     data.monthlyDividendGoal != null ? String(data.monthlyDividendGoal) : ''
   );
 
-  // 5가지 핵심 지표 계산
   const cumulativeDividend = (data.dividends ?? []).reduce((s, d) => s + d.amount, 0);
 
-  const currentYM = getCurrentMonthYM();
+  const prevYM = getPrevMonthYM();
+  const prevMonthLabel = getPrevMonthLabel();
   const monthlyDividend = (data.dividends ?? [])
-    .filter((d) => d.paidAt.startsWith(currentYM))
+    .filter((d) => d.paidAt.startsWith(prevYM))
     .reduce((s, d) => s + d.amount, 0);
 
   const returnRate = summary.totalReturnRate;
   const returnSign = returnRate > 0 ? '+' : '';
 
-  // 과녁 진행률
   const goal = data.monthlyDividendGoal ?? 0;
-  const targetPercent = goal > 0 ? (monthlyDividend / goal) * 100 : 0;
+  const targetPercent = goal > 0 ? Math.min((monthlyDividend / goal) * 100, 100) : 0;
 
   const saveDate = () => {
     if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
@@ -2151,22 +2105,18 @@ function GrowthSummaryTab({
         <div className="growth-period-row">
           <span className="growth-period-label">투자 시작일</span>
           {editingDate ? (
-            <span className="growth-period-edit-row">
-              <input
-                className="growth-date-input"
-                type="date"
-                value={dateInput}
-                onChange={(e) => setDateInput(e.target.value)}
-                onBlur={saveDate}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveDate(); if (e.key === 'Escape') setEditingDate(false); }}
-                autoFocus
-              />
-            </span>
+            <input
+              className="growth-date-input"
+              type="date"
+              value={dateInput}
+              onChange={(e) => setDateInput(e.target.value)}
+              onBlur={saveDate}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveDate(); if (e.key === 'Escape') setEditingDate(false); }}
+              autoFocus
+            />
           ) : (
             <button className="growth-period-value-btn" type="button" onClick={() => { setDateInput(data.investmentStartDate ?? ''); setEditingDate(true); }}>
-              {data.investmentStartDate
-                ? data.investmentStartDate.replace(/-/g, '.')
-                : '날짜 설정'}
+              {data.investmentStartDate ? data.investmentStartDate.replace(/-/g, '.') : '날짜 설정'}
               <Pencil size={13} />
             </button>
           )}
@@ -2174,9 +2124,7 @@ function GrowthSummaryTab({
         <div className="growth-period-row">
           <span className="growth-period-label">투자 기간</span>
           <span className="growth-period-duration">
-            {data.investmentStartDate
-              ? `${calcInvestmentPeriod(data.investmentStartDate)} 운용 중`
-              : '—'}
+            {data.investmentStartDate ? `${calcInvestmentPeriod(data.investmentStartDate)} 운용 중` : '—'}
           </span>
         </div>
       </div>
@@ -2200,24 +2148,28 @@ function GrowthSummaryTab({
         </div>
 
         <div className="growth-metric-card">
-          <span className="growth-metric-label">월 배당금</span>
-          <strong className="growth-metric-value growth-metric-accent">{c(monthlyDividend)}</strong>
-          <span className="growth-metric-sub">{currentYM.replace('-', '년 ')}월</span>
+          <span className="growth-metric-label">월 배당금<span className="growth-metric-month">({prevMonthLabel})</span></span>
+          <strong className="growth-metric-value">{c(monthlyDividend)}</strong>
         </div>
 
         <div className="growth-metric-card growth-metric-full">
           <span className="growth-metric-label">총 수익률</span>
-          <strong className={`growth-return-rate${returnRate > 0 ? ' positive' : returnRate < 0 ? ' negative' : ''}`}>
+          <strong className={`growth-return-rate${returnRate > 0 ? ' gain' : returnRate < 0 ? ' loss' : ''}`}>
             {returnSign}{returnRate.toFixed(2)}%
           </strong>
         </div>
 
       </div>
 
-      {/* ── 월 배당금 목표 과녁 ── */}
+      {/* ── 월 배당금 목표 ── */}
       <div className="growth-target-card">
+
+        {/* 헤더: 과녁 아이콘 + 제목 + 목표 금액 편집 */}
         <div className="growth-target-header">
-          <span className="growth-target-title">월 배당금 목표</span>
+          <div className="growth-target-title-row">
+            <TargetIcon />
+            <span className="growth-target-title">월 배당금 목표 달성률</span>
+          </div>
           {editingGoal ? (
             <span className="growth-goal-edit-row">
               <input
@@ -2235,24 +2187,29 @@ function GrowthSummaryTab({
             </span>
           ) : (
             <button className="growth-goal-value-btn" type="button" onClick={() => { setGoalInput(data.monthlyDividendGoal != null ? String(data.monthlyDividendGoal) : ''); setEditingGoal(true); }}>
-              {data.monthlyDividendGoal != null
-                ? `${data.monthlyDividendGoal.toLocaleString('ko-KR')}원`
-                : '목표 설정'}
+              {data.monthlyDividendGoal != null ? `${data.monthlyDividendGoal.toLocaleString('ko-KR')}원` : '목표 설정'}
               <Pencil size={13} />
             </button>
           )}
         </div>
 
-        <div className="growth-target-body">
-          <TargetBullseye percent={targetPercent} />
-          <div className="growth-target-detail">
-            <span className="growth-target-current">{c(monthlyDividend)}</span>
-            <span className="growth-target-sep">/ {goal > 0 ? `${goal.toLocaleString('ko-KR')}원` : '—'}</span>
-            <span className="growth-target-pct-label">
-              {goal > 0 ? `${Math.min(Math.round(targetPercent), 100)}% 달성` : '목표를 설정해 주세요'}
-            </span>
+        {/* 가로 바 게이지 */}
+        <div className="growth-bar-wrap">
+          <div className="growth-bar-track">
+            <div
+              className="growth-bar-fill"
+              style={{ width: `${targetPercent}%` }}
+            />
           </div>
+          <span className="growth-bar-pct">{Math.round(targetPercent)}%</span>
         </div>
+
+        {/* 금액 표기 */}
+        <div className="growth-bar-amounts">
+          <span className="growth-bar-current">{c(monthlyDividend)}</span>
+          <span className="growth-bar-goal">/ {goal > 0 ? `${goal.toLocaleString('ko-KR')}원` : '—'}</span>
+        </div>
+
       </div>
 
     </div>

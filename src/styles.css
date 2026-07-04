@@ -2740,11 +2740,6 @@ label {
   flex-shrink: 0;
 }
 
-.growth-period-edit-row {
-  display: flex;
-  align-items: center;
-}
-
 .growth-date-input {
   background: rgba(11, 31, 56, 0.9);
   border: 1px solid rgba(124, 77, 255, 0.5);
@@ -2797,21 +2792,17 @@ label {
   letter-spacing: 0.02em;
 }
 
+.growth-metric-month {
+  font-size: 11px;
+  color: #5a7a9c;
+  margin-left: 3px;
+}
+
 .growth-metric-value {
   font-size: 17px;
   font-weight: 700;
   color: #f1f7ff;
   letter-spacing: -0.02em;
-}
-
-.growth-metric-accent {
-  color: #00b4d8;
-}
-
-.growth-metric-sub {
-  font-size: 11px;
-  color: #5a7a9c;
-  margin-top: -2px;
 }
 
 .growth-return-rate {
@@ -2821,12 +2812,12 @@ label {
   color: #f1f7ff;
 }
 
-.growth-return-rate.positive {
-  color: #00e5a0;
+.growth-return-rate.gain {
+  color: #ff6b6b;
 }
 
-.growth-return-rate.negative {
-  color: #ff6b6b;
+.growth-return-rate.loss {
+  color: #5eaeff;
 }
 
 /* ── 월 배당금 목표 과녁 카드 ── */
@@ -2837,7 +2828,7 @@ label {
   padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .growth-target-header {
@@ -2845,6 +2836,18 @@ label {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.growth-target-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.growth-target-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
 }
 
 .growth-target-title {
@@ -2866,6 +2869,7 @@ label {
   padding: 2px 6px;
   border-radius: 8px;
   transition: background 150ms ease;
+  white-space: nowrap;
 }
 
 .growth-goal-value-btn:hover {
@@ -2892,7 +2896,7 @@ label {
   font-size: 14px;
   padding: 4px 8px;
   outline: none;
-  width: 120px;
+  width: 110px;
   text-align: right;
 }
 
@@ -2906,38 +2910,53 @@ label {
   color: #7fa9db;
 }
 
-.growth-target-body {
+/* 가로 바 게이지 */
+.growth-bar-wrap {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
 }
 
-.growth-target-svg {
-  width: 130px;
-  height: 130px;
-  flex-shrink: 0;
+.growth-bar-track {
+  flex: 1;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
 }
 
-.growth-target-detail {
+.growth-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7c4dff, #00b4d8);
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.growth-bar-pct {
+  font-size: 13px;
+  font-weight: 700;
+  color: #dceaff;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* 금액 표기 */
+.growth-bar-amounts {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: baseline;
+  gap: 6px;
 }
 
-.growth-target-current {
-  font-size: 20px;
+.growth-bar-current {
+  font-size: 18px;
   font-weight: 700;
   color: #f1f7ff;
   letter-spacing: -0.02em;
 }
 
-.growth-target-sep {
+.growth-bar-goal {
   font-size: 13px;
   color: #7fa9db;
-}
-
-.growth-target-pct-label {
-  font-size: 12px;
-  color: #5a7a9c;
-  margin-top: 4px;
 }
