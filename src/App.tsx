@@ -2330,10 +2330,10 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
             <stop offset="0%" stopColor="#7c4dff" stopOpacity="0.35" />
             <stop offset="100%" stopColor="#7fa9db" stopOpacity="0.08" />
           </linearGradient>
-          {/* 손실 면적: 오렌지 — contribution 면적을 asset 선 위쪽으로만 클리핑 */}
+          {/* 손실 면적: 하늘색 — contribution 면적을 asset 선 위쪽으로만 클리핑 */}
           <linearGradient id="lossFillGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ff8c42" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="#ff8c42" stopOpacity="0.10" />
+            <stop offset="0%" stopColor="#38c8f0" stopOpacity="0.40" />
+            <stop offset="100%" stopColor="#38c8f0" stopOpacity="0.08" />
           </linearGradient>
           <clipPath id="aboveContribClip">
             <path d={aboveContribClip} />
