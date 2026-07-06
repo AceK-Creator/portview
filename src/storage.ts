@@ -1,8 +1,9 @@
 import CryptoJS from 'crypto-js';
-import type { AppData, RootData } from './types';
+import type { AppData, Profile, RootData } from './types';
 
 const STORAGE_KEY_V1 = 'dad-portfolio-pwa:v1';
 const STORAGE_KEY_V2 = 'dad-portfolio-pwa:v2';
+const STORAGE_KEY_V3 = 'dad-portfolio-pwa:v3';
 const STORAGE_KEY_ENC = 'dad-portfolio-pwa:v3:enc';
 const SENTINEL = 'PORTVIEW::';
 
@@ -14,6 +15,7 @@ export function saveEncrypted(data: RootData, pin: string): void {
   const json = SENTINEL + JSON.stringify(data);
   const encrypted = CryptoJS.AES.encrypt(json, pin).toString();
   localStorage.setItem(STORAGE_KEY_ENC, encrypted);
+  localStorage.removeItem(STORAGE_KEY_V3);
   localStorage.removeItem(STORAGE_KEY_V2);
   localStorage.removeItem(STORAGE_KEY_V1);
 }
@@ -25,7 +27,8 @@ export function loadEncrypted(pin: string): RootData | null {
     const bytes = CryptoJS.AES.decrypt(encrypted, pin);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
     if (!decrypted.startsWith(SENTINEL)) return null;
-    return JSON.parse(decrypted.slice(SENTINEL.length)) as RootData;
+    const parsed = JSON.parse(decrypted.slice(SENTINEL.length));
+    return migrateToV3(parsed);
   } catch {
     return null;
   }
@@ -40,10 +43,16 @@ export const defaultData: AppData = {
   realizedGains: [],
 };
 
-const defaultRootData: RootData = {
-  version: 2,
+const defaultProfile: Profile = {
+  id: '1',
+  name: '내 계좌',
   domestic: { ...defaultData },
   overseas: { ...defaultData },
+};
+
+const defaultRootData: RootData = {
+  version: 3,
+  profiles: [{ ...defaultProfile }],
 };
 
 function parseAppData(raw: unknown): AppData {
@@ -65,19 +74,67 @@ function parseAppData(raw: unknown): AppData {
   };
 }
 
+function migrateToV3(raw: unknown): RootData {
+  if (!raw || typeof raw !== 'object') return defaultRootData;
+  const obj = raw as Record<string, unknown>;
+
+  // 이미 v3
+  if (obj.version === 3 && Array.isArray(obj.profiles)) {
+    return {
+      version: 3,
+      profiles: (obj.profiles as Profile[]).map((p) => ({
+        id: String(p.id),
+        name: String(p.name),
+        domestic: parseAppData(p.domestic),
+        overseas: parseAppData(p.overseas),
+      })),
+    };
+  }
+
+  // v2 → v3 마이그레이션
+  if (obj.version === 2 && obj.domestic && obj.overseas) {
+    return {
+      version: 3,
+      profiles: [{
+        id: '1',
+        name: '내 계좌',
+        domestic: parseAppData(obj.domestic),
+        overseas: parseAppData(obj.overseas),
+      }],
+    };
+  }
+
+  // v1 → v3 마이그레이션
+  if (Array.isArray((obj as Partial<AppData>).holdings)) {
+    const domestic = parseAppData(obj);
+    return {
+      version: 3,
+      profiles: [{
+        id: '1',
+        name: '내 계좌',
+        domestic,
+        overseas: { ...defaultData, password: domestic.password },
+      }],
+    };
+  }
+
+  return defaultRootData;
+}
+
 export function loadRootData(): RootData {
-  // v2 우선
+  // v3 우선
+  const rawV3 = localStorage.getItem(STORAGE_KEY_V3);
+  if (rawV3) {
+    try {
+      return migrateToV3(JSON.parse(rawV3));
+    } catch { /* fall through */ }
+  }
+
+  // v2 마이그레이션
   const rawV2 = localStorage.getItem(STORAGE_KEY_V2);
   if (rawV2) {
     try {
-      const parsed = JSON.parse(rawV2) as Partial<RootData>;
-      if (parsed.version === 2 && parsed.domestic && parsed.overseas) {
-        return {
-          version: 2,
-          domestic: parseAppData(parsed.domestic),
-          overseas: parseAppData(parsed.overseas),
-        };
-      }
+      return migrateToV3(JSON.parse(rawV2));
     } catch { /* fall through */ }
   }
 
@@ -85,12 +142,7 @@ export function loadRootData(): RootData {
   const rawV1 = localStorage.getItem(STORAGE_KEY_V1);
   if (rawV1) {
     try {
-      const domestic = parseAppData(rawV1);
-      return {
-        version: 2,
-        domestic,
-        overseas: { ...defaultData, password: domestic.password },
-      };
+      return migrateToV3(JSON.parse(rawV1));
     } catch { /* fall through */ }
   }
 
@@ -98,7 +150,9 @@ export function loadRootData(): RootData {
 }
 
 export function saveRootData(data: RootData): void {
-  localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(data));
+  localStorage.setItem(STORAGE_KEY_V3, JSON.stringify(data));
+  localStorage.removeItem(STORAGE_KEY_V2);
+  localStorage.removeItem(STORAGE_KEY_V1);
 }
 
 export function createBackupBlob(data: RootData): Blob {
@@ -159,12 +213,29 @@ export function validateBackup(value: unknown): RootData {
 
   const obj = value as Record<string, unknown>;
 
-  // v2 형식 (RootData)
+  // v3 형식
+  if (obj.version === 3 && Array.isArray(obj.profiles)) {
+    return {
+      version: 3,
+      profiles: (obj.profiles as Profile[]).map((p, i) => ({
+        id: String(p.id || i + 1),
+        name: String(p.name || `프로필 ${i + 1}`),
+        domestic: validateAppData(p.domestic),
+        overseas: validateAppData(p.overseas),
+      })),
+    };
+  }
+
+  // v2 형식 (RootData) — 자동 마이그레이션
   if (obj.version === 2 && obj.domestic && obj.overseas) {
     return {
-      version: 2,
-      domestic: validateAppData(obj.domestic),
-      overseas: validateAppData(obj.overseas),
+      version: 3,
+      profiles: [{
+        id: '1',
+        name: '내 계좌',
+        domestic: validateAppData(obj.domestic),
+        overseas: validateAppData(obj.overseas),
+      }],
     };
   }
 
@@ -172,9 +243,13 @@ export function validateBackup(value: unknown): RootData {
   if (Array.isArray(obj.holdings) && obj.account && typeof obj.password === 'string') {
     const domestic = validateAppData(value);
     return {
-      version: 2,
-      domestic,
-      overseas: { ...defaultData, password: domestic.password },
+      version: 3,
+      profiles: [{
+        id: '1',
+        name: '내 계좌',
+        domestic,
+        overseas: { ...defaultData, password: domestic.password },
+      }],
     };
   }
 

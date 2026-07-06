@@ -3528,3 +3528,263 @@ label {
   color: rgba(145, 181, 220, 0.6);
   line-height: 1.5;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   프로필 선택 화면
+══════════════════════════════════════════════════════════════════ */
+.profile-select-screen {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.profile-select-inner {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.profile-select-logo {
+  display: flex;
+  justify-content: center;
+}
+
+.profile-logo-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
+.profile-select-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #dceaff;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.profile-card-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(8, 24, 45, 0.72);
+  border: 1px solid rgba(145, 181, 220, 0.14);
+  border-radius: 8px;
+  padding: 14px 16px;
+  min-height: 54px;
+}
+
+.profile-card-select {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #dceaff;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: -0.01em;
+}
+
+.profile-card-select:hover {
+  color: #fff;
+}
+
+.profile-card-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #dceaff;
+  letter-spacing: -0.01em;
+}
+
+.profile-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.profile-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: none;
+  color: #7fa9db;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+
+.profile-action-btn:hover {
+  background: rgba(124, 77, 255, 0.15);
+  color: #a78bfa;
+}
+
+.profile-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.profile-edit-row,
+.profile-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.profile-name-input {
+  flex: 1;
+  background: rgba(11, 31, 56, 0.9);
+  border: 1px solid rgba(124, 77, 255, 0.5);
+  border-radius: 6px;
+  color: #dceaff;
+  font-size: 14px;
+  padding: 6px 10px;
+  outline: none;
+  min-width: 0;
+}
+
+.profile-name-input:focus {
+  border-color: #7c4dff;
+  box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.2);
+}
+
+.profile-edit-save {
+  background: #7c4dff;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms;
+}
+
+.profile-edit-save:hover { background: #6c3fef; }
+
+.profile-edit-cancel {
+  background: rgba(145, 181, 220, 0.1);
+  border: none;
+  border-radius: 6px;
+  color: #7fa9db;
+  font-size: 13px;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms;
+}
+
+.profile-edit-cancel:hover { background: rgba(145, 181, 220, 0.18); }
+
+.profile-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: 1px dashed rgba(124, 77, 255, 0.35);
+  border-radius: 8px;
+  color: #a78bfa;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+}
+
+.profile-add-btn:hover {
+  border-color: rgba(124, 77, 255, 0.7);
+  background: rgba(124, 77, 255, 0.07);
+}
+
+/* ── 프로필 관리 팝업 ── */
+.profile-manage-popup {
+  background: rgba(10, 28, 54, 0.97);
+  border: 1px solid rgba(145, 181, 220, 0.22);
+  border-radius: 10px;
+  padding: 20px;
+  width: calc(100vw - 40px);
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-manage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-manage-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #dceaff;
+}
+
+.profile-manage-close {
+  background: none;
+  border: none;
+  color: #7fa9db;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 150ms;
+}
+
+.profile-manage-close:hover { color: #dceaff; }
+
+/* ── 메뉴 내 프로필 표시 행 ── */
+.menu-profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 4px;
+  gap: 8px;
+}
+
+.menu-profile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a78bfa;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-profile-switch {
+  background: rgba(124, 77, 255, 0.15);
+  border: none;
+  border-radius: 5px;
+  color: #a78bfa;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms;
+}
+
+.menu-profile-switch:hover { background: rgba(124, 77, 255, 0.28); }

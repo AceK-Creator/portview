@@ -95,10 +95,16 @@ export interface AppData {
   weeklySnapshots?: WeeklySnapshot[];
 }
 
-export interface RootData {
-  version: 2;
+export interface Profile {
+  id: string;
+  name: string;
   domestic: AppData;
   overseas: AppData;
+}
+
+export interface RootData {
+  version: 3;
+  profiles: Profile[];
 }
 
 export interface QuoteResult {

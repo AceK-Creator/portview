@@ -32,7 +32,7 @@ import {
   loadEncrypted,
   validateBackup,
 } from './storage';
-import type { AccountMode, AccountSummary, AppData, CurrencyMode, DailySnapshot, DividendRecord, Holding, HoldingRow, MenuKey, QuoteResult, RealizedGainRecord, RootData, WeeklySnapshot, YearRecord } from './types';
+import type { AccountMode, AccountSummary, AppData, CurrencyMode, DailySnapshot, DividendRecord, Holding, HoldingRow, MenuKey, Profile, QuoteResult, RealizedGainRecord, RootData, WeeklySnapshot, YearRecord } from './types';
 
 // ─── 통화 컨텍스트 ─────────────────────────────────────────────────────────────
 
@@ -460,10 +460,225 @@ function LoginScreen({
   );
 }
 
+// ─── 프로필 선택 화면 ─────────────────────────────────────────────────────────
+
+function ProfileSelectScreen({
+  profiles,
+  onSelect,
+  onAddProfile,
+  onRenameProfile,
+  onDeleteProfile,
+}: {
+  profiles: Profile[];
+  onSelect: (id: string) => void;
+  onAddProfile: (name: string) => void;
+  onRenameProfile: (id: string, name: string) => void;
+  onDeleteProfile: (id: string) => void;
+}) {
+  const [addingNew, setAddingNew] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+
+  const handleAdd = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    onAddProfile(trimmed);
+    setNewName('');
+    setAddingNew(false);
+  };
+
+  const handleRename = (id: string) => {
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    onRenameProfile(id, trimmed);
+    setEditingId(null);
+  };
+
+  return (
+    <div className="profile-select-screen">
+      <div className="profile-select-inner">
+        <div className="profile-select-logo">
+          <img src="/logo.png" alt="PortView" className="profile-logo-img" />
+        </div>
+        <h2 className="profile-select-title">프로필 선택</h2>
+        <div className="profile-card-list">
+          {profiles.map((p) => (
+            <div key={p.id} className="profile-card">
+              {editingId === p.id ? (
+                <div className="profile-edit-row">
+                  <input
+                    className="profile-name-input"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleRename(p.id); if (e.key === 'Escape') setEditingId(null); }}
+                    autoFocus
+                  />
+                  <button className="profile-edit-save" type="button" onClick={() => handleRename(p.id)}>저장</button>
+                  <button className="profile-edit-cancel" type="button" onClick={() => setEditingId(null)}>취소</button>
+                </div>
+              ) : (
+                <>
+                  <button className="profile-card-select" type="button" onClick={() => onSelect(p.id)}>
+                    {p.name}
+                  </button>
+                  <div className="profile-card-actions">
+                    <button className="profile-action-btn" type="button" title="이름 변경"
+                      onClick={() => { setEditingId(p.id); setEditName(p.name); }}>
+                      <Pencil size={14} />
+                    </button>
+                    {profiles.length > 1 && (
+                      <button className="profile-action-btn danger" type="button" title="삭제"
+                        onClick={async () => {
+                          if (await customConfirm(`'${p.name}' 프로필을 삭제할까요?\n이 프로필의 모든 데이터가 삭제됩니다.`))
+                            onDeleteProfile(p.id);
+                        }}>
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {addingNew ? (
+          <div className="profile-add-row">
+            <input
+              className="profile-name-input"
+              placeholder="프로필 이름"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAddingNew(false); }}
+              autoFocus
+            />
+            <button className="profile-edit-save" type="button" onClick={handleAdd}>추가</button>
+            <button className="profile-edit-cancel" type="button" onClick={() => setAddingNew(false)}>취소</button>
+          </div>
+        ) : (
+          <button className="profile-add-btn" type="button" onClick={() => setAddingNew(true)}>
+            <Plus size={16} />
+            새 프로필 추가
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── 프로필 관리 팝업 (메뉴에서 접근) ──────────────────────────────────────────
+
+function ProfileManagePopup({
+  profiles,
+  onAdd,
+  onRename,
+  onDelete,
+  onClose,
+}: {
+  profiles: Profile[];
+  onAdd: (name: string) => void;
+  onRename: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+  onClose: () => void;
+}) {
+  useBackButtonClose(onClose);
+  const [addingNew, setAddingNew] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+
+  const handleAdd = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    onAdd(trimmed);
+    setNewName('');
+    setAddingNew(false);
+  };
+
+  const handleRename = (id: string) => {
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    onRename(id, trimmed);
+    setEditingId(null);
+  };
+
+  return (
+    <div className="goal-popup-backdrop" onClick={onClose}>
+      <div className="profile-manage-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="profile-manage-header">
+          <span className="profile-manage-title">프로필 관리</span>
+          <button className="profile-manage-close" type="button" onClick={onClose}><X size={18} /></button>
+        </div>
+        <div className="profile-card-list">
+          {profiles.map((p) => (
+            <div key={p.id} className="profile-card">
+              {editingId === p.id ? (
+                <div className="profile-edit-row">
+                  <input
+                    className="profile-name-input"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleRename(p.id); if (e.key === 'Escape') setEditingId(null); }}
+                    autoFocus
+                  />
+                  <button className="profile-edit-save" type="button" onClick={() => handleRename(p.id)}>저장</button>
+                  <button className="profile-edit-cancel" type="button" onClick={() => setEditingId(null)}>취소</button>
+                </div>
+              ) : (
+                <>
+                  <span className="profile-card-name">{p.name}</span>
+                  <div className="profile-card-actions">
+                    <button className="profile-action-btn" type="button" title="이름 변경"
+                      onClick={() => { setEditingId(p.id); setEditName(p.name); }}>
+                      <Pencil size={14} />
+                    </button>
+                    {profiles.length > 1 && (
+                      <button className="profile-action-btn danger" type="button" title="삭제"
+                        onClick={async () => {
+                          if (await customConfirm(`'${p.name}' 프로필을 삭제할까요?\n이 프로필의 모든 데이터가 삭제됩니다.`))
+                            onDelete(p.id);
+                        }}>
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        {addingNew ? (
+          <div className="profile-add-row">
+            <input
+              className="profile-name-input"
+              placeholder="프로필 이름"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAddingNew(false); }}
+              autoFocus
+            />
+            <button className="profile-edit-save" type="button" onClick={handleAdd}>추가</button>
+            <button className="profile-edit-cancel" type="button" onClick={() => setAddingNew(false)}>취소</button>
+          </div>
+        ) : (
+          <button className="profile-add-btn" type="button" onClick={() => setAddingNew(true)}>
+            <Plus size={16} />
+            새 프로필 추가
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── AppHeader ────────────────────────────────────────────────────────────────
+
 function AppHeader({
   activeMenu,
   onChangeMenu,
   onLogout,
+  onSwitchProfile,
   secretMode,
   onToggleSecret,
   onExportBackup,
@@ -472,10 +687,16 @@ function AppHeader({
   onChangeAccount,
   currencyMode,
   onToggleCurrency,
+  activeProfileName,
+  profiles,
+  onAddProfile,
+  onRenameProfile,
+  onDeleteProfile,
 }: {
   activeMenu: MenuKey;
   onChangeMenu: (menu: MenuKey) => void;
   onLogout: () => void;
+  onSwitchProfile?: () => void;
   secretMode: boolean;
   onToggleSecret: () => void;
   onExportBackup: () => void;
@@ -484,8 +705,14 @@ function AppHeader({
   onChangeAccount: (mode: AccountMode) => void;
   currencyMode: CurrencyMode;
   onToggleCurrency: () => void;
+  activeProfileName: string;
+  profiles: Profile[];
+  onAddProfile: (name: string) => void;
+  onRenameProfile: (id: string, name: string) => void;
+  onDeleteProfile: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [showProfileMgmt, setShowProfileMgmt] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -557,6 +784,24 @@ function AppHeader({
           </button>
           {open && (
             <nav className="dropdown-menu">
+              {/* 프로필 표시 + 전환 */}
+              <div className="menu-profile-row">
+                <span className="menu-profile-name">{activeProfileName}</span>
+                {onSwitchProfile && (
+                  <button type="button" className="menu-profile-switch" onClick={() => { setOpen(false); onSwitchProfile(); }}>
+                    전환
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                className="menu-util-btn"
+                onClick={() => { setOpen(false); setShowProfileMgmt(true); }}
+              >
+                <Plus size={15} />
+                프로필 관리
+              </button>
+              <div className="dropdown-divider" />
               <button
                 type="button"
                 className="menu-util-btn"
@@ -599,6 +844,15 @@ function AppHeader({
                 로그아웃
               </button>
             </nav>
+          )}
+          {showProfileMgmt && (
+            <ProfileManagePopup
+              profiles={profiles}
+              onAdd={onAddProfile}
+              onRename={onRenameProfile}
+              onDelete={onDeleteProfile}
+              onClose={() => setShowProfileMgmt(false)}
+            />
           )}
         </div>
       </div>
@@ -4448,7 +4702,7 @@ function InstallBanner() {
 }
 
 export default function App() {
-  const [rootData, setRootData] = useState<RootData>(() => hasEncryptedData() ? loadRootData() : loadRootData());
+  const [rootData, setRootData] = useState<RootData>(() => loadRootData());
   const [activePin, setActivePin] = useState('');
   const [accountMode, setAccountMode] = useState<AccountMode>('domestic');
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('usd');
@@ -4456,13 +4710,17 @@ export default function App() {
   const [rateLoading, setRateLoading] = useState(false);
   const [marketRefreshKey, setMarketRefreshKey] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
   const backupFileRef = useRef<HTMLInputElement>(null);
 
+  // 프로필이 1개면 자동 선택
+  const profiles = rootData.profiles;
+  const activeProfile: Profile = (activeProfileId ? profiles.find(p => p.id === activeProfileId) : null) ?? profiles[0];
 
   // 현재 계좌 데이터
-  const data = rootData[accountMode];
+  const data = activeProfile[accountMode];
 
   const rows = useMemo(() => calculateHoldingRows(data.holdings), [data.holdings]);
   const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);
@@ -4517,7 +4775,12 @@ export default function App() {
     snapshotSavedRef.current = { date: today, mode: accountMode };
     // persist를 직접 호출하면 data 변경으로 루프되므로 RootData 직접 저장
     const nextData: AppData = { ...data, dailySnapshots: trimmed, yearRecords, weeklySnapshots };
-    const next: RootData = { ...rootData, [accountMode]: nextData };
+    const next: RootData = {
+      ...rootData,
+      profiles: rootData.profiles.map(p =>
+        p.id === activeProfile.id ? { ...p, [accountMode]: nextData } : p
+      ),
+    };
     setRootData(next);
     if (activePin) saveEncrypted(next, activePin); else saveRootData(next);
   }, [unlocked, accountMode, usdKrwRate, summary]);
@@ -4532,18 +4795,26 @@ export default function App() {
   };
 
   const persist = (nextAccountData: AppData) => {
-    const next: RootData = { ...rootData, [accountMode]: nextAccountData };
+    const next: RootData = {
+      ...rootData,
+      profiles: rootData.profiles.map(p =>
+        p.id === activeProfile.id ? { ...p, [accountMode]: nextAccountData } : p
+      ),
+    };
     setRootData(next);
     saveData(next);
   };
 
   const persistPassword = (nextAccountData: AppData) => {
-    // 비밀번호는 두 계좌 모두 동기화, PIN 변경 시 재암호화
+    // PIN은 전체 앱 공통 — 모든 프로필의 password 동기화
     const newPin = nextAccountData.password;
     const next: RootData = {
       ...rootData,
-      domestic: { ...rootData.domestic, password: newPin },
-      overseas: { ...rootData.overseas, password: newPin },
+      profiles: rootData.profiles.map(p => ({
+        ...p,
+        domestic: { ...p.domestic, password: newPin },
+        overseas: { ...p.overseas, password: newPin },
+      })),
     };
     setRootData(next);
     setActivePin(newPin);
@@ -4601,7 +4872,7 @@ export default function App() {
       <ParticleBackground />
       {!unlocked ? (
         <LoginScreen
-          password={hasEncryptedData() ? 'SET' : rootData.domestic.password}
+          password={hasEncryptedData() ? 'SET' : profiles[0].domestic.password}
           onVerify={hasEncryptedData() ? (pin) => {
             const decrypted = loadEncrypted(pin);
             if (!decrypted) return false;
@@ -4612,16 +4883,49 @@ export default function App() {
           onSuccess={(pin) => {
             if (!hasEncryptedData()) setActivePin(pin);
             setUnlocked(true);
+            // 프로필 1개면 바로 진입, 여러 개면 선택 화면으로
+            if (profiles.length === 1) setActiveProfileId(profiles[0].id);
           }}
           onSetPin={(pin) => {
             const next: RootData = {
               ...rootData,
-              domestic: { ...rootData.domestic, password: pin },
-              overseas: { ...rootData.overseas, password: pin },
+              profiles: rootData.profiles.map(p => ({
+                ...p,
+                domestic: { ...p.domestic, password: pin },
+                overseas: { ...p.overseas, password: pin },
+              })),
             };
             setRootData(next);
             setActivePin(pin);
             saveEncrypted(next, pin);
+          }}
+        />
+      ) : !activeProfileId ? (
+        <ProfileSelectScreen
+          profiles={profiles}
+          onSelect={(id) => setActiveProfileId(id)}
+          onAddProfile={(name) => {
+            const newId = String(Date.now());
+            const pin = profiles[0].domestic.password;
+            const newProfile: Profile = {
+              id: newId,
+              name,
+              domestic: { version: 1, password: pin, account: { totalContribution: 0, cashBalance: 0 }, holdings: [], dividends: [], realizedGains: [] },
+              overseas: { version: 1, password: pin, account: { totalContribution: 0, cashBalance: 0 }, holdings: [], dividends: [], realizedGains: [] },
+            };
+            const next: RootData = { ...rootData, profiles: [...rootData.profiles, newProfile] };
+            setRootData(next);
+            saveData(next);
+          }}
+          onRenameProfile={(id, name) => {
+            const next: RootData = { ...rootData, profiles: rootData.profiles.map(p => p.id === id ? { ...p, name } : p) };
+            setRootData(next);
+            saveData(next);
+          }}
+          onDeleteProfile={(id) => {
+            const next: RootData = { ...rootData, profiles: rootData.profiles.filter(p => p.id !== id) };
+            setRootData(next);
+            saveData(next);
           }}
         />
       ) : (
@@ -4630,7 +4934,8 @@ export default function App() {
       <AppHeader
         activeMenu={activeMenu}
         onChangeMenu={setActiveMenu}
-        onLogout={() => setUnlocked(false)}
+        onLogout={() => { setUnlocked(false); setActiveProfileId(null); }}
+        onSwitchProfile={profiles.length > 1 ? () => setActiveProfileId(null) : undefined}
         secretMode={secretMode}
         onToggleSecret={() => setSecretMode((v) => !v)}
         onExportBackup={exportBackup}
@@ -4639,6 +4944,32 @@ export default function App() {
         onChangeAccount={setAccountMode}
         currencyMode={currencyMode}
         onToggleCurrency={() => setCurrencyMode((m) => (m === 'usd' ? 'krw' : 'usd'))}
+        activeProfileName={activeProfile.name}
+        profiles={profiles}
+        onAddProfile={(name) => {
+          const newId = String(Date.now());
+          const pin = profiles[0].domestic.password;
+          const newProfile: Profile = {
+            id: newId,
+            name,
+            domestic: { version: 1, password: pin, account: { totalContribution: 0, cashBalance: 0 }, holdings: [], dividends: [], realizedGains: [] },
+            overseas: { version: 1, password: pin, account: { totalContribution: 0, cashBalance: 0 }, holdings: [], dividends: [], realizedGains: [] },
+          };
+          const next: RootData = { ...rootData, profiles: [...rootData.profiles, newProfile] };
+          setRootData(next);
+          saveData(next);
+        }}
+        onRenameProfile={(id, name) => {
+          const next: RootData = { ...rootData, profiles: rootData.profiles.map(p => p.id === id ? { ...p, name } : p) };
+          setRootData(next);
+          saveData(next);
+        }}
+        onDeleteProfile={(id) => {
+          const next: RootData = { ...rootData, profiles: rootData.profiles.filter(p => p.id !== id) };
+          setRootData(next);
+          saveData(next);
+          if (id === activeProfileId) setActiveProfileId(rootData.profiles.find(p => p.id !== id)?.id ?? null);
+        }}
       />
       <input
         ref={backupFileRef}
@@ -4661,7 +4992,7 @@ export default function App() {
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
       {activeMenu === 'growth' && <GrowthView data={data} summary={summary} onDataChange={persist} />}
       {activeMenu === 'password' && (
-        <PasswordView data={rootData.domestic} onDataChange={persistPassword} />
+        <PasswordView data={activeProfile.domestic} onDataChange={persistPassword} />
       )}
       <button className="floating-menu" type="button" onClick={() => setActiveMenu('live')}>
         <ChevronDown size={16} />
