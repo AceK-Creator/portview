@@ -2695,15 +2695,16 @@ label {
   border: 1px solid rgba(145, 181, 220, 0.14);
   border-radius: 16px;
   padding: 16px 18px;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  row-gap: 10px;
-  column-gap: 16px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .growth-period-row {
-  display: contents;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .growth-period-label {
