@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Save,
   Trash2,
+  Trophy,
   Upload,
   X,
 } from 'lucide-react';
@@ -2426,6 +2427,22 @@ function GrowthSummaryTab({
   const remaining = goal > 0 ? Math.max(goal - monthlyDividend, 0) : 0;
   const achieved = goal > 0 && monthlyDividend >= goal;
 
+  const rate = isOverseas && usdKrwRate != null ? usdKrwRate : 1;
+  const { bestMonthlyAmount, bestMonthLabel } = useMemo(() => {
+    const dividends = data.dividends ?? [];
+    if (dividends.length === 0) return { bestMonthlyAmount: 0, bestMonthLabel: null };
+    const monthMap: Record<string, number> = {};
+    for (const d of dividends) {
+      const ym = d.paidAt.slice(0, 7);
+      monthMap[ym] = (monthMap[ym] ?? 0) + d.amount;
+    }
+    const best = Object.entries(monthMap).reduce((a, b) => b[1] > a[1] ? b : a);
+    return {
+      bestMonthlyAmount: best[1] * rate,
+      bestMonthLabel: best[0].replace('-', '.'),
+    };
+  }, [data.dividends, rate]);
+
 
   return (
     <div className="growth-summary-content">
@@ -2496,6 +2513,26 @@ function GrowthSummaryTab({
           <strong className="growth-metric-value">{krw(monthlyDividend)}</strong>
         </div>
 
+      </div>
+
+      {/* ── 월 배당금 최고기록 ── */}
+      <div className="growth-target-card">
+        <div className="growth-target-body">
+          <div className="growth-trophy-icon">
+            <Trophy size={34} />
+          </div>
+          <div className="growth-target-right">
+            <div className="growth-target-title-row">
+              <span className="growth-target-title">월 배당금 최고기록</span>
+              {bestMonthLabel && (
+                <span className="growth-record-month">{bestMonthLabel}</span>
+              )}
+            </div>
+            <span className="growth-record-amount">
+              {bestMonthlyAmount > 0 ? `${Math.round(bestMonthlyAmount).toLocaleString('ko-KR')}원` : '기록 없음'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ── 월 배당금 목표 ── */}

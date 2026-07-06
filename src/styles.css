@@ -2903,6 +2903,37 @@ label {
   letter-spacing: -0.01em;
 }
 
+/* 트로피 아이콘 */
+.growth-trophy-icon {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.35));
+}
+
+/* 최고기록 금액 */
+.growth-record-amount {
+  font-size: 22px;
+  font-weight: 800;
+  color: #a78bfa;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* 최고기록 달성 월 뱃지 */
+.growth-record-month {
+  font-size: 12px;
+  font-weight: 500;
+  color: #7fa9db;
+  background: rgba(124, 77, 255, 0.12);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
 /* 가로 바 게이지 */
 .growth-bar-wrap {
   display: flex;
