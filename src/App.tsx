@@ -15,7 +15,7 @@ import {
   RefreshCw,
   Save,
   Trash2,
-  Trophy,
+
   Upload,
   X,
 } from 'lucide-react';
@@ -2519,7 +2519,7 @@ function GrowthSummaryTab({
       <div className="growth-target-card">
         <div className="growth-target-body">
           <div className="growth-trophy-icon">
-            <Trophy size={34} />
+            <img src="/medal.png" className="growth-medal-img" alt="최고기록" />
           </div>
           <div className="growth-target-right">
             <div className="growth-target-title-row">
