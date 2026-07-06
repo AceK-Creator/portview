@@ -635,10 +635,6 @@ input:focus {
   background: #143a66;
 }
 
-.dropdown-menu span {
-  color: #8196b0;
-  font-size: 12px;
-}
 
 .menu-group {
   width: 100%;
@@ -3744,8 +3740,6 @@ label {
 }
 
 .menu-profile-name {
-  font-size: inherit;
-
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
