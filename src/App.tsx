@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Building2,
   ChevronDown,
   Download,
@@ -788,8 +789,8 @@ function AppHeader({
               <div className="menu-profile-row">
                 <span className="menu-profile-name">{activeProfileName}</span>
                 {onSwitchProfile && (
-                  <button type="button" className="menu-profile-switch" onClick={() => { setOpen(false); onSwitchProfile(); }}>
-                    전환
+                  <button type="button" className="menu-profile-switch" title="프로필 전환" onClick={() => { setOpen(false); onSwitchProfile(); }}>
+                    <ArrowLeftRight size={13} />
                   </button>
                 )}
               </div>
@@ -4860,6 +4861,13 @@ export default function App() {
     }
   }, []);
 
+  // unlock 후 rootData가 확정되면 프로필 자동 선택 (1개) 또는 선택 화면 표시
+  useEffect(() => {
+    if (!unlocked) return;
+    if (activeProfileId) return;
+    if (rootData.profiles.length === 1) setActiveProfileId(rootData.profiles[0].id);
+  }, [unlocked, rootData.profiles]);
+
   const ctxValue: CurrencyCtxType = {
     isOverseas: accountMode === 'overseas',
     currencyMode,
@@ -4883,8 +4891,7 @@ export default function App() {
           onSuccess={(pin) => {
             if (!hasEncryptedData()) setActivePin(pin);
             setUnlocked(true);
-            // 프로필 1개면 바로 진입, 여러 개면 선택 화면으로
-            if (profiles.length === 1) setActiveProfileId(profiles[0].id);
+            // 프로필 선택은 useEffect에서 rootData 업데이트 후 처리
           }}
           onSetPin={(pin) => {
             const next: RootData = {

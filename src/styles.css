@@ -3760,30 +3760,29 @@ label {
 .menu-profile-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   padding: 8px 14px 4px;
-  gap: 8px;
 }
 
 .menu-profile-name {
+  flex: 1;
   font-size: 13px;
   font-weight: 600;
   color: #a78bfa;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .menu-profile-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
   background: rgba(124, 77, 255, 0.15);
   border: none;
   border-radius: 5px;
   color: #a78bfa;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 9px;
   cursor: pointer;
-  white-space: nowrap;
   transition: background 150ms;
 }
 
