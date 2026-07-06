@@ -2911,8 +2911,7 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f59e0b;
-  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.35));
+  color: #7c00e2;
 }
 
 /* 최고기록 금액 */
