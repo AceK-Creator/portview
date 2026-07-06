@@ -497,12 +497,14 @@ function ProfileSelectScreen({
   };
 
   return (
-    <div className="profile-select-screen">
+    <main className="login-screen">
       <div className="profile-select-inner">
-        <div className="profile-select-logo">
-          <img src="/logo.png" alt="PortView" className="profile-logo-img" />
+        <div className="login-top">
+          <img src={`${import.meta.env.BASE_URL}portview-icon-nobg.png`} alt="PortView" className="login-icon" />
+          <h1 className="login-title">PortView</h1>
+          <p className="login-version">Beta v0.8</p>
         </div>
-        <h2 className="profile-select-title">프로필 선택</h2>
+        <p className="profile-select-subtitle">프로필을 선택하세요</p>
         <div className="profile-card-list">
           {profiles.map((p) => (
             <div key={p.id} className="profile-card">
@@ -564,7 +566,7 @@ function ProfileSelectScreen({
           </button>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 

@@ -3532,41 +3532,22 @@ label {
 /* ══════════════════════════════════════════════════════════════════
    프로필 선택 화면
 ══════════════════════════════════════════════════════════════════ */
-.profile-select-screen {
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-}
-
 .profile-select-inner {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 360px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
 }
 
-.profile-select-logo {
-  display: flex;
-  justify-content: center;
-}
-
-.profile-logo-img {
-  width: 64px;
-  height: 64px;
-  object-fit: contain;
-  opacity: 0.9;
-}
-
-.profile-select-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #dceaff;
-  letter-spacing: -0.02em;
-  margin: 0;
+.profile-select-subtitle {
+  font-size: 14px;
+  color: rgba(145, 181, 220, 0.7);
+  margin: -8px 0 0;
+  text-align: center;
 }
 
 .profile-card-list {
