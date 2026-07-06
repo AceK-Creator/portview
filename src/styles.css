@@ -3744,6 +3744,7 @@ label {
 }
 
 .menu-profile-name {
+  font-size: inherit;
 
   font-weight: 600;
   white-space: nowrap;
