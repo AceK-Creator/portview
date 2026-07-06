@@ -2411,8 +2411,8 @@ function GrowthSummaryTab({
   // 성장탭은 항상 원화(KRW) 기준으로 표시
   const krw = (v: number) => `${Math.round(v).toLocaleString('ko-KR')}원`;
 
-  const [editingDate, setEditingDate] = useState(false);
   const [dateInput, setDateInput] = useState(data.investmentStartDate ?? '');
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const [showGoalPopup, setShowGoalPopup] = useState(false);
 
@@ -2426,12 +2426,6 @@ function GrowthSummaryTab({
   const remaining = goal > 0 ? Math.max(goal - monthlyDividend, 0) : 0;
   const achieved = goal > 0 && monthlyDividend >= goal;
 
-  const saveDate = () => {
-    if (dateInput && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-      onDataChange({ ...data, investmentStartDate: dateInput });
-    }
-    setEditingDate(false);
-  };
 
   return (
     <div className="growth-summary-content">
@@ -2440,22 +2434,21 @@ function GrowthSummaryTab({
       <div className="growth-period-card">
         <div className="growth-period-row">
           <span className="growth-period-label">투자 시작일</span>
-          {editingDate ? (
-            <input
-              className="growth-date-input"
-              type="date"
-              value={dateInput}
-              onChange={(e) => setDateInput(e.target.value)}
-              onBlur={saveDate}
-              onKeyDown={(e) => { if (e.key === 'Enter') saveDate(); if (e.key === 'Escape') setEditingDate(false); }}
-              autoFocus
-            />
-          ) : (
-            <button className="growth-period-value-btn" type="button" onClick={() => { setDateInput(data.investmentStartDate ?? ''); setEditingDate(true); }}>
-              {data.investmentStartDate ? data.investmentStartDate.replace(/-/g, '.') : '날짜 설정'}
-              <Pencil size={13} />
-            </button>
-          )}
+          <input
+            ref={dateInputRef}
+            className="growth-date-input-hidden"
+            type="date"
+            value={dateInput}
+            onChange={(e) => { setDateInput(e.target.value); if (e.target.value) { onDataChange({ ...data, investmentStartDate: e.target.value }); } }}
+            onBlur={() => {}}
+          />
+          <button className="growth-period-value-btn" type="button" onClick={() => {
+            setDateInput(data.investmentStartDate ?? '');
+            setTimeout(() => { dateInputRef.current?.showPicker?.(); }, 0);
+          }}>
+            {data.investmentStartDate ? data.investmentStartDate.replace(/-/g, '.') : '날짜 설정'}
+            <Pencil size={13} />
+          </button>
         </div>
         <div className="growth-period-row">
           <span className="growth-period-label">투자 기간</span>
