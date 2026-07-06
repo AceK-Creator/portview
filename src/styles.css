@@ -2906,8 +2906,8 @@ label {
 
 /* 메달 아이콘 */
 .growth-trophy-icon {
-  width: 72px;
-  height: 72px;
+  width: 79px;
+  height: 79px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
