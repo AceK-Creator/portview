@@ -3738,33 +3738,26 @@ label {
 .profile-manage-close:hover { color: #dceaff; }
 
 /* ── 메뉴 내 프로필 표시 행 ── */
-.menu-profile-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px 4px;
+.menu-profile-btn,
+.menu-profile-static {
+  color: #a78bfa !important;
 }
 
 .menu-profile-name {
-  flex: 1;
   font-size: 13px;
   font-weight: 600;
-  color: #a78bfa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.menu-profile-switch {
+.menu-profile-static {
+  width: 100%;
+  min-height: 44px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  background: rgba(124, 77, 255, 0.15);
-  border: none;
-  border-radius: 5px;
+  gap: 9px;
+  padding: 0 12px;
   color: #a78bfa;
-  cursor: pointer;
-  transition: background 150ms;
+  font-size: inherit;
 }
-
-.menu-profile-switch:hover { background: rgba(124, 77, 255, 0.28); }

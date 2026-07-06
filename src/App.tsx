@@ -788,14 +788,17 @@ function AppHeader({
           {open && (
             <nav className="dropdown-menu">
               {/* 프로필 표시 + 전환 */}
-              <div className="menu-profile-row">
-                <span className="menu-profile-name">{activeProfileName}</span>
-                {onSwitchProfile && (
-                  <button type="button" className="menu-profile-switch" title="프로필 전환" onClick={() => { setOpen(false); onSwitchProfile(); }}>
-                    <ArrowLeftRight size={13} />
-                  </button>
-                )}
-              </div>
+              {onSwitchProfile ? (
+                <button type="button" className="menu-util-btn menu-profile-btn" onClick={() => { setOpen(false); onSwitchProfile(); }}>
+                  <ArrowLeftRight size={15} />
+                  <span className="menu-profile-name">{activeProfileName}</span>
+                </button>
+              ) : (
+                <div className="menu-profile-static">
+                  <ArrowLeftRight size={15} />
+                  <span className="menu-profile-name">{activeProfileName}</span>
+                </div>
+              )}
               <button
                 type="button"
                 className="menu-util-btn"
