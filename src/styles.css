@@ -1092,8 +1092,21 @@ input:focus {
   z-index: 10;
   background: #08182d;
   box-shadow: inset 0 1px 0 rgba(145, 181, 220, 0.22), 2px 0 5px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.holding-name:hover {
+  background: #0e2240;
+}
+.holding-name:active {
+  background: #162e52;
 }
 
+.holding-name-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
 .holding-name strong {
   color: #dceaff;
   font-size: 14px;
@@ -1105,6 +1118,16 @@ input:focus {
   -webkit-box-orient: vertical;
   word-break: break-all;
   height: 36px;
+}
+.holding-name-edit-icon {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: #dceaff;
+  opacity: 0.18;
+  transition: opacity 0.15s;
+}
+.holding-name:hover .holding-name-edit-icon {
+  opacity: 0.55;
 }
 
 .holding-name span {

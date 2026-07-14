@@ -1098,8 +1098,11 @@ function HoldingTable({
         </div>
         {sortedRows.map((row) => (
           <article className="holding-row" key={row.id}>
-            <div className="holding-name">
-              <strong>{row.name}</strong>
+            <div className="holding-name" role="button" tabIndex={0} aria-label={`${row.name} 수정`} onClick={() => onEdit(row)} onKeyDown={(e) => e.key === 'Enter' && onEdit(row)}>
+              <div className="holding-name-inner">
+                <strong>{row.name}</strong>
+                <Pencil size={11} className="holding-name-edit-icon" />
+              </div>
               {row.quoteError && <em>{row.quoteError}</em>}
             </div>
             <div className="metrics-grid">
