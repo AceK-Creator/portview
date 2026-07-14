@@ -330,7 +330,7 @@ function createHoldingFromQuote(quote: QuoteResult, draft: HoldingDraft): Holdin
     code: quote.code,
     name: quote.name,
     shares: Number(draft.shares),
-    averagePrice: Number(draft.averagePrice),
+    averagePrice: Number(String(draft.averagePrice).replace(/,/g, '')),
     currentPrice: quote.price,
     change: quote.change,
     changeRate: quote.changeRate,
@@ -1195,12 +1195,10 @@ function HoldingModal({
           <input
             required
             inputMode="decimal"
-            min="0"
-            step={isOverseas ? '0.0001' : '1'}
-            type="number"
+            type="text"
             value={form.averagePrice}
             onChange={(event) =>
-              setForm((value) => ({ ...value, averagePrice: event.target.value }))
+              setForm((value) => ({ ...value, averagePrice: formatPriceInput(event.target.value, isOverseas) }))
             }
           />
         </label>
@@ -1292,7 +1290,7 @@ function LiveView({
   const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
 
   const submitHolding = async (nextDraft: HoldingDraft) => {
-    if (Number(nextDraft.shares) <= 0 || Number(nextDraft.averagePrice) <= 0) {
+    if (Number(nextDraft.shares) <= 0 || Number(nextDraft.averagePrice.replace(/,/g, '')) <= 0) {
       alert('주식수와 매입가는 0보다 커야 합니다.');
       return;
     }
@@ -1384,7 +1382,7 @@ function LiveView({
             id: row.id,
             query: row.code,
             shares: String(row.shares),
-            averagePrice: String(row.averagePrice),
+            averagePrice: formatPriceInput(String(row.averagePrice), isOverseas),
           })
         }
         onDelete={async (row) => {
@@ -1427,6 +1425,25 @@ function LiveView({
     </div>
   );
 }
+
+const formatPriceInput = (val: string, overseas: boolean): string => {
+  if (!overseas) {
+    const numStr = val.replace(/[^0-9]/g, '');
+    if (!numStr) return '';
+    return Number(numStr).toLocaleString('ko-KR');
+  }
+  // 해외: 소수점 허용 (USD)
+  const clean = val.replace(/[^0-9.]/g, '');
+  const dotIdx = clean.indexOf('.');
+  if (dotIdx === -1) {
+    if (!clean) return '';
+    return Number(clean).toLocaleString('ko-KR');
+  }
+  const intStr = clean.slice(0, dotIdx);
+  const decStr = clean.slice(dotIdx); // 점 포함
+  const formatted = intStr ? Number(intStr).toLocaleString('ko-KR') : '';
+  return formatted + decStr;
+};
 
 const formatNumberWithCommas = (val: string | number) => {
   if (val === undefined || val === null || val === '') return '';
