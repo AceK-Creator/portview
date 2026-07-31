@@ -1,110 +1,165 @@
-# PortView — 아빠의 주식 포트폴리오 앱
+# PortView — 가족용 주식 포트폴리오 PWA
 
-> 가족 해커톤에서 바이브코딩으로 만든 개인 주식 포트폴리오 관리 PWA
+> 국내·해외 주식의 잔고, 자산, 배당, 실현손익, 성장 기록을 브라우저에서 관리하는 모바일 우선 웹앱
 
-**현재 버전: Beta v0.9** (2026-07-14)
+**현재 문서 기준:** Beta v0.9 · 2026-07-31
 
----
+## 1분 만에 프로젝트 파악하기
 
-## 앱 소개
-
-국내·해외 주식 보유 현황을 실시간으로 확인하고, 배당·실현손익·자산 성장을 기록·관리하는 **모바일 우선 웹앱**입니다.  
-Vercel에 배포되어 있어 별도 서버 없이 어디서나 접속 가능합니다.
-
----
+- React 19 + TypeScript + Vite로 만든 단일 화면 PWA입니다.
+- 모든 사용자 자산 데이터는 서버 DB가 아니라 **현재 브라우저의 LocalStorage**에 저장됩니다.
+- PIN을 설정하면 전체 데이터가 `crypto-js` AES로 암호화되어 저장됩니다.
+- 국내·해외 계좌는 프로필마다 별도로 관리합니다.
+- 서버는 주식 시세, 시장 지수, 환율, 예상 배당 정보 조회와 브라우저 오류 수집만 담당합니다.
+- 운영 배포는 Vercel을 사용하고, 이 작업공간에서는 `server.js`로 동일 기능을 검증할 수 있습니다.
+- 화면 대부분이 `src/App.tsx` 한 파일에 모여 있어 UI 수정 시 영향 범위를 넓게 확인해야 합니다.
 
 ## 주요 기능
 
-| 기능 | 설명 |
-|------|------|
-| **실시간 현황** | 보유 종목의 현재가·등락·평가금액 자동 조회 (네이버 시세 기반) |
-| **국내·해외 탭** | 국내/해외 계좌 분리 관리, 해외는 USD 기준 + 환율 자동 환산 |
-| **전체 계좌 손익** | 총투입금액, 예수금, 총자산, 수익률 한눈에 확인 |
-| **자산 그래프** | 투입금 기준선 + 평가금액 곡선, 손익 면적 시각화 |
-| **배당 관리** | 종목별 배당 수령 기록 및 누계 합산 |
-| **실현손익 관리** | 매도 후 실현된 손익 기록 |
-| **성장 탭** | 자산 추이·월 배당금 최고기록 등 성장 지표 확인 |
-| **다중 프로필** | PIN 입력 후 프로필 선택 화면, 가족 구성원별 관리 |
-| **시크릿 모드** | 버튼 한 번으로 금액·수익 수치 전체 블러 처리 |
-| **백업·복원** | JSON 파일로 데이터 내보내기/불러오기 |
-| **PWA 설치** | 홈 화면에 추가하여 앱처럼 사용 가능 |
+| 영역 | 기능 |
+| --- | --- |
+| 잔고 | 종목 추가·수정·삭제, 현재가 갱신, 정렬, CSV 가져오기 |
+| 자산 | 투입금·예수금·평가금액·손익·비중 확인 |
+| 배당 | 배당 기록, 예상 배당, 월별 기록, CSV 가져오기 |
+| 손익 | 실현손익 기록·필터·CSV 가져오기 |
+| 성장 | 투자 기간, 자산 추이, 목표 배당, 연도별 최고 기록 |
+| 계좌 | 국내/해외 분리, 해외 USD/KRW 표시 전환 |
+| 프로필 | PIN 해제 후 여러 프로필 선택·추가·이름 변경·삭제 |
+| 데이터 | JSON 백업·복원, PIN 기반 암호화 저장 |
+| 편의 | 시크릿 모드, PWA 설치, 자동 업데이트 |
 
----
+## 기술 구성
 
-## 기술 스택
+| 구분 | 내용 |
+| --- | --- |
+| 프론트엔드 | React 19, TypeScript, Vite |
+| UI | 커스텀 CSS, lucide-react |
+| PWA | vite-plugin-pwa, 커스텀 `public/sw.js` |
+| 저장소 | LocalStorage, crypto-js AES |
+| 로컬 검증 서버 | Express + HTTPS (`server.js`) |
+| 운영 API | Vercel Serverless Functions (`api/`) |
+| 외부 데이터 | 네이버 금융/증권, 해외 배당 조회 시 Yahoo Finance 보조 |
+| 테스트 | Vitest |
 
-- **Frontend:** React 19 + TypeScript + Vite
-- **스타일:** CSS (커스텀, 반응형)
-- **아이콘:** lucide-react
-- **시세 API:** Vercel Serverless Function → 네이버 금융 크롤링
-- **배포:** Vercel (main 브랜치 push 시 자동 반영)
-- **데이터 저장:** 브라우저 LocalStorage (서버 DB 없음)
-- **PWA:** vite-plugin-pwa
+## 핵심 데이터 흐름
 
----
+```text
+App.tsx
+  ├─ api.ts ───────────────> /api/quote, /api/dividend-info
+  ├─ portfolioMath.ts ─────> 보유 종목·계좌 합계 계산
+  └─ storage.ts ───────────> LocalStorage v1/v2 → v3 마이그레이션
+                               └─ PIN 설정 시 v3:enc로 암호화
+
+개발 서버: server.js가 API와 dist 정적 파일을 함께 제공
+운영 배포: api/*.js가 API를, Vercel이 dist를 제공
+```
+
+주의: `server.js`와 `api/quote.js`에는 시세 조회 로직이 각각 구현되어 있습니다. 시세 조회 방식을 수정할 때는 두 경로의 동작이 달라지지 않았는지 함께 확인해야 합니다.
 
 ## 프로젝트 구조
 
-```
-src/
-├── App.tsx          # 메인 UI 컴포넌트 (화면 전체)
-├── api.ts           # 주식 시세 조회 함수
-├── portfolioMath.ts # 수익률·평가금액 등 계산 로직
-├── storage.ts       # LocalStorage 저장·불러오기·백업
-├── types.ts         # TypeScript 타입 정의
-└── styles.css       # 전체 스타일
-
-api/
-└── quote.js         # Vercel Serverless Function (시세 API)
-```
-
----
-
-## 개발 환경 및 Git 푸시 방식
-
-이 프로젝트는 **나니아 서버와 독립적으로 실행**됩니다.  
-서버 환경에서 직접 GitHub에 접근하지 않으며, 아래 방식으로 코드를 푸시합니다.
-
-1. 개발자가 `token.txt` 파일을 프로젝트 루트에 업로드
-2. AI(Claude Code)가 해당 토큰으로 `git push` 실행
-3. 푸시 완료 후 `token.txt` 즉시 삭제
-
-> `token.txt`는 GitHub Personal Access Token을 담은 임시 파일입니다.  
-> 푸시 후 자동 삭제되므로 커밋에 포함되지 않습니다.
-
----
-
-## AI와 함께 개발하는 법
-
-이 앱은 바이브코딩(AI 협업 개발)으로 만들어졌습니다.  
-Claude Code나 ChatGPT에게 이 레포 URL을 알려주고 아래처럼 시작하면 됩니다:
-
-```
-"이 앱은 아빠의 주식 포트폴리오 관리 PWA야.
-GitHub: https://github.com/AceK-Creator/portview
-React + TypeScript + Vite 구조이고,
-데이터는 LocalStorage에 저장돼.
-[원하는 작업 설명]"
+```text
+.
+├── src/
+│   ├── App.tsx                 # 전체 화면, 상태, 사용자 동작
+│   ├── api.ts                  # 프론트엔드 API 클라이언트
+│   ├── errorLogger.ts          # 전역 브라우저 오류 전송
+│   ├── portfolioMath.ts        # 평가금액·수익률·계좌 합계 계산
+│   ├── portfolioMath.test.ts   # 계산 로직 단위 테스트
+│   ├── storage.ts              # 저장, 암호화, 마이그레이션, 백업
+│   ├── styles.css              # 전체 반응형 스타일
+│   └── types.ts                # 공유 타입
+├── api/
+│   ├── quote.js                # Vercel 시세·지수·환율 API
+│   ├── dividend-info.js        # Vercel 예상 배당 API
+│   └── client-error.js         # Vercel 브라우저 오류 수집
+├── public/
+│   └── sw.js                   # PWA Service Worker 원본
+├── 앱설명페이지/               # 별도 정적 소개 페이지
+├── server.js                   # 작업공간 검증용 HTTPS/Express 서버
+├── start_server.sh             # 빌드 후 검증 서버 재시작
+├── vite.config.ts              # 실제 Vite/PWA 설정 원본
+└── vercel.json                 # 운영 빌드·라우팅 설정
 ```
 
----
+`vite.config.js`, `vite.config.d.ts`, `*.tsbuildinfo`, `dist/`는 생성 결과이거나 빌드 산출물입니다. 설정 변경은 `vite.config.ts`에서 시작하세요.
 
-## 개발 이력 (주요 마일스톤)
+## 개발 및 검증
 
-- 기본 포트폴리오 뷰 구현
-- 실시간 시세 자동 조회
-- 배당·실현손익 관리 탭 추가
-- 시크릿 모드 구현 (자산/수익/배당 블러)
-- PWA 설치 지원
-- Vercel 독립 배포 (나니아 서버 의존성 제거)
-- 해외 주식 탭 추가 (USD 기준, 환율 자동 환산)
-- 자산 그래프 추가 (투입금 기준선 + 손익 면적)
-- 다중 프로필 지원 (PIN + 프로필 선택 화면)
-- 성장 탭 추가 (자산 추이, 월 배당금 최고기록)
+```bash
+npm install
+npm test
+npm run build
+npm run lint
+```
 
----
+서버를 포함한 실제 동작 확인은 프로젝트 루트의 `start_server.sh`를 사용합니다. 이 스크립트는 빌드 후 이 프로젝트의 HTTPS 서버를 재시작합니다.
+
+### 2026-07-31 기준 검증 상태
+
+| 명령 | 상태 | 메모 |
+| --- | --- | --- |
+| `npm run build` | 통과 | TypeScript 검사와 Vite/PWA 빌드 성공 |
+| `npm test` | 실패 1건 | `cashRatio` 테스트 기대값이 현재 제품 정의와 불일치 |
+| `npm run lint` | 오류 20, 경고 8 | Node/Service Worker 전역 설정 및 `App.tsx` 규칙 위반 포함 |
+
+현금 비중의 제품 정의는 `예수금 ÷ 자산평가액`입니다. 여기서 자산평가액은 `보유종목 평가금액 + 예수금`이며 현재 구현은 이 정의와 일치합니다. 실패하는 단위 테스트의 기대값이 오래된 상태입니다.
+
+## 저장 데이터와 백업 주의사항
+
+- 일반 저장 키는 `dad-portfolio-pwa:v3`, 암호화 저장 키는 `dad-portfolio-pwa:v3:enc`입니다.
+- 기존 v1/v2 데이터는 읽을 때 v3의 프로필 구조로 마이그레이션됩니다.
+- PIN은 서버 계정 인증이 아닙니다. 브라우저 안의 데이터를 암호화·해제하는 용도입니다.
+- LocalStorage를 지우거나 다른 브라우저/기기로 이동하면 데이터가 자동 복구되지 않습니다.
+- 데이터 관련 수정 전에는 앱의 JSON 내보내기로 백업하는 것이 안전합니다.
+- 스키마를 바꿀 때는 `types.ts`, `storage.ts`의 마이그레이션, 백업 검증을 함께 수정해야 합니다.
+
+## 디버깅 시작 순서
+
+1. `git status --short --branch`로 미커밋 변경과 원격 차이를 확인합니다.
+2. `browser_errors.log`와 `server.log`의 최신 항목을 확인합니다.
+3. `npm test`, `npm run build`로 기존 기준선과 새 오류를 구분합니다.
+4. UI 버그는 국내/해외 계좌, 여러 프로필, PIN 유무를 함께 확인합니다.
+5. 저장 버그는 LocalStorage 키와 v1/v2/v3 마이그레이션 여부를 확인합니다.
+6. API 버그는 작업공간 서버의 `server.js`와 운영용 `api/` 양쪽을 비교합니다.
+7. PWA 캐시 문제는 `public/sw.js`, 생성된 `dist/sw.js`, 기존 Service Worker 등록 범위를 확인합니다.
+
+### 현재 알려진 점검 항목
+
+- 단위 테스트의 `cashRatio` 기대값이 제품 정의와 불일치
+- 린트 기준선 미정리
+- `server.js`와 `api/quote.js`의 중복 구현으로 인한 동작 불일치 위험
+- 과거 `browser_errors.log`에 `/sw.js`, `/portview/sw.js`의 MIME/갱신 오류 기록 존재
+- `App.tsx`가 약 5천 줄인 단일 대형 컴포넌트라 작은 변경도 회귀 확인 필요
+
+## 버그 제보 메모 양식
+
+다음 방문 때 아래 형식으로 남기면 바로 재현을 시작할 수 있습니다.
+
+```text
+현상:
+재현 순서:
+기대한 결과:
+실제 결과:
+발생 환경: (모바일/PC, 브라우저, 설치형 PWA 여부)
+계좌/화면: (국내/해외, 잔고/자산/배당/손익/성장)
+항상 발생 여부:
+마지막 정상 시점:
+스크린샷 또는 콘솔 오류:
+```
+
+## 최근 주요 변경
+
+- 다중 프로필과 프로필 관리
+- 국내/해외 계좌 및 USD/KRW 전환
+- 자산 성장 그래프와 성장 기록
+- 잔고·배당·실현손익 CSV 가져오기
+- 종목명 클릭으로 보유 종목 수정 팝업 열기
+- 매입가 입력의 3자리 콤마 표시
 
 ## 배포
 
-- **운영 URL:** Vercel 자동 배포 (main 브랜치 push 시 자동 반영)
-- **시세 API:** `api/quote.js` (Vercel Serverless Function)
+- `main` 브랜치 변경은 Vercel 운영 배포 대상으로 사용합니다.
+- 운영 정적 결과는 `dist/`, 서버리스 API는 `api/`에서 생성·실행됩니다.
+- 배포 전 최소 확인 항목은 `npm test`, `npm run build`, 주요 API 응답, PWA 갱신, 백업·복원입니다.
+- 저장 데이터는 배포 서버에 없으므로 새 배포만으로 사용자 LocalStorage 데이터가 이전되거나 복구되지는 않습니다.
