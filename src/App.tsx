@@ -2614,7 +2614,7 @@ function AssetGraph({ weeklySnapshots, currentContribution }: { weeklySnapshots:
   return (
     <div className="growth-graph-card">
       {header}
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
+      <svg className="growth-graph-private secret-value" viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
         <defs>
           {/* 수익 면적: 파란/보라 — asset 면적을 contribution 선 위쪽으로만 클리핑 */}
           <linearGradient id="profitFillGrad" x1="0" y1="0" x2="0" y2="1">
@@ -2760,17 +2760,17 @@ function GrowthSummaryTab({
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">총 투입금</span>
-          <strong className="growth-metric-value">{krw(totalContribution)}</strong>
+          <strong className="growth-metric-value secret-value">{krw(totalContribution)}</strong>
         </div>
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">자산평가액</span>
-          <strong className="growth-metric-value">{krw(totalAssets)}</strong>
+          <strong className="growth-metric-value secret-value">{krw(totalAssets)}</strong>
         </div>
 
         <div className="growth-metric-card growth-metric-full">
           <span className="growth-metric-label">총 수익률</span>
-          <strong className={`growth-return-rate${returnRate > 0 ? ' gain' : returnRate < 0 ? ' loss' : ''}`}>
+          <strong className={`growth-return-rate secret-value${returnRate > 0 ? ' gain' : returnRate < 0 ? ' loss' : ''}`}>
             {returnSign}{returnRate.toFixed(2)}%
           </strong>
         </div>
@@ -2785,12 +2785,12 @@ function GrowthSummaryTab({
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">누적 배당금</span>
-          <strong className="growth-metric-value">{krw(cumulativeDividend)}</strong>
+          <strong className="growth-metric-value secret-value">{krw(cumulativeDividend)}</strong>
         </div>
 
         <div className="growth-metric-card">
           <span className="growth-metric-label">월 배당금{latestMonth && <span className="growth-metric-month">({latestMonth.label})</span>}</span>
-          <strong className="growth-metric-value">{krw(monthlyDividend)}</strong>
+          <strong className="growth-metric-value secret-value">{krw(monthlyDividend)}</strong>
         </div>
 
       </div>
@@ -2805,10 +2805,10 @@ function GrowthSummaryTab({
             <div className="growth-target-title-row">
               <span className="growth-target-title">월 배당금 최고기록</span>
               {bestMonthLabel && (
-                <span className="growth-record-month">{bestMonthLabel}</span>
+                <span className="growth-record-month secret-value">{bestMonthLabel}</span>
               )}
             </div>
-            <span className="growth-record-amount">
+            <span className="growth-record-amount secret-value">
               {bestMonthlyAmount > 0 ? `${Math.round(bestMonthlyAmount).toLocaleString('ko-KR')}원` : '기록 없음'}
             </span>
           </div>
@@ -2829,7 +2829,7 @@ function GrowthSummaryTab({
             <div className="growth-target-title-row">
               <span className="growth-target-title">월 배당금 목표</span>
               <span
-                className="growth-target-goal-amount"
+                className="growth-target-goal-amount secret-value"
                 onClick={() => setShowGoalPopup(true)}
                 style={{ cursor: 'pointer' }}
               >
@@ -2838,7 +2838,7 @@ function GrowthSummaryTab({
             </div>
 
             {/* 가로 바 게이지 */}
-            <div className="growth-bar-wrap">
+            <div className="growth-bar-wrap secret-value">
               <div className="growth-bar-track">
                 <div className="growth-bar-fill" style={{ width: `${targetPercent}%` }} />
               </div>
@@ -2852,7 +2852,7 @@ function GrowthSummaryTab({
               ) : (
                 <>
                   <span className="growth-remaining-label">달성까지</span>
-                  <span className="growth-remaining-amount">
+                  <span className="growth-remaining-amount secret-value">
                     +{goal > 0 ? remaining.toLocaleString('ko-KR') : '—'}원
                   </span>
                 </>
@@ -3070,7 +3070,7 @@ function GrowthRecordsTab({
                   </div>
                   <div className="growth-year-header-right">
                     {!isExpanded && (
-                      <span className="growth-year-preview-value">{krw(record.totalAssets)}</span>
+                      <span className="growth-year-preview-value secret-value">{krw(record.totalAssets)}</span>
                     )}
                     <span className={`growth-year-chevron${isExpanded ? ' open' : ''}`}>›</span>
                   </div>
@@ -3082,25 +3082,25 @@ function GrowthRecordsTab({
                     <div className="growth-year-metrics">
                       <div className="growth-year-metric">
                         <span className="growth-year-metric-label">총 투입금</span>
-                        <span className="growth-year-metric-value">{krw(record.totalContribution)}</span>
+                        <span className="growth-year-metric-value secret-value">{krw(record.totalContribution)}</span>
                       </div>
                       <div className="growth-year-metric">
                         <span className="growth-year-metric-label">자산평가액</span>
-                        <span className="growth-year-metric-value">{krw(record.totalAssets)}</span>
+                        <span className="growth-year-metric-value secret-value">{krw(record.totalAssets)}</span>
                       </div>
                       <div className="growth-year-metric growth-year-metric-full">
                         <span className="growth-year-metric-label">총 수익률</span>
-                        <span className={`growth-year-metric-value${record.returnRate > 0 ? ' gain' : record.returnRate < 0 ? ' loss' : ''}`}>
+                        <span className={`growth-year-metric-value secret-value${record.returnRate > 0 ? ' gain' : record.returnRate < 0 ? ' loss' : ''}`}>
                           {record.returnRate > 0 ? '+' : ''}{record.returnRate.toFixed(2)}%
                         </span>
                       </div>
                       <div className="growth-year-metric">
                         <span className="growth-year-metric-label">누적 배당금</span>
-                        <span className="growth-year-metric-value">{krw(record.cumulativeDividend)}</span>
+                        <span className="growth-year-metric-value secret-value">{krw(record.cumulativeDividend)}</span>
                       </div>
                       <div className="growth-year-metric">
                         <span className="growth-year-metric-label">월 배당금</span>
-                        <span className="growth-year-metric-value">{krw(record.monthlyDividend)}</span>
+                        <span className="growth-year-metric-value secret-value">{krw(record.monthlyDividend)}</span>
                       </div>
                     </div>
                     <div className="growth-year-edit-row">
