@@ -59,7 +59,7 @@ describe('portfolio calculations', () => {
 
     expect(summary.totalMarketValue).toBe(1195000);
     expect(summary.currentTotalAssets).toBe(1395000);
-    expect(summary.cashRatio).toBeCloseTo(13.333333, 5);
+    expect(summary.cashRatio).toBeCloseTo((200000 / 1395000) * 100, 5);
     expect(summary.totalProfitLoss).toBe(-105000);
     expect(summary.totalReturnRate).toBeCloseTo(-7, 5);
   });

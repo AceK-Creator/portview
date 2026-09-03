@@ -49,6 +49,8 @@ export interface DividendInfoResult {
   dps: number | null;
   paymentMonths: number[];
   source: string;
+  recordDate?: string | null;
+  payDate?: string | null;
 }
 
 export async function fetchDividendInfo(

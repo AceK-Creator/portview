@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { FormEvent, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuote, fetchMarketIndex, fetchOverseasIndex, fetchDividendInfo, logClientError, type MarketIndexItem, type OverseasIndexResult } from './api';
+import { calculateNextMonthEstimate } from './dividendEstimate';
 import { calculateAccountSummary, calculateHoldingRows } from './portfolioMath';
 import {
   createBackupBlob,
@@ -3405,6 +3406,7 @@ function DividendView({
 // 세션 동안 예상 배당금 캐시 (컴포넌트 언마운트 후에도 유지, 페이지 새로고침 시 초기화)
 let _estCache: number | null = null;
 let _estCacheKey = '';
+let _estSourceCache = 'none';
 
 // ─── Dividend Summary Tab ─────────────────────────────────────────────────────
 
@@ -3427,57 +3429,61 @@ function DividendSummaryTab({
   const divHash = dividends.reduce((s, d) => s + d.amount, 0);
   const cacheKey = `${isOverseas ? 'o' : 'd'}_${holdings.map(h => `${h.code}:${h.shares}`).join(',')}_${divHash}`;
   const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
+  const [estimatedSource, setEstimatedSource] = useState('none');
   const [estimatedLoading, setEstimatedLoading] = useState(holdings.length > 0);
+  const estimatedSourceLabel = estimatedSource === 'recent-3m-average'
+    ? '최근 3개월 실제 수령액 평균'
+    : estimatedSource === 'etf-explorer'
+      ? 'ETF Explorer 기준'
+      : estimatedSource.endsWith('-official')
+        ? '운용사 최근 확정액 기준'
+        : estimatedSource === 'mixed'
+          ? '운용사·ETF Explorer·최근 수령액 혼합'
+          : '예상 정보 없음';
 
   useEffect(() => {
     if (!holdings || holdings.length === 0) {
       setEstimatedNextMonthTotal(0);
+      setEstimatedSource('none');
       setEstimatedLoading(false);
       return;
     }
     // 캐시 히트: 동일한 보유종목·모드·배당기록이면 재계산 생략
     if (_estCacheKey === cacheKey && _estCache !== null) {
       setEstimatedNextMonthTotal(_estCache);
+      setEstimatedSource(_estSourceCache);
       setEstimatedLoading(false);
       return;
     }
     setEstimatedLoading(true);
     const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
-    const nextMonthDate = new Date();
-    nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
-    const nextMonthNum = nextMonthDate.getMonth() + 1; // 1~12
-
-    // 전년 동월까지 12개월 기간
-    const yearAgo = new Date();
-    yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-
     let cancelled = false;
     Promise.all(
       holdings.map(async (holding) => {
         try {
-          // 최근 12개월 배당 기록에서 배당월 추출
-          const historyMonths = dividends
-            .filter(d => d.stockCode === holding.code && new Date(d.paidAt) >= yearAgo)
-            .map(d => new Date(d.paidAt).getMonth() + 1);
-
-          // 외부 API로 dps + paymentMonths 조회 (국내: etfshopping, 해외: Yahoo)
           const info = await fetchDividendInfo(holding.code, market);
-
-          // 배당월 판단: 기록 OR 외부API 어느 쪽이든 해당되면 인정
-          const isDividendMonth =
-            historyMonths.includes(nextMonthNum) || info.paymentMonths.includes(nextMonthNum);
-          if (!isDividendMonth || !info.dps) return 0;
-          return info.dps * holding.shares;
+          return calculateNextMonthEstimate({
+            code: holding.code,
+            shares: holding.shares,
+            dividends,
+            externalDps: info.dps,
+            externalSource: info.source,
+            asOf: today,
+          });
         } catch {
-          return 0;
+          return calculateNextMonthEstimate({ code: holding.code, shares: holding.shares, dividends, externalDps: null, externalSource: 'error', asOf: today });
         }
       })
-    ).then((amounts) => {
+    ).then((estimates) => {
       if (cancelled) return;
-      const total = amounts.reduce((s, v) => s + v, 0);
+      const total = estimates.reduce((sum, estimate) => sum + (estimate.amount ?? 0), 0);
+      const sources = [...new Set(estimates.filter((estimate) => estimate.amount != null).map((estimate) => estimate.source))];
+      const source = sources.length === 0 ? 'none' : sources.length === 1 ? sources[0] : 'mixed';
       _estCache = total;
       _estCacheKey = cacheKey;
+      _estSourceCache = source;
       setEstimatedNextMonthTotal(total);
+      setEstimatedSource(source);
       setEstimatedLoading(false);
     }).catch(() => {
       if (!cancelled) setEstimatedLoading(false);
@@ -3870,6 +3876,9 @@ function DividendSummaryTab({
               );
             })()}
           </svg>
+          <p style={{ margin: '6px 0 0', color: '#6f89a8', fontSize: 12, textAlign: 'right' }}>
+            다음 달 예상 출처: {estimatedLoading ? '확인 중…' : estimatedSourceLabel}
+          </p>
         </div>
       </div>
 
