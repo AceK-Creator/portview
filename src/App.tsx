@@ -796,22 +796,44 @@ function AppHeader({
           {open && (
             <nav className="dropdown-menu">
               {/* 프로필 표시 + 전환 */}
-              {onSwitchProfile ? (
-                <button
-                  type="button"
-                  className="menu-util-btn menu-profile-btn"
-                  aria-expanded={showProfileSwitch}
-                  onClick={() => setShowProfileSwitch((v) => !v)}
-                >
-                  <ArrowLeftRight size={15} />
-                  <span className="menu-profile-name">{activeProfileName}</span>
-                </button>
-              ) : (
-                <div className="menu-profile-static">
-                  <ArrowLeftRight size={15} />
-                  <span className="menu-profile-name">{activeProfileName}</span>
-                </div>
-              )}
+              <div className="menu-profile-wrap">
+                {onSwitchProfile ? (
+                  <button
+                    type="button"
+                    className="menu-util-btn menu-profile-btn"
+                    aria-expanded={showProfileSwitch}
+                    onClick={() => setShowProfileSwitch((v) => !v)}
+                  >
+                    <ArrowLeftRight size={15} />
+                    <span className="menu-profile-name">{activeProfileName}</span>
+                  </button>
+                ) : (
+                  <div className="menu-profile-static">
+                    <ArrowLeftRight size={15} />
+                    <span className="menu-profile-name">{activeProfileName}</span>
+                  </div>
+                )}
+                {onSwitchProfile && showProfileSwitch && (
+                  <div className="profile-switch-popup" role="menu" aria-label="프로필 전환">
+                    {profiles.filter((profile) => profile.id !== activeProfileId).map((profile) => (
+                      <button
+                        key={profile.id}
+                        type="button"
+                        role="menuitem"
+                        className="profile-switch-option"
+                        onClick={() => {
+                          onSwitchProfile(profile.id);
+                          setShowProfileSwitch(false);
+                          setOpen(false);
+                        }}
+                      >
+                        <ArrowLeftRight size={15} />
+                        <span>{profile.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 className="menu-util-btn"
@@ -863,26 +885,6 @@ function AppHeader({
                 로그아웃
               </button>
             </nav>
-          )}
-          {open && onSwitchProfile && showProfileSwitch && (
-            <div className="profile-switch-popup" role="menu" aria-label="프로필 전환">
-              {profiles.filter((profile) => profile.id !== activeProfileId).map((profile) => (
-                <button
-                  key={profile.id}
-                  type="button"
-                  role="menuitem"
-                  className="profile-switch-option"
-                  onClick={() => {
-                    onSwitchProfile(profile.id);
-                    setShowProfileSwitch(false);
-                    setOpen(false);
-                  }}
-                >
-                  <ArrowLeftRight size={15} />
-                  <span>{profile.name}</span>
-                </button>
-              ))}
-            </div>
           )}
           {showProfileMgmt && (
             <ProfileManagePopup
