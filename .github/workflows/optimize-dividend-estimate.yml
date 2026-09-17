@@ -13,6 +13,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('src/App.tsx')
           s = p.read_text()
 
@@ -29,26 +30,23 @@ jobs:
           s = s.replace(old, new, 1)
 
           start = s.index('  // 다음달 예상 배당금 (세션 캐시 활용)', s.index('function DividendSummaryTab'))
-          end_marker = '''\n  // 누적 배당금\n'''
-          end = s.index(end_marker, start)
-          s = s[:start] + s[end + 1:]
+          end = s.index('  // 누적 배당금', start)
+          s = s[:start] + s[end:]
 
-          old = '''          onOpenAdd={() => setShowAddModal(true)}\n        />'''
-          new = '''          onOpenAdd={() => setShowAddModal(true)}\n          estimatedNextMonthTotal={estimatedNextMonthTotal}\n          estimatedSource={estimatedSource}\n          estimatedLoading={estimatedLoading}\n        />'''
-          if old not in s:
-              raise SystemExit('DividendSummaryTab call not found')
-          s = s.replace(old, new, 1)
+          # DividendSummaryTab is rendered once inside DividendView. Inject props into that call.
+          summary_start = s.index('function DividendView(')
+          call_start = s.index('<DividendSummaryTab', summary_start)
+          call_end = s.index('/>', call_start) + 2
+          call = s[call_start:call_end]
+          if 'estimatedNextMonthTotal=' not in call:
+              insertion = '''\n          estimatedNextMonthTotal={estimatedNextMonthTotal}\n          estimatedSource={estimatedSource}\n          estimatedLoading={estimatedLoading}'''
+              call = call[:-2] + insertion + '\n        />'
+              s = s[:call_start] + call + s[call_end:]
 
           old = '''function DividendView({\n  data,\n  onDataChange,\n}: {\n  data: AppData;\n  onDataChange: (data: AppData) => void;\n}) {'''
           new = '''function DividendView({\n  data,\n  onDataChange,\n  estimatedNextMonthTotal,\n  estimatedSource,\n  estimatedLoading,\n}: {\n  data: AppData;\n  onDataChange: (data: AppData) => void;\n  estimatedNextMonthTotal: number | null;\n  estimatedSource: string;\n  estimatedLoading: boolean;\n}) {'''
           if old not in s:
               raise SystemExit('DividendView signature not found')
-          s = s.replace(old, new, 1)
-
-          old = '''          holdings={data.holdings}\n          onOpenAdd={() => setShowAddModal(true)}\n        />'''
-          new = '''          holdings={data.holdings}\n          onOpenAdd={() => setShowAddModal(true)}\n          estimatedNextMonthTotal={estimatedNextMonthTotal}\n          estimatedSource={estimatedSource}\n          estimatedLoading={estimatedLoading}\n        />'''
-          if old not in s:
-              raise SystemExit('DividendSummaryTab invocation inside DividendView not found')
           s = s.replace(old, new, 1)
 
           old = '''  const [marketRefreshKey, setMarketRefreshKey] = useState(0);\n  const [unlocked, setUnlocked] = useState(false);'''
@@ -58,7 +56,7 @@ jobs:
           s = s.replace(old, new, 1)
 
           anchor = '''  const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);\n\n'''
-          insert = '''  const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);\n\n  // 배당 예상치는 PIN 인증 후 선택된 프로필 기준으로 백그라운드에서 미리 계산한다.\n  // 탭 전환으로 DividendSummaryTab이 마운트/언마운트되어도 재계산하지 않는다.\n  const dividendEstimateKey = useMemo(() => JSON.stringify({\n    profileId: activeProfile.id,\n    accountMode,\n    holdings: data.holdings.map((h) => [h.code, h.shares]),\n    dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),\n  }), [activeProfile.id, accountMode, data.holdings, data.dividends]);\n\n  useEffect(() => {\n    if (!unlocked || !activeProfileId) return;\n    if (data.holdings.length === 0) {\n      setEstimatedNextMonthTotal(0);\n      setEstimatedSource('none');\n      setEstimatedLoading(false);\n      return;\n    }\n\n    let cancelled = false;\n    setEstimatedLoading(true);\n    calculateDividendEstimate(data.holdings, data.dividends ?? [], isOverseas)\n      .then((result) => {\n        if (cancelled) return;\n        setEstimatedNextMonthTotal(result.total);\n        setEstimatedSource(result.source);\n        setEstimatedLoading(false);\n      })\n      .catch(() => {\n        if (!cancelled) setEstimatedLoading(false);\n      });\n\n    return () => { cancelled = true; };\n  // dividendEstimateKey intentionally captures the complete inputs above.\n  // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [unlocked, activeProfileId, dividendEstimateKey]);\n\n'''
+          insert = '''  const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);\n\n  // PIN 인증 후 선택된 프로필의 예상 배당금을 백그라운드에서 미리 계산한다.\n  // 탭 전환으로 DividendView가 마운트/언마운트되어도 계산 결과는 App에서 유지된다.\n  const dividendEstimateKey = useMemo(() => JSON.stringify({\n    profileId: activeProfile.id,\n    accountMode,\n    holdings: data.holdings.map((h) => [h.code, h.shares]),\n    dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),\n  }), [activeProfile.id, accountMode, data.holdings, data.dividends]);\n\n  useEffect(() => {\n    if (!unlocked || !activeProfileId) return;\n    if (data.holdings.length === 0) {\n      setEstimatedNextMonthTotal(0);\n      setEstimatedSource('none');\n      setEstimatedLoading(false);\n      return;\n    }\n\n    let cancelled = false;\n    setEstimatedLoading(true);\n    calculateDividendEstimate(data.holdings, data.dividends ?? [], isOverseas)\n      .then((result) => {\n        if (cancelled) return;\n        setEstimatedNextMonthTotal(result.total);\n        setEstimatedSource(result.source);\n        setEstimatedLoading(false);\n      })\n      .catch(() => {\n        if (!cancelled) setEstimatedLoading(false);\n      });\n\n    return () => { cancelled = true; };\n  // dividendEstimateKey intentionally captures the complete calculation inputs.\n  // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [unlocked, activeProfileId, dividendEstimateKey]);\n\n'''
           if anchor not in s:
               raise SystemExit('App summary anchor not found')
           s = s.replace(anchor, insert, 1)
