@@ -1,0 +1,113 @@
+name: Validate dividend preload patch
+
+on:
+  push:
+    branches: [feat/preload-dividend-estimate]
+
+jobs:
+  patch-and-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply preload integration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('src/App.tsx')
+          s = app.read_text()
+
+          old_import = "import { calculateNextMonthEstimate } from './dividendEstimate';"
+          new_import = "import { calculateDividendEstimate, calculateNextMonthEstimate } from './dividendEstimate';"
+          if old_import not in s:
+              raise SystemExit('App.tsx import anchor not found')
+          s = s.replace(old_import, new_import, 1)
+
+          old_cache = '''// 세션 동안 예상 배당금 캐시 (컴포넌트 언마운트 후에도 유지, 페이지 새로고침 시 초기화)\nlet _estCache: number | null = null;\nlet _estCacheKey = '';\nlet _estSourceCache = 'none';\n\n'''
+          if old_cache not in s:
+              raise SystemExit('old dividend cache block not found')
+          s = s.replace(old_cache, '', 1)
+
+          old_view = '''function DividendView({\n  data,\n  onDataChange,\n}: {\n  data: AppData;\n  onDataChange: (data: AppData) => void;\n}) {'''
+          new_view = '''function DividendView({\n  data,\n  onDataChange,\n  estimatedNextMonthTotal,\n  estimatedSource,\n  estimatedLoading,\n}: {\n  data: AppData;\n  onDataChange: (data: AppData) => void;\n  estimatedNextMonthTotal: number | null;\n  estimatedSource: string;\n  estimatedLoading: boolean;\n}) {'''
+          if old_view not in s:
+              raise SystemExit('DividendView signature anchor not found')
+          s = s.replace(old_view, new_view, 1)
+
+          old_summary_call = '''          dividends={dividends}\n          holdings={data.holdings}\n          onOpenAdd={() => setShowAddModal(true)}\n        />'''
+          new_summary_call = '''          dividends={dividends}\n          holdings={data.holdings}\n          onOpenAdd={() => setShowAddModal(true)}\n          estimatedNextMonthTotal={estimatedNextMonthTotal}\n          estimatedSource={estimatedSource}\n          estimatedLoading={estimatedLoading}\n        />'''
+          if old_summary_call not in s:
+              raise SystemExit('DividendSummaryTab call anchor not found')
+          s = s.replace(old_summary_call, new_summary_call, 1)
+
+          old_summary = '''function DividendSummaryTab({\n  dividends,\n  holdings,\n  onOpenAdd,\n}: {\n  dividends: DividendRecord[];\n  holdings: Holding[];\n  onOpenAdd: () => void;\n}) {'''
+          new_summary = '''function DividendSummaryTab({\n  dividends,\n  holdings,\n  onOpenAdd,\n  estimatedNextMonthTotal,\n  estimatedSource,\n  estimatedLoading,\n}: {\n  dividends: DividendRecord[];\n  holdings: Holding[];\n  onOpenAdd: () => void;\n  estimatedNextMonthTotal: number | null;\n  estimatedSource: string;\n  estimatedLoading: boolean;\n}) {'''
+          if old_summary not in s:
+              raise SystemExit('DividendSummaryTab signature anchor not found')
+          s = s.replace(old_summary, new_summary, 1)
+
+          start_marker = '  // 다음달 예상 배당금 (세션 캐시 활용)'
+          end_marker = '  // 누적 배당금'
+          start = s.index(start_marker, s.index('function DividendSummaryTab'))
+          end = s.index(end_marker, start)
+          s = s[:start] + s[end:]
+
+          old_app_state = '''  const [marketRefreshKey, setMarketRefreshKey] = useState(0);\n  const [unlocked, setUnlocked] = useState(false);'''
+          new_app_state = '''  const [marketRefreshKey, setMarketRefreshKey] = useState(0);\n  const [unlocked, setUnlocked] = useState(false);\n  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);\n  const [estimatedSource, setEstimatedSource] = useState('none');\n  const [estimatedLoading, setEstimatedLoading] = useState(false);'''
+          if old_app_state not in s:
+              raise SystemExit('App state anchor not found')
+          s = s.replace(old_app_state, new_app_state, 1)
+
+          old_summary_anchor = '''  const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);\n\n'''
+          new_summary_anchor = '''  const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);\n\n  const dividendEstimateKey = useMemo(() => JSON.stringify({\n    profileId: activeProfile.id,\n    accountMode,\n    holdings: data.holdings.map((h) => [h.code, h.shares]),\n    dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),\n  }), [activeProfile.id, accountMode, data.holdings, data.dividends]);\n\n  useEffect(() => {\n    if (!unlocked || !activeProfileId) return;\n\n    if (data.holdings.length === 0) {\n      setEstimatedNextMonthTotal(0);\n      setEstimatedSource('none');\n      setEstimatedLoading(false);\n      return;\n    }\n\n    let cancelled = false;\n    setEstimatedLoading(true);\n\n    calculateDividendEstimate(\n      data.holdings,\n      data.dividends ?? [],\n      accountMode,\n    ).then((result) => {\n      if (cancelled) return;\n      setEstimatedNextMonthTotal(result.total);\n      setEstimatedSource(result.source);\n      setEstimatedLoading(false);\n    }).catch(() => {\n      if (!cancelled) setEstimatedLoading(false);\n    });\n\n    return () => { cancelled = true; };\n  }, [unlocked, activeProfileId, dividendEstimateKey, accountMode]);\n\n'''
+          if old_summary_anchor not in s:
+              raise SystemExit('App summary anchor not found')
+          s = s.replace(old_summary_anchor, new_summary_anchor, 1)
+
+          old_render = '''      {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}'''
+          new_render = '''      {activeMenu === 'dividend' && (\n        <DividendView\n          data={data}\n          onDataChange={persist}\n          estimatedNextMonthTotal={estimatedNextMonthTotal}\n          estimatedSource={estimatedSource}\n          estimatedLoading={estimatedLoading}\n        />\n      )}'''
+          if old_render not in s:
+              raise SystemExit('DividendView render anchor not found')
+          s = s.replace(old_render, new_render, 1)
+
+          # The source label belongs to the summary component and must survive removal of the old calculation effect.
+          source_anchor = '''  const totalReceived = dividends.reduce((sum, d) => sum + d.amount, 0);'''
+          source_insert = '''  const totalReceived = dividends.reduce((sum, d) => sum + d.amount, 0);\n  const estimatedSourceLabel = estimatedSource === 'none'\n    ? '예상 불가'\n    : estimatedSource === 'mixed'\n      ? '혼합'\n      : estimatedSource;'''
+          if source_anchor not in s:
+              raise SystemExit('DividendSummaryTab source anchor not found')
+          s = s.replace(source_anchor, source_insert, 1)
+
+          app.write_text(s)
+
+          storage = Path('src/storage.ts')
+          st = storage.read_text()
+          st = st.replace("import { preloadDividendEstimates } from './dividendEstimate';\n", '', 1)
+          st = st.replace('  preloadDividendEstimates(data);\n', '', 1)
+          st = st.replace('    const migrated = migrateToV3(parsed);\n    preloadDividendEstimates(migrated);\n    return migrated;', '    return migrateToV3(parsed);', 1)
+          storage.write_text(st)
+          PY
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit validated patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.tsx src/storage.ts
+          git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
+          git commit -m "perf: preload next-month dividend estimate after unlock"
+          git push
+
+      - name: Remove validation workflow
+        run: |
+          git rm .github/workflows/safe-preload-dividend.yml
+          git commit -m "chore: remove dividend preload validation workflow"
+          git push
