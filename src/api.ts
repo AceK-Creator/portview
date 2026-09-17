@@ -53,17 +53,44 @@ export interface DividendInfoResult {
   payDate?: string | null;
 }
 
+// 배당정보는 로그인 직후 백그라운드에서 미리 조회하고, 배당 탭에서는 같은 세션 캐시를 사용한다.
+const dividendInfoCache = new Map<string, DividendInfoResult>();
+const dividendInfoPending = new Map<string, Promise<DividendInfoResult>>();
+
+export function clearDividendInfoCache(): void {
+  dividendInfoCache.clear();
+  dividendInfoPending.clear();
+}
+
 export async function fetchDividendInfo(
   code: string,
   market: AccountMode
 ): Promise<DividendInfoResult> {
+  const key = `${market}:${code}`;
+  const cached = dividendInfoCache.get(key);
+  if (cached) return cached;
+
+  const pending = dividendInfoPending.get(key);
+  if (pending) return pending;
+
+  const request = (async () => {
+    try {
+      const params = new URLSearchParams({ code, market });
+      const res = await fetch(`${API_BASE}/api/dividend-info?${params}`);
+      if (!res.ok) return { dps: null, paymentMonths: [], source: 'error' };
+      return res.json() as Promise<DividendInfoResult>;
+    } catch {
+      return { dps: null, paymentMonths: [], source: 'error' };
+    }
+  })();
+
+  dividendInfoPending.set(key, request);
   try {
-    const params = new URLSearchParams({ code, market });
-    const res = await fetch(`${API_BASE}/api/dividend-info?${params}`);
-    if (!res.ok) return { dps: null, paymentMonths: [], source: 'error' };
-    return res.json() as Promise<DividendInfoResult>;
-  } catch {
-    return { dps: null, paymentMonths: [], source: 'error' };
+    const result = await request;
+    dividendInfoCache.set(key, result);
+    return result;
+  } finally {
+    dividendInfoPending.delete(key);
   }
 }
 
