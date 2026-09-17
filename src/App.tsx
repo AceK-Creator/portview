@@ -3853,7 +3853,7 @@ function DividendSummaryTab({
             })()}
           </svg>
           <p style={{ margin: '6px 0 0', color: '#6f89a8', fontSize: 12, textAlign: 'right' }}>
-            다음 달 예상 출처: {estimatedLoading ? '확인 중…' : (estimatedSource === 'none' ? '예상 불가' : estimatedSource === 'mixed' ? '혼합' : estimatedSource)}
+            다음 달 예상 출처: {estimatedLoading ? '확인 중…' : (estimatedSource === 'recent-3m-average' ? '최근 3개월 실제 수령액 평균' : estimatedSource === 'etf-explorer' ? 'ETF Explorer 기준' : estimatedSource.endsWith('-official') ? '운용사 최근 확정액 기준' : estimatedSource === 'mixed' ? '운용사·ETF Explorer·최근 수령액 혼합' : '예상 정보 없음')}
           </p>
         </div>
       </div>
