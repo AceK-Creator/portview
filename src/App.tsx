@@ -692,6 +692,7 @@ function AppHeader({
   currencyMode,
   onToggleCurrency,
   activeProfileName,
+  activeProfileId,
   profiles,
   onAddProfile,
   onRenameProfile,
@@ -700,7 +701,7 @@ function AppHeader({
   activeMenu: MenuKey;
   onChangeMenu: (menu: MenuKey) => void;
   onLogout: () => void;
-  onSwitchProfile?: () => void;
+  onSwitchProfile?: (id: string) => void;
   secretMode: boolean;
   onToggleSecret: () => void;
   onExportBackup: () => void;
@@ -710,20 +711,26 @@ function AppHeader({
   currencyMode: CurrencyMode;
   onToggleCurrency: () => void;
   activeProfileName: string;
+  activeProfileId: string;
   profiles: Profile[];
   onAddProfile: (name: string) => void;
   onRenameProfile: (id: string, name: string) => void;
   onDeleteProfile: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [showProfileSwitch, setShowProfileSwitch] = useState(false);
   const [showProfileMgmt, setShowProfileMgmt] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setShowProfileSwitch(false);
+      return;
+    }
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setOpen(false);
+        setShowProfileSwitch(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -790,7 +797,12 @@ function AppHeader({
             <nav className="dropdown-menu">
               {/* 프로필 표시 + 전환 */}
               {onSwitchProfile ? (
-                <button type="button" className="menu-util-btn menu-profile-btn" onClick={() => { setOpen(false); onSwitchProfile(); }}>
+                <button
+                  type="button"
+                  className="menu-util-btn menu-profile-btn"
+                  aria-expanded={showProfileSwitch}
+                  onClick={() => setShowProfileSwitch((v) => !v)}
+                >
                   <ArrowLeftRight size={15} />
                   <span className="menu-profile-name">{activeProfileName}</span>
                 </button>
@@ -851,6 +863,26 @@ function AppHeader({
                 로그아웃
               </button>
             </nav>
+          )}
+          {open && onSwitchProfile && showProfileSwitch && (
+            <div className="profile-switch-popup" role="menu" aria-label="프로필 전환">
+              {profiles.filter((profile) => profile.id !== activeProfileId).map((profile) => (
+                <button
+                  key={profile.id}
+                  type="button"
+                  role="menuitem"
+                  className="profile-switch-option"
+                  onClick={() => {
+                    onSwitchProfile(profile.id);
+                    setShowProfileSwitch(false);
+                    setOpen(false);
+                  }}
+                >
+                  <ArrowLeftRight size={15} />
+                  <span>{profile.name}</span>
+                </button>
+              ))}
+            </div>
           )}
           {showProfileMgmt && (
             <ProfileManagePopup
@@ -4976,7 +5008,7 @@ export default function App() {
         activeMenu={activeMenu}
         onChangeMenu={setActiveMenu}
         onLogout={() => { setUnlocked(false); setActiveProfileId(null); }}
-        onSwitchProfile={profiles.length > 1 ? () => setActiveProfileId(null) : undefined}
+        onSwitchProfile={profiles.length > 1 ? (id) => setActiveProfileId(id) : undefined}
         secretMode={secretMode}
         onToggleSecret={() => setSecretMode((v) => !v)}
         onExportBackup={exportBackup}
@@ -4986,6 +5018,7 @@ export default function App() {
         currencyMode={currencyMode}
         onToggleCurrency={() => setCurrencyMode((m) => (m === 'usd' ? 'krw' : 'usd'))}
         activeProfileName={activeProfile.name}
+        activeProfileId={activeProfile.id}
         profiles={profiles}
         onAddProfile={(name) => {
           const newId = String(Date.now());
