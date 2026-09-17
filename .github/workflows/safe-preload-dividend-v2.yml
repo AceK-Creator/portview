@@ -1,0 +1,126 @@
+name: Validate dividend preload patch v2
+
+on:
+  push:
+    branches: [feat/preload-dividend-estimate]
+
+jobs:
+  patch-and-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply preload integration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('src/App.tsx')
+          s = app.read_text()
+
+          def replace_once(old, new, label):
+              global s
+              count = s.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 match, found {count}')
+              s = s.replace(old, new, 1)
+
+          replace_once(
+              "import { calculateNextMonthEstimate } from './dividendEstimate';",
+              "import { calculateDividendEstimate, calculateNextMonthEstimate } from './dividendEstimate';",
+              'App.tsx import',
+          )
+
+          replace_once(
+              '''// 세션 동안 예상 배당금 캐시 (컴포넌트 언마운트 후에도 유지, 페이지 새로고침 시 초기화)\nlet _estCache: number | null = null;\nlet _estCacheKey = '';\nlet _estSourceCache = 'none';\n\n''',
+              '',
+              'old dividend cache',
+          )
+
+          replace_once(
+              '''function DividendView({\n  data,\n  onDataChange,\n}: {\n  data: AppData;\n  onDataChange: (data: AppData) => void;\n}) {''',
+              '''function DividendView({\n  data,\n  onDataChange,\n  estimatedNextMonthTotal,\n  estimatedSource,\n  estimatedLoading,\n}: {\n  data: AppData;\n  onDataChange: (data: AppData) => void;\n  estimatedNextMonthTotal: number | null;\n  estimatedSource: string;\n  estimatedLoading: boolean;\n}) {''',
+              'DividendView signature',
+          )
+
+          replace_once(
+              '''          dividends={dividends}\n          holdings={data.holdings}\n          onOpenAdd={() => setShowAddModal(true)}\n        />''',
+              '''          dividends={dividends}\n          holdings={data.holdings}\n          onOpenAdd={() => setShowAddModal(true)}\n          estimatedNextMonthTotal={estimatedNextMonthTotal}\n          estimatedSource={estimatedSource}\n          estimatedLoading={estimatedLoading}\n        />''',
+              'DividendSummaryTab call',
+          )
+
+          replace_once(
+              '''function DividendSummaryTab({\n  dividends,\n  holdings,\n  onOpenAdd,\n}: {\n  dividends: DividendRecord[];\n  holdings: Holding[];\n  onOpenAdd: () => void;\n}) {''',
+              '''function DividendSummaryTab({\n  dividends,\n  holdings,\n  onOpenAdd,\n  estimatedNextMonthTotal,\n  estimatedSource,\n  estimatedLoading,\n}: {\n  dividends: DividendRecord[];\n  holdings: Holding[];\n  onOpenAdd: () => void;\n  estimatedNextMonthTotal: number | null;\n  estimatedSource: string;\n  estimatedLoading: boolean;\n}) {''',
+              'DividendSummaryTab signature',
+          )
+
+          start_marker = '  // 다음달 예상 배당금 (세션 캐시 활용)'
+          end_marker = '  // 누적 배당금'
+          start = s.index(start_marker, s.index('function DividendSummaryTab'))
+          end = s.index(end_marker, start)
+          s = s[:start] + s[end:]
+
+          replace_once(
+              '''  const [marketRefreshKey, setMarketRefreshKey] = useState(0);\n  const [unlocked, setUnlocked] = useState(false);''',
+              '''  const [marketRefreshKey, setMarketRefreshKey] = useState(0);\n  const [unlocked, setUnlocked] = useState(false);\n  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);\n  const [estimatedSource, setEstimatedSource] = useState('none');\n  const [estimatedLoading, setEstimatedLoading] = useState(false);''',
+              'App state',
+          )
+
+          replace_once(
+              '''  const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);\n\n''',
+              '''  const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);\n\n  const dividendEstimateKey = useMemo(() => JSON.stringify({\n    profileId: activeProfile.id,\n    accountMode,\n    holdings: data.holdings.map((h) => [h.code, h.shares]),\n    dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),\n  }), [activeProfile.id, accountMode, data.holdings, data.dividends]);\n\n  useEffect(() => {\n    if (!unlocked || !activeProfileId) return;\n\n    if (data.holdings.length === 0) {\n      setEstimatedNextMonthTotal(0);\n      setEstimatedSource('none');\n      setEstimatedLoading(false);\n      return;\n    }\n\n    let cancelled = false;\n    setEstimatedLoading(true);\n\n    calculateDividendEstimate(\n      data.holdings,\n      data.dividends ?? [],\n      accountMode,\n    ).then((result) => {\n      if (cancelled) return;\n      setEstimatedNextMonthTotal(result.total);\n      setEstimatedSource(result.source);\n      setEstimatedLoading(false);\n    }).catch(() => {\n      if (!cancelled) setEstimatedLoading(false);\n    });\n\n    return () => { cancelled = true; };\n  }, [unlocked, activeProfileId, dividendEstimateKey, accountMode]);\n\n''',
+              'App preload effect',
+          )
+
+          replace_once(
+              '''      {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}''',
+              '''      {activeMenu === 'dividend' && (\n        <DividendView\n          data={data}\n          onDataChange={persist}\n          estimatedNextMonthTotal={estimatedNextMonthTotal}\n          estimatedSource={estimatedSource}\n          estimatedLoading={estimatedLoading}\n        />\n      )}''',
+              'DividendView render',
+          )
+
+          # Preserve the existing source line without relying on a fragile local variable anchor.
+          label_count = s.count('estimatedSourceLabel')
+          if label_count != 1:
+              raise SystemExit(f'estimatedSourceLabel expected once after preload block removal, found {label_count}')
+          s = s.replace(
+              'estimatedSourceLabel',
+              "(estimatedSource === 'none' ? '예상 불가' : estimatedSource === 'mixed' ? '혼합' : estimatedSource)",
+              1,
+          )
+
+          app.write_text(s)
+
+          storage = Path('src/storage.ts')
+          st = storage.read_text()
+          if "import { preloadDividendEstimates } from './dividendEstimate';" not in st:
+              raise SystemExit('storage preload import not found')
+          st = st.replace("import { preloadDividendEstimates } from './dividendEstimate';\n", '', 1)
+          st = st.replace('  preloadDividendEstimates(data);\n', '', 1)
+          st = st.replace('    const migrated = migrateToV3(parsed);\n    preloadDividendEstimates(migrated);\n    return migrated;', '    return migrateToV3(parsed);', 1)
+          storage.write_text(st)
+          PY
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit validated patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.tsx src/storage.ts
+          git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
+          git commit -m "perf: preload next-month dividend estimate after unlock"
+          git push
+
+      - name: Remove validation workflows
+        run: |
+          git rm .github/workflows/safe-preload-dividend.yml .github/workflows/safe-preload-dividend-v2.yml
+          git commit -m "chore: remove dividend preload validation workflows"
+          git push
