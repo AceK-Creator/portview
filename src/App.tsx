@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { FormEvent, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuote, fetchMarketIndex, fetchOverseasIndex, fetchDividendInfo, logClientError, type MarketIndexItem, type OverseasIndexResult } from './api';
-import { calculateNextMonthEstimate } from './dividendEstimate';
+import { calculateDividendEstimate, calculateNextMonthEstimate } from './dividendEstimate';
 import { calculateAccountSummary, calculateHoldingRows } from './portfolioMath';
 import {
   createBackupBlob,
@@ -3375,9 +3375,15 @@ function DividendAddModal({
 function DividendView({
   data,
   onDataChange,
+  estimatedNextMonthTotal,
+  estimatedSource,
+  estimatedLoading,
 }: {
   data: AppData;
   onDataChange: (data: AppData) => void;
+  estimatedNextMonthTotal: number | null;
+  estimatedSource: string;
+  estimatedLoading: boolean;
 }) {
   const [tab, setTab] = useState<'summary' | 'records'>('summary');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -3414,6 +3420,9 @@ function DividendView({
           dividends={dividends}
           holdings={data.holdings}
           onOpenAdd={() => setShowAddModal(true)}
+          estimatedNextMonthTotal={estimatedNextMonthTotal}
+          estimatedSource={estimatedSource}
+          estimatedLoading={estimatedLoading}
         />
       )}
       {tab === 'records' && (
@@ -3437,94 +3446,27 @@ function DividendView({
   );
 }
 
-// 세션 동안 예상 배당금 캐시 (컴포넌트 언마운트 후에도 유지, 페이지 새로고침 시 초기화)
-let _estCache: number | null = null;
-let _estCacheKey = '';
-let _estSourceCache = 'none';
-
 // ─── Dividend Summary Tab ─────────────────────────────────────────────────────
 
 function DividendSummaryTab({
   dividends,
   holdings,
   onOpenAdd,
+  estimatedNextMonthTotal,
+  estimatedSource,
+  estimatedLoading,
 }: {
   dividends: DividendRecord[];
   holdings: Holding[];
   onOpenAdd: () => void;
+  estimatedNextMonthTotal: number | null;
+  estimatedSource: string;
+  estimatedLoading: boolean;
 }) {
   const { c, sc, isOverseas } = useCurrency();
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
-
-  // 다음달 예상 배당금 (세션 캐시 활용)
-  // cacheKey에 배당기록 수를 포함하여, 기록 추가 시 재계산
-  const divHash = dividends.reduce((s, d) => s + d.amount, 0);
-  const cacheKey = `${isOverseas ? 'o' : 'd'}_${holdings.map(h => `${h.code}:${h.shares}`).join(',')}_${divHash}`;
-  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
-  const [estimatedSource, setEstimatedSource] = useState('none');
-  const [estimatedLoading, setEstimatedLoading] = useState(holdings.length > 0);
-  const estimatedSourceLabel = estimatedSource === 'recent-3m-average'
-    ? '최근 3개월 실제 수령액 평균'
-    : estimatedSource === 'etf-explorer'
-      ? 'ETF Explorer 기준'
-      : estimatedSource.endsWith('-official')
-        ? '운용사 최근 확정액 기준'
-        : estimatedSource === 'mixed'
-          ? '운용사·ETF Explorer·최근 수령액 혼합'
-          : '예상 정보 없음';
-
-  useEffect(() => {
-    if (!holdings || holdings.length === 0) {
-      setEstimatedNextMonthTotal(0);
-      setEstimatedSource('none');
-      setEstimatedLoading(false);
-      return;
-    }
-    // 캐시 히트: 동일한 보유종목·모드·배당기록이면 재계산 생략
-    if (_estCacheKey === cacheKey && _estCache !== null) {
-      setEstimatedNextMonthTotal(_estCache);
-      setEstimatedSource(_estSourceCache);
-      setEstimatedLoading(false);
-      return;
-    }
-    setEstimatedLoading(true);
-    const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
-    let cancelled = false;
-    Promise.all(
-      holdings.map(async (holding) => {
-        try {
-          const info = await fetchDividendInfo(holding.code, market);
-          return calculateNextMonthEstimate({
-            code: holding.code,
-            shares: holding.shares,
-            dividends,
-            externalDps: info.dps,
-            externalSource: info.source,
-            asOf: today,
-          });
-        } catch {
-          return calculateNextMonthEstimate({ code: holding.code, shares: holding.shares, dividends, externalDps: null, externalSource: 'error', asOf: today });
-        }
-      })
-    ).then((estimates) => {
-      if (cancelled) return;
-      const total = estimates.reduce((sum, estimate) => sum + (estimate.amount ?? 0), 0);
-      const sources = [...new Set(estimates.filter((estimate) => estimate.amount != null).map((estimate) => estimate.source))];
-      const source = sources.length === 0 ? 'none' : sources.length === 1 ? sources[0] : 'mixed';
-      _estCache = total;
-      _estCacheKey = cacheKey;
-      _estSourceCache = source;
-      setEstimatedNextMonthTotal(total);
-      setEstimatedSource(source);
-      setEstimatedLoading(false);
-    }).catch(() => {
-      if (!cancelled) setEstimatedLoading(false);
-    });
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey]);
 
   // 누적 배당금
   const totalAll = dividends.reduce((sum, d) => sum + d.amount, 0);
@@ -3911,7 +3853,7 @@ function DividendSummaryTab({
             })()}
           </svg>
           <p style={{ margin: '6px 0 0', color: '#6f89a8', fontSize: 12, textAlign: 'right' }}>
-            다음 달 예상 출처: {estimatedLoading ? '확인 중…' : estimatedSourceLabel}
+            다음 달 예상 출처: {estimatedLoading ? '확인 중…' : (estimatedSource === 'none' ? '예상 불가' : estimatedSource === 'mixed' ? '혼합' : estimatedSource)}
           </p>
         </div>
       </div>
@@ -4779,6 +4721,9 @@ export default function App() {
   const [rateLoading, setRateLoading] = useState(false);
   const [marketRefreshKey, setMarketRefreshKey] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
+  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
+  const [estimatedSource, setEstimatedSource] = useState('none');
+  const [estimatedLoading, setEstimatedLoading] = useState(false);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
@@ -4793,6 +4738,42 @@ export default function App() {
 
   const rows = useMemo(() => calculateHoldingRows(data.holdings), [data.holdings]);
   const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);
+
+  const dividendEstimateKey = useMemo(() => JSON.stringify({
+    profileId: activeProfile.id,
+    accountMode,
+    holdings: data.holdings.map((h) => [h.code, h.shares]),
+    dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),
+  }), [activeProfile.id, accountMode, data.holdings, data.dividends]);
+
+  useEffect(() => {
+    if (!unlocked || !activeProfileId) return;
+
+    if (data.holdings.length === 0) {
+      setEstimatedNextMonthTotal(0);
+      setEstimatedSource('none');
+      setEstimatedLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setEstimatedLoading(true);
+
+    calculateDividendEstimate(
+      data.holdings,
+      data.dividends ?? [],
+      accountMode,
+    ).then((result) => {
+      if (cancelled) return;
+      setEstimatedNextMonthTotal(result.total);
+      setEstimatedSource(result.source);
+      setEstimatedLoading(false);
+    }).catch(() => {
+      if (!cancelled) setEstimatedLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [unlocked, activeProfileId, dividendEstimateKey, accountMode]);
 
   // ─── 일별 스냅샷 자동저장 ──────────────────────────────────────────────────
   const snapshotSavedRef = useRef<{ date: string; mode: AccountMode } | null>(null);
@@ -5064,7 +5045,15 @@ export default function App() {
       {activeMenu === 'account' && (
         <AccountView data={data} summary={summary} onDataChange={persist} rateLoading={rateLoading} onRefreshMarket={() => setMarketRefreshKey((k) => k + 1)} />
       )}
-      {activeMenu === 'dividend' && <DividendView data={data} onDataChange={persist} />}
+      {activeMenu === 'dividend' && (
+        <DividendView
+          data={data}
+          onDataChange={persist}
+          estimatedNextMonthTotal={estimatedNextMonthTotal}
+          estimatedSource={estimatedSource}
+          estimatedLoading={estimatedLoading}
+        />
+      )}
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
       {activeMenu === 'growth' && <GrowthView data={data} summary={summary} onDataChange={persist} />}
       {activeMenu === 'password' && (
