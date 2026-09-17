@@ -1,5 +1,6 @@
 import CryptoJS from 'crypto-js';
 import type { AppData, Profile, RootData } from './types';
+import { preloadDividendEstimates } from './dividendEstimate';
 
 const STORAGE_KEY_V1 = 'dad-portfolio-pwa:v1';
 const STORAGE_KEY_V2 = 'dad-portfolio-pwa:v2';
@@ -18,6 +19,7 @@ export function saveEncrypted(data: RootData, pin: string): void {
   localStorage.removeItem(STORAGE_KEY_V3);
   localStorage.removeItem(STORAGE_KEY_V2);
   localStorage.removeItem(STORAGE_KEY_V1);
+  preloadDividendEstimates(data);
 }
 
 export function loadEncrypted(pin: string): RootData | null {
@@ -28,7 +30,9 @@ export function loadEncrypted(pin: string): RootData | null {
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
     if (!decrypted.startsWith(SENTINEL)) return null;
     const parsed = JSON.parse(decrypted.slice(SENTINEL.length));
-    return migrateToV3(parsed);
+    const migrated = migrateToV3(parsed);
+    preloadDividendEstimates(migrated);
+    return migrated;
   } catch {
     return null;
   }
