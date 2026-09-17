@@ -1,7 +1,8 @@
 name: Optimize dividend estimate timing
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   patch:
