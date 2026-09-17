@@ -1,0 +1,41 @@
+name: Finalize dividend source labels
+
+on:
+  push:
+    branches: [feat/preload-dividend-estimate]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore source label mapping
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/App.tsx')
+          s = p.read_text()
+          old = "다음 달 예상 출처: {estimatedLoading ? '확인 중…' : (estimatedSource === 'none' ? '예상 불가' : estimatedSource === 'mixed' ? '혼합' : estimatedSource)}"
+          new = "다음 달 예상 출처: {estimatedLoading ? '확인 중…' : (estimatedSource === 'recent-3m-average' ? '최근 3개월 실제 수령액 평균' : estimatedSource === 'etf-explorer' ? 'ETF Explorer 기준' : estimatedSource.endsWith('-official') ? '운용사 최근 확정액 기준' : estimatedSource === 'mixed' ? '운용사·ETF Explorer·최근 수령액 혼합' : '예상 정보 없음')}"
+          if s.count(old) != 1:
+              raise SystemExit(f'expected source label expression once, found {s.count(old)}')
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+      - name: Commit validated change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.tsx
+          git commit -m "fix: preserve dividend source labels"
+          git push
+      - name: Remove workflow
+        run: |
+          git rm .github/workflows/finalize-dividend-label.yml
+          git commit -m "chore: remove temporary validation workflow"
+          git push
