@@ -1013,9 +1013,7 @@ input:focus {
   place-items: center;
   min-height: 44px;
   border-right: 1px solid rgba(145, 181, 220, 0.16);
-  position: sticky;
-  left: 0;
-  z-index: 10;
+  position: static;
   background: #0d2543;
 }
 
@@ -1087,9 +1085,7 @@ input:focus {
   gap: 4px;
   padding: 8px 10px;
   border-right: 1px solid rgba(145, 181, 220, 0.14);
-  position: sticky;
-  left: 0;
-  z-index: 10;
+  position: static;
   background: #08182d;
   box-shadow: inset 0 1px 0 rgba(145, 181, 220, 0.22), 2px 0 5px rgba(0, 0, 0, 0.2);
   cursor: pointer;
