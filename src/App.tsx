@@ -4746,8 +4746,10 @@ export default function App() {
     dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),
   }), [activeProfile.id, accountMode, data.holdings, data.dividends]);
 
-  // TEMP DIAGNOSTIC: trace dividend estimate lifecycle.
+  // TEMP DIAGNOSTIC: trace the real dividend estimate lifecycle.
   useEffect(() => {
+    if (!unlocked || !activeProfileId) return;
+
     console.log('[DIVIDEND DEBUG] effect START', {
       unlocked,
       activeProfileId,
@@ -4755,7 +4757,39 @@ export default function App() {
       time: new Date().toISOString(),
     });
 
+    if (data.holdings.length === 0) {
+      setEstimatedNextMonthTotal(0);
+      setEstimatedSource('none');
+      setEstimatedLoading(false);
+      console.log('[DIVIDEND DEBUG] calculation SKIP: no holdings');
+      return;
+    }
+
+    let cancelled = false;
+    setEstimatedLoading(true);
+
+    calculateDividendEstimate(
+      data.holdings,
+      data.dividends ?? [],
+      accountMode,
+    ).then((result) => {
+      console.log('[DIVIDEND DEBUG] calculation DONE', {
+        total: result.total,
+        source: result.source,
+        cancelled,
+        time: new Date().toISOString(),
+      });
+      if (cancelled) return;
+      setEstimatedNextMonthTotal(result.total);
+      setEstimatedSource(result.source);
+      setEstimatedLoading(false);
+    }).catch((error) => {
+      console.log('[DIVIDEND DEBUG] calculation ERROR', error);
+      if (!cancelled) setEstimatedLoading(false);
+    });
+
     return () => {
+      cancelled = true;
       console.log('[DIVIDEND DEBUG] effect CLEANUP', {
         time: new Date().toISOString(),
       });
