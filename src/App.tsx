@@ -4746,10 +4746,21 @@ export default function App() {
     dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),
   }), [activeProfile.id, accountMode, data.holdings, data.dividends]);
 
-  // TEMP DIAGNOSTIC: disable dividend estimate preload to isolate resume flicker.
-  // useEffect(() => {
-  //   ...
-  // }, [unlocked, activeProfileId, dividendEstimateKey, accountMode]);
+  // TEMP DIAGNOSTIC: trace dividend estimate lifecycle.
+  useEffect(() => {
+    console.log('[DIVIDEND DEBUG] effect START', {
+      unlocked,
+      activeProfileId,
+      dividendEstimateKey,
+      time: new Date().toISOString(),
+    });
+
+    return () => {
+      console.log('[DIVIDEND DEBUG] effect CLEANUP', {
+        time: new Date().toISOString(),
+      });
+    };
+  }, [unlocked, activeProfileId, dividendEstimateKey, accountMode]);
 
   // ─── 일별 스냅샷 자동저장 ──────────────────────────────────────────────────
   const snapshotSavedRef = useRef<{ date: string; mode: AccountMode } | null>(null);
