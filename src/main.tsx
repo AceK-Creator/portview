@@ -36,13 +36,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload();
   });
-
-  // 앱이 화면에 보일 때마다 (홈화면에서 열 때 포함) 업데이트 체크
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      navigator.serviceWorker.ready.then(reg => reg.update());
-    }
-  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
