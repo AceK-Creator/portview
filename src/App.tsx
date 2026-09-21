@@ -4746,34 +4746,10 @@ export default function App() {
     dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),
   }), [activeProfile.id, accountMode, data.holdings, data.dividends]);
 
-  useEffect(() => {
-    if (!unlocked || !activeProfileId) return;
-
-    if (data.holdings.length === 0) {
-      setEstimatedNextMonthTotal(0);
-      setEstimatedSource('none');
-      setEstimatedLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setEstimatedLoading(true);
-
-    calculateDividendEstimate(
-      data.holdings,
-      data.dividends ?? [],
-      accountMode,
-    ).then((result) => {
-      if (cancelled) return;
-      setEstimatedNextMonthTotal(result.total);
-      setEstimatedSource(result.source);
-      setEstimatedLoading(false);
-    }).catch(() => {
-      if (!cancelled) setEstimatedLoading(false);
-    });
-
-    return () => { cancelled = true; };
-  }, [unlocked, activeProfileId, dividendEstimateKey, accountMode]);
+  // TEMP DIAGNOSTIC: disable dividend estimate preload to isolate resume flicker.
+  // useEffect(() => {
+  //   ...
+  // }, [unlocked, activeProfileId, dividendEstimateKey, accountMode]);
 
   // ─── 일별 스냅샷 자동저장 ──────────────────────────────────────────────────
   const snapshotSavedRef = useRef<{ date: string; mode: AccountMode } | null>(null);
