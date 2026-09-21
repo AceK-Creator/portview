@@ -1076,6 +1076,7 @@ input:focus {
 
 .holding-row {
   height: 62px;
+  background: #071426;
   box-shadow: inset 0 1px 0 rgba(145, 181, 220, 0.22);
 }
 
