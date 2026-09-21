@@ -981,7 +981,7 @@ input:focus {
 }
 
 .holdings-shell {
-  overflow-x: auto;
+  overflow-x: visible;
   margin-left: -14px;
   margin-right: -14px;
   border-top: 1px solid rgba(145, 181, 220, 0.2);
