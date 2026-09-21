@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { FormEvent, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuote, fetchMarketIndex, fetchOverseasIndex, fetchDividendInfo, logClientError, type MarketIndexItem, type OverseasIndexResult } from './api';
-import { calculateDividendEstimate, calculateNextMonthEstimate } from './dividendEstimate';
+import { calculateDividendEstimate, calculateNextMonthEstimate, preloadDividendEstimates } from './dividendEstimate';
 import { calculateAccountSummary, calculateHoldingRows } from './portfolioMath';
 import {
   createBackupBlob,
@@ -3375,15 +3375,9 @@ function DividendAddModal({
 function DividendView({
   data,
   onDataChange,
-  estimatedNextMonthTotal,
-  estimatedSource,
-  estimatedLoading,
 }: {
   data: AppData;
   onDataChange: (data: AppData) => void;
-  estimatedNextMonthTotal: number | null;
-  estimatedSource: string;
-  estimatedLoading: boolean;
 }) {
   const [tab, setTab] = useState<'summary' | 'records'>('summary');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -3420,9 +3414,6 @@ function DividendView({
           dividends={dividends}
           holdings={data.holdings}
           onOpenAdd={() => setShowAddModal(true)}
-          estimatedNextMonthTotal={estimatedNextMonthTotal}
-          estimatedSource={estimatedSource}
-          estimatedLoading={estimatedLoading}
         />
       )}
       {tab === 'records' && (
@@ -3452,21 +3443,44 @@ function DividendSummaryTab({
   dividends,
   holdings,
   onOpenAdd,
-  estimatedNextMonthTotal,
-  estimatedSource,
-  estimatedLoading,
 }: {
   dividends: DividendRecord[];
   holdings: Holding[];
   onOpenAdd: () => void;
-  estimatedNextMonthTotal: number | null;
-  estimatedSource: string;
-  estimatedLoading: boolean;
 }) {
   const { c, sc, isOverseas } = useCurrency();
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
+
+  // 예상 배당금 상태는 App이 아니라 이 화면에서만 관리한다.
+  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
+  const [estimatedSource, setEstimatedSource] = useState('none');
+  const [estimatedLoading, setEstimatedLoading] = useState(holdings.length > 0);
+
+  useEffect(() => {
+    if (holdings.length === 0) {
+      setEstimatedNextMonthTotal(0);
+      setEstimatedSource('none');
+      setEstimatedLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setEstimatedLoading(true);
+    const market: AccountMode = isOverseas ? 'overseas' : 'domestic';
+
+    calculateDividendEstimate(holdings, dividends, market).then((result) => {
+      if (cancelled) return;
+      setEstimatedNextMonthTotal(result.total);
+      setEstimatedSource(result.source);
+      setEstimatedLoading(false);
+    }).catch(() => {
+      if (!cancelled) setEstimatedLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [holdings, dividends, isOverseas]);
 
   // 누적 배당금
   const totalAll = dividends.reduce((sum, d) => sum + d.amount, 0);
@@ -4721,9 +4735,6 @@ export default function App() {
   const [rateLoading, setRateLoading] = useState(false);
   const [marketRefreshKey, setMarketRefreshKey] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
-  const [estimatedNextMonthTotal, setEstimatedNextMonthTotal] = useState<number | null>(null);
-  const [estimatedSource, setEstimatedSource] = useState('none');
-  const [estimatedLoading, setEstimatedLoading] = useState(false);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<MenuKey>('live');
   const [secretMode, setSecretMode] = useState(false);
@@ -4739,62 +4750,14 @@ export default function App() {
   const rows = useMemo(() => calculateHoldingRows(data.holdings), [data.holdings]);
   const summary = useMemo(() => calculateAccountSummary(rows, data.account), [rows, data.account]);
 
-  const dividendEstimateKey = useMemo(() => JSON.stringify({
-    profileId: activeProfile.id,
-    accountMode,
-    holdings: data.holdings.map((h) => [h.code, h.shares]),
-    dividends: (data.dividends ?? []).map((d) => [d.stockCode, d.paidAt, d.amount]),
-  }), [activeProfile.id, accountMode, data.holdings, data.dividends]);
-
-  // TEMP DIAGNOSTIC: trace the real dividend estimate lifecycle.
+  // 로그인/프로필 선택 시 현재 프로필의 국내·해외 예상 배당금을 백그라운드에서 한 번만 계산한다.
+  // 결과는 모듈 캐시에만 저장하며 App state는 변경하지 않는다.
   useEffect(() => {
     if (!unlocked || !activeProfileId) return;
-
-    console.log('[DIVIDEND DEBUG] effect START', {
-      unlocked,
-      activeProfileId,
-      dividendEstimateKey,
-      time: new Date().toISOString(),
-    });
-
-    if (data.holdings.length === 0) {
-      setEstimatedNextMonthTotal(0);
-      setEstimatedSource('none');
-      setEstimatedLoading(false);
-      console.log('[DIVIDEND DEBUG] calculation SKIP: no holdings');
-      return;
-    }
-
-    let cancelled = false;
-    setEstimatedLoading(true);
-
-    calculateDividendEstimate(
-      data.holdings,
-      data.dividends ?? [],
-      accountMode,
-    ).then((result) => {
-      console.log('[DIVIDEND DEBUG] calculation DONE', {
-        total: result.total,
-        source: result.source,
-        cancelled,
-        time: new Date().toISOString(),
-      });
-      if (cancelled) return;
-      setEstimatedNextMonthTotal(result.total);
-      setEstimatedSource(result.source);
-      setEstimatedLoading(false);
-    }).catch((error) => {
-      console.log('[DIVIDEND DEBUG] calculation ERROR', error);
-      if (!cancelled) setEstimatedLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-      console.log('[DIVIDEND DEBUG] effect CLEANUP', {
-        time: new Date().toISOString(),
-      });
-    };
-  }, [unlocked, activeProfileId, dividendEstimateKey, accountMode]);
+    const profile = profiles.find((p) => p.id === activeProfileId);
+    if (!profile) return;
+    void preloadDividendEstimates({ profiles: [profile] });
+  }, [unlocked, activeProfileId]);
 
   // ─── 일별 스냅샷 자동저장 ──────────────────────────────────────────────────
   const snapshotSavedRef = useRef<{ date: string; mode: AccountMode } | null>(null);
@@ -5070,9 +5033,6 @@ export default function App() {
         <DividendView
           data={data}
           onDataChange={persist}
-          estimatedNextMonthTotal={estimatedNextMonthTotal}
-          estimatedSource={estimatedSource}
-          estimatedLoading={estimatedLoading}
         />
       )}
       {activeMenu === 'realized-gains' && <RealizedGainsView data={data} onDataChange={persist} />}
