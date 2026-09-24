@@ -53,6 +53,11 @@ input {
   font: inherit;
 }
 
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 button {
   cursor: pointer;
 }
@@ -307,10 +312,6 @@ button:disabled {
   user-select: none;
 }
 
-.pin-key:active {
-  background: rgba(255, 255, 255, 0.18);
-  transform: scale(0.92);
-}
 
 .pin-key-del {
   font-size: 18px;
@@ -662,7 +663,6 @@ input:focus {
 }
 
 .menu-group-label:hover,
-.menu-group-label:active,
 .menu-group-label:focus {
   background: transparent;
 }
@@ -1059,9 +1059,6 @@ input:focus {
   background: rgba(145, 181, 220, 0.08);
 }
 
-.sort-header:active {
-  background: rgba(145, 181, 220, 0.16);
-}
 
 .sort-header.sort-active {
   color: #7dd3fc;
@@ -1098,9 +1095,6 @@ input:focus {
 }
 .holding-name:hover {
   background: #0e2240;
-}
-.holding-name:active {
-  background: #162e52;
 }
 
 .holding-name-inner {
@@ -2882,9 +2876,6 @@ label {
   opacity: 0.9;
 }
 
-.growth-target-icon-btn:active {
-  transform: scale(0.95);
-}
 
 .growth-aim-img {
   width: 100%;
