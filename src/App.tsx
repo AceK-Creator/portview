@@ -4969,7 +4969,7 @@ export default function App() {
           }}
         />
       ) : (
-      <main className={`app-shell${secretMode ? ' secret-mode' : ''}`}>
+      <main className={`app-shell${activeMenu === 'live' ? ' live-layout' : ''}${secretMode ? ' secret-mode' : ''}`}>
       <InstallBanner />
       <AppHeader
         activeMenu={activeMenu}
