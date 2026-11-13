@@ -402,16 +402,6 @@ input:focus {
   border-bottom: 1px solid rgba(145, 181, 220, 0.2);
 }
 
-.app-shell.live-layout .holdings-header-viewport {
-  flex: 0 0 auto;
-  overflow: hidden;
-}
-
-.app-shell.live-layout .holdings-header-viewport .metrics-grid,
-.app-shell.live-layout .holdings-header-viewport .action-heading {
-  will-change: transform;
-}
-
 .app-shell.live-layout .holdings-body-vertical {
   flex: 1 1 auto;
   min-height: 0;
@@ -419,13 +409,20 @@ input:focus {
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 110px;
 }
 
 .app-shell.live-layout .holdings-body-horizontal {
   width: 100%;
+  min-height: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
+  padding-bottom: 110px;
+}
+
+.app-shell.live-layout .table-header {
+  position: sticky;
+  top: 0;
+  z-index: 15;
 }
 
 .app-header {
