@@ -361,6 +361,20 @@ input:focus {
   z-index: 2;
 }
 
+/* 잔고 탭은 상단 정보를 고정하고 종목 목록만 내부 스크롤 */
+.app-shell.live-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.app-shell.live-layout > .app-header {
+  flex: 0 0 auto;
+}
+
 
 .app-header {
   position: sticky;
@@ -848,6 +862,11 @@ input:focus {
 /* ─── Live View 범위 Bold 제거 ──────────────────────────────────────────────── */
 
 .live-view {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   padding-top: 20px;
   padding-bottom: 110px;
 }
@@ -981,7 +1000,11 @@ input:focus {
 }
 
 .holdings-shell {
-  overflow-x: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   margin-left: -14px;
   margin-right: -14px;
   border-top: 1px solid rgba(145, 181, 220, 0.2);
@@ -1001,6 +1024,9 @@ input:focus {
 }
 
 .table-header {
+  position: sticky;
+  top: 0;
+  z-index: 12;
   color: #8ba8c8;
   background: #0d2543;
   font-size: 12px;
