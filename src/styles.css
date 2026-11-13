@@ -13,7 +13,6 @@ html {
   overscroll-behavior: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  touch-action: pan-y;
 }
 
 html::-webkit-scrollbar,
