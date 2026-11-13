@@ -1064,6 +1064,11 @@ function HoldingTable({
   const { c, sc } = useCurrency();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>(null);
+  const headerViewportRef = useRef<HTMLDivElement>(null);
+
+  function syncHeaderScroll(event: React.UIEvent<HTMLDivElement>) {
+    if (headerViewportRef.current) headerViewportRef.current.scrollLeft = event.currentTarget.scrollLeft;
+  }
 
   function handleSort(key: SortKey) {
     if (sortKey !== key) {
@@ -1114,8 +1119,9 @@ function HoldingTable({
 
   return (
     <section className="holdings-shell" aria-label="보유종목 표">
-      <div className="holdings-table">
-        <div className="table-header">
+      <div className="holdings-header-viewport" ref={headerViewportRef} aria-hidden="true">
+        <div className="holdings-table">
+          <div className="table-header">
           <div className="name-heading">종목명</div>
           <div className="metrics-grid">
             <SortHeader label="잔고수량" colKey="shares" />
@@ -1129,9 +1135,14 @@ function HoldingTable({
             <SortHeader label="평가금액" colKey="marketValue" />
             <SortHeader label="등락률" colKey="changeRate" />
           </div>
-          <div className="action-heading">관리</div>
+            <div className="action-heading">관리</div>
+          </div>
         </div>
-        {sortedRows.map((row) => (
+      </div>
+      <div className="holdings-body-vertical">
+        <div className="holdings-body-horizontal" onScroll={syncHeaderScroll}>
+          <div className="holdings-table">
+            {sortedRows.map((row) => (
           <article className="holding-row" key={row.id}>
             <div className="holding-name" role="button" tabIndex={0} aria-label={`${row.name} 수정`} onClick={() => onEdit(row)} onKeyDown={(e) => e.key === 'Enter' && onEdit(row)}>
               <div className="holding-name-inner">
@@ -1161,7 +1172,9 @@ function HoldingTable({
               </button>
             </div>
           </article>
-        ))}
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
