@@ -393,18 +393,34 @@ input:focus {
 }
 
 .app-shell.live-layout .holdings-shell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border-top: 1px solid rgba(145, 181, 220, 0.2);
+  border-bottom: 1px solid rgba(145, 181, 220, 0.2);
+}
+
+.app-shell.live-layout .holdings-header-viewport {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.app-shell.live-layout .holdings-body-vertical {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 110px;
 }
 
-.app-shell.live-layout .table-header {
-  position: sticky;
-  top: 0;
-  z-index: 12;
+.app-shell.live-layout .holdings-body-horizontal {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .app-header {
@@ -1031,6 +1047,18 @@ input:focus {
   margin-right: -14px;
   border-top: 1px solid rgba(145, 181, 220, 0.2);
   border-bottom: 1px solid rgba(145, 181, 220, 0.2);
+}
+
+.holdings-header-viewport {
+  width: 100%;
+}
+
+.holdings-body-vertical {
+  min-width: 0;
+}
+
+.holdings-body-horizontal {
+  min-width: 0;
 }
 
 .holdings-table {
