@@ -1064,14 +1064,6 @@ function HoldingTable({
   const { c, sc } = useCurrency();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>(null);
-  const headerMetricsRef = useRef<HTMLDivElement>(null);
-  const headerActionRef = useRef<HTMLDivElement>(null);
-  function syncHeaderScroll(event: React.UIEvent<HTMLDivElement>) {
-    const offset = -event.currentTarget.scrollLeft;
-    const transform = `translate3d(${offset}px, 0, 0)`;
-    if (headerMetricsRef.current) headerMetricsRef.current.style.transform = transform;
-    if (headerActionRef.current) headerActionRef.current.style.transform = transform;
-  }
 
   function handleSort(key: SortKey) {
     if (sortKey !== key) {
@@ -1122,59 +1114,55 @@ function HoldingTable({
 
   return (
     <section className="holdings-shell" aria-label="보유종목 표">
-      <div className="holdings-header-viewport">
-        <div className="holdings-table">
-          <div className="table-header">
-          <div className="name-heading">종목명</div>
-          <div className="metrics-grid" ref={headerMetricsRef}>
-            <SortHeader label="잔고수량" colKey="shares" />
-            <SortHeader label="매입가" colKey="averagePrice" />
-            <SortHeader label="평가손익" colKey="profitLoss" />
-            <SortHeader label="매입금액" colKey="investedAmount" />
-            <SortHeader label="대비" colKey="change" />
-            <SortHeader label="보유비중" colKey="weight" />
-            <SortHeader label="현재가" colKey="currentPrice" />
-            <SortHeader label="수익률" colKey="returnRate" />
-            <SortHeader label="평가금액" colKey="marketValue" />
-            <SortHeader label="등락률" colKey="changeRate" />
-          </div>
-            <div className="action-heading" ref={headerActionRef}>관리</div>
-          </div>
-        </div>
-      </div>
       <div className="holdings-body-vertical">
-        <div className="holdings-body-horizontal" onScroll={syncHeaderScroll}>
+        <div className="holdings-body-horizontal">
           <div className="holdings-table">
-            {sortedRows.map((row) => (
-          <article className="holding-row" key={row.id}>
-            <div className="holding-name" role="button" tabIndex={0} aria-label={`${row.name} 수정`} onClick={() => onEdit(row)} onKeyDown={(e) => e.key === 'Enter' && onEdit(row)}>
-              <div className="holding-name-inner">
-                <strong>{row.name}</strong>
-                <Pencil size={11} className="holding-name-edit-icon" />
+            <div className="table-header">
+              <div className="name-heading">종목명</div>
+              <div className="metrics-grid">
+                <SortHeader label="잔고수량" colKey="shares" />
+                <SortHeader label="매입가" colKey="averagePrice" />
+                <SortHeader label="평가손익" colKey="profitLoss" />
+                <SortHeader label="매입금액" colKey="investedAmount" />
+                <SortHeader label="대비" colKey="change" />
+                <SortHeader label="보유비중" colKey="weight" />
+                <SortHeader label="현재가" colKey="currentPrice" />
+                <SortHeader label="수익률" colKey="returnRate" />
+                <SortHeader label="평가금액" colKey="marketValue" />
+                <SortHeader label="등락률" colKey="changeRate" />
               </div>
-              {row.quoteError && <em>{row.quoteError}</em>}
+              <div className="action-heading">관리</div>
             </div>
-            <div className="metrics-grid">
-              <div><span className="secret-value">{numberText(row.shares, '주')}</span></div>
-              <div><span className="secret-value">{c(row.averagePrice)}</span></div>
-              <div className={tone(row.profitLoss)}><span className="secret-value">{sc(row.profitLoss)}</span></div>
-              <div><span className="secret-value">{c(row.investedAmount)}</span></div>
-              <div className={row.change != null ? tone(row.change) : ''}>{row.change != null ? sc(row.change) : '-'}</div>
-              <div><span className="secret-value">{plainPercent(row.weight)}</span></div>
-              <div>{c(row.currentPrice)}</div>
-              <div className={tone(row.returnRate)}><span className="secret-value">{percent(row.returnRate)}</span></div>
-              <div><span className="secret-value">{c(row.marketValue)}</span></div>
-              <div className={row.changeRate != null ? tone(row.changeRate) : ''}>{row.changeRate != null ? percent(row.changeRate) : '-'}</div>
-            </div>
-            <div className="row-actions">
-              <button aria-label={`${row.name} 수정`} type="button" onClick={() => onEdit(row)}>
-                <Pencil size={16} />
-              </button>
-              <button aria-label={`${row.name} 삭제`} type="button" onClick={() => onDelete(row)}>
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </article>
+            {sortedRows.map((row) => (
+              <article className="holding-row" key={row.id}>
+                <div className="holding-name" role="button" tabIndex={0} aria-label={`${row.name} 수정`} onClick={() => onEdit(row)} onKeyDown={(e) => e.key === 'Enter' && onEdit(row)}>
+                  <div className="holding-name-inner">
+                    <strong>{row.name}</strong>
+                    <Pencil size={11} className="holding-name-edit-icon" />
+                  </div>
+                  {row.quoteError && <em>{row.quoteError}</em>}
+                </div>
+                <div className="metrics-grid">
+                  <div><span className="secret-value">{numberText(row.shares, '주')}</span></div>
+                  <div><span className="secret-value">{c(row.averagePrice)}</span></div>
+                  <div className={tone(row.profitLoss)}><span className="secret-value">{sc(row.profitLoss)}</span></div>
+                  <div><span className="secret-value">{c(row.investedAmount)}</span></div>
+                  <div className={row.change != null ? tone(row.change) : ''}>{row.change != null ? sc(row.change) : '-'}</div>
+                  <div><span className="secret-value">{plainPercent(row.weight)}</span></div>
+                  <div>{c(row.currentPrice)}</div>
+                  <div className={tone(row.returnRate)}><span className="secret-value">{percent(row.returnRate)}</span></div>
+                  <div><span className="secret-value">{c(row.marketValue)}</span></div>
+                  <div className={row.changeRate != null ? tone(row.changeRate) : ''}>{row.changeRate != null ? percent(row.changeRate) : '-'}</div>
+                </div>
+                <div className="row-actions">
+                  <button aria-label={`${row.name} 수정`} type="button" onClick={() => onEdit(row)}>
+                    <Pencil size={16} />
+                  </button>
+                  <button aria-label={`${row.name} 삭제`} type="button" onClick={() => onDelete(row)}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </article>
             ))}
           </div>
         </div>
