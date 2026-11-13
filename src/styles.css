@@ -397,8 +397,9 @@ input:focus {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: auto;
+  touch-action: pan-y pan-x;
   padding-bottom: 110px;
 }
 
@@ -900,6 +901,7 @@ input:focus {
 
 .market-index-bar {
   position: fixed;
+  pointer-events: none;
   bottom: 0;
   left: 0;
   right: 0;
