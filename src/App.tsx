@@ -1065,6 +1065,59 @@ function HoldingTable({
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>(null);
   const headerViewportRef = useRef<HTMLDivElement>(null);
+  const verticalScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scroller = verticalScrollRef.current;
+    if (!scroller) return;
+
+    let startX = 0;
+    let startY = 0;
+    let startScrollTop = 0;
+    let axis: 'vertical' | 'horizontal' | null = null;
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        axis = null;
+        return;
+      }
+      startX = event.touches[0].clientX;
+      startY = event.touches[0].clientY;
+      startScrollTop = scroller.scrollTop;
+      axis = null;
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const deltaX = event.touches[0].clientX - startX;
+      const deltaY = event.touches[0].clientY - startY;
+
+      if (!axis && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > 6) {
+        axis = Math.abs(deltaY) > Math.abs(deltaX) ? 'vertical' : 'horizontal';
+      }
+
+      if (axis === 'vertical') {
+        event.preventDefault();
+        scroller.scrollTop = startScrollTop - deltaY;
+      }
+    };
+
+    const resetTouch = () => {
+      axis = null;
+    };
+
+    scroller.addEventListener('touchstart', onTouchStart, { passive: true });
+    scroller.addEventListener('touchmove', onTouchMove, { passive: false });
+    scroller.addEventListener('touchend', resetTouch, { passive: true });
+    scroller.addEventListener('touchcancel', resetTouch, { passive: true });
+
+    return () => {
+      scroller.removeEventListener('touchstart', onTouchStart);
+      scroller.removeEventListener('touchmove', onTouchMove);
+      scroller.removeEventListener('touchend', resetTouch);
+      scroller.removeEventListener('touchcancel', resetTouch);
+    };
+  }, []);
 
   function syncHeaderScroll(event: React.UIEvent<HTMLDivElement>) {
     if (headerViewportRef.current) headerViewportRef.current.scrollLeft = event.currentTarget.scrollLeft;
@@ -1139,7 +1192,7 @@ function HoldingTable({
           </div>
         </div>
       </div>
-      <div className="holdings-body-vertical">
+      <div className="holdings-body-vertical" ref={verticalScrollRef}>
         <div className="holdings-body-horizontal" onScroll={syncHeaderScroll}>
           <div className="holdings-table">
             {sortedRows.map((row) => (
