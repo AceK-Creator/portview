@@ -407,6 +407,11 @@ input:focus {
   overflow: hidden;
 }
 
+.app-shell.live-layout .holdings-header-viewport .metrics-grid,
+.app-shell.live-layout .holdings-header-viewport .action-heading {
+  will-change: transform;
+}
+
 .app-shell.live-layout .holdings-body-vertical {
   flex: 1 1 auto;
   min-height: 0;
