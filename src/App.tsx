@@ -1119,7 +1119,7 @@ function HoldingTable({
 
   return (
     <section className="holdings-shell" aria-label="보유종목 표">
-      <div className="holdings-header-viewport" ref={headerViewportRef} aria-hidden="true">
+      <div className="holdings-header-viewport" ref={headerViewportRef}>
         <div className="holdings-table">
           <div className="table-header">
           <div className="name-heading">종목명</div>
