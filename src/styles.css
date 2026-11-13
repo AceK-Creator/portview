@@ -361,6 +361,53 @@ input:focus {
   z-index: 2;
 }
 
+/* 잔고 화면: 상단 요약/조작부는 고정, 보유종목 목록만 스크롤 */
+.app-shell.live-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.app-shell.live-layout > .app-header {
+  position: relative;
+  top: auto;
+  flex: 0 0 auto;
+}
+
+.app-shell.live-layout > .live-view {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 20px;
+  padding-bottom: 0;
+}
+
+.app-shell.live-layout .toolbar,
+.app-shell.live-layout .notice,
+.app-shell.live-layout .live-summary {
+  flex: 0 0 auto;
+}
+
+.app-shell.live-layout .holdings-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 110px;
+}
+
+.app-shell.live-layout .table-header {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+}
+
 .app-header {
   position: sticky;
   top: 0;
