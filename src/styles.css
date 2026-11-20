@@ -405,17 +405,16 @@ input:focus {
 .app-shell.live-layout .holdings-body-vertical {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
-  overscroll-behavior-y: contain;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
 
 .app-shell.live-layout .holdings-body-horizontal {
   width: 100%;
   min-height: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible;
   padding-bottom: 110px;
 }
 
